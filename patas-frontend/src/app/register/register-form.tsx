@@ -25,7 +25,8 @@ export function RegisterForm() {
       setError(error.message ?? "Registration failed");
       return;
     }
-    router.push("/animals");
+    router.replace("/animals");
+    router.refresh();
   }
 
   return (
