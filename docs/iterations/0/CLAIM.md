@@ -43,9 +43,6 @@ Demo steps someone else can follow: [README, publish an animal and see it in the
 | Definition of Done | [DEFINITION_OF_DONE.md](https://github.com/MESW-LES-2627/les-project-group-3/blob/iter-0/docs/process/DEFINITION_OF_DONE.md) |
 | Pull request template | [pull_request_template.md](https://github.com/MESW-LES-2627/les-project-group-3/blob/iter-0/.github/pull_request_template.md) |
 | Engineering rules and AI guidelines | [AGENTS.md](https://github.com/MESW-LES-2627/les-project-group-3/blob/iter-0/AGENTS.md) |
-| Domain Model | [DomainModel.md](https://github.com/MESW-LES-2627/les-project-group-3/blob/iter-0/docs/domain/DomainModel.md) |
-| State Machines | [StateMachines.md](https://github.com/MESW-LES-2627/les-project-group-3/blob/iter-0/docs/domain/StateMachines.md) |
-| Glossary | [Glossary.md](https://github.com/MESW-LES-2627/les-project-group-3/blob/iter-0/docs/domain/Glossary.md) |
 
 ## Known gaps
 
