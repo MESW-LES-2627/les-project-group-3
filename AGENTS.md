@@ -1,76 +1,78 @@
 # AGENTS.md
 
-> **Governança de Engenharia e Diretrizes de Desenvolvimento com IA**  
-> **Contexto:** MESW — Laboratório de Engenharia de Software (2026/27)  
-> **Produto:** Patas — Plataforma Colaborativa de Proteção Animal
+> **Engineering Governance and AI Development Guidelines**
+>
+> **Context:** MESW — Software Engineering Laboratory (2026/27)
+>
+> **Product:** Patas — Collaborative Animal Protection Platform
 
 ---
 
-## 1. Princípios de Relação Humano-Agente & Decisões
+## 1. Human-Agent Relationship and Decision-Making Principles
 
-* **Decisões de Arquitetura Pertencem ao Desenvolvedor:**
-  * O agente **não toma decisões de arquitetura de forma autónoma**.
-  * O agente pode sugerir alternativas arquiteturais, devendo explicitar trade-offs claros (acoplamento, coesão, testabilidade, manutenibilidade) e aguardar aprovação explícita antes de avançar.
-* **Obrigatoriedade de Explicação Didática ("The Room Wins"):**
-  * Qualquer membro da equipa pode ser chamado para defender o código individualmente na avaliação presencial.
-  * Todo o código gerado pelo agente deve ser explicado de forma clara ao desenvolvedor (exceto alterações mecânicas triviais). Se a equipa não compreender o código gerado, esse código não entra no repositório.
-* **Rastreabilidade e AI Log:**
-  * O uso de IA deve ser auditável e documentado.
-  * Qualquer alucinação, proposta incorreta ou falha do agente que exija intervenção e correção humana deve ser sinalizada para registo no `CLAIM.md` da respetiva iteração.
-
----
-
-## 2. Paradigma de Modelação & Padrões de Desenho
-
-* **Orientação a Objetos Obrigatória:**
-  * Todo o desenho do sistema deve seguir princípios estritos de Orientação a Objetos (OOP).
-  * Encapsulamento de estado, polimorfismo, separação clara de responsabilidades (SRP) e modelos ricos de domínio.
-  * Proibido o uso de modelos anémicos com lógica procedural dispersa em serviços quando o domínio deve encapsular os seus próprios invariantes.
-* **Aplicação Deliberada de Design Patterns:**
-  * Usar padrões clássicos (GoF) sempre que houver justificação funcional concreta:
-    * **Strategy:** Para algoritmos intercambiáveis de cálculo de afinidade no *Matchmaker* e políticas de triagem.
-    * **Factory / Abstract Factory:** Para instanciação controlada de agregados complexos e tipos de acolhimento.
-    * **State:** Para máquinas de estados finitos formais do ciclo de vida do animal e do *Adoption Tracker*.
-    * **Observer:** Para eventos de domínio e notificações desacopladas perante transições de estado.
-  * Proibido o *overengineering*: cada padrão introduzido deve resolver um problema concreto de extensibilidade ou acoplamento.
+* **Architecture Decisions Belong to the Developer:**
+  * The agent **must not make architectural decisions autonomously**.
+  * The agent may suggest architectural alternatives, but must clearly explain the trade-offs (coupling, cohesion, testability, maintainability) and wait for explicit approval before proceeding.
+* **Required Educational Explanation ("The Room Wins"):**
+  * Any team member may be asked to individually defend the code during the in-person evaluation.
+  * All agent-generated code must be clearly explained to the developer (except for trivial mechanical changes). If the team does not understand the generated code, it must not be added to the repository.
+* **Traceability and AI Log:**
+  * The use of AI must be auditable and documented.
+  * Any hallucination, incorrect proposal, or agent failure that requires human intervention and correction must be flagged for recording in the `CLAIM.md` for the relevant iteration.
 
 ---
 
-## 3. Estratégia de Testes Focada em Especificações
+## 2. Modeling Paradigm and Design Patterns
+
+* **Object-Oriented Design Is Mandatory:**
+  * All system design must follow strict object-oriented programming (OOP) principles.
+  * Encapsulate state, use polymorphism, maintain a clear separation of responsibilities (SRP), and build rich domain models.
+  * Do not use anemic models with procedural logic scattered across services when the domain should encapsulate its own invariants.
+* **Deliberate Use of Design Patterns:**
+  * Use classic patterns (GoF) whenever there is a concrete functional justification:
+    * **Strategy:** For interchangeable affinity-calculation algorithms in the *Matchmaker* and for triage policies.
+    * **Factory / Abstract Factory:** For controlled instantiation of complex aggregates and foster-care types.
+    * **State:** For formal finite state machines governing the animal lifecycle and the *Adoption Tracker*.
+    * **Observer:** For domain events and notifications decoupled from state transitions.
+  * Avoid *overengineering*: each pattern introduced must solve a concrete extensibility or coupling problem.
+
+---
+
+## 3. Specification-Focused Testing Strategy
 
 * **Specification-Driven Testing:**
-  * Os testes devem verificar contratos de especificação, invariantes de domínio e regras de negócio concretas.
-  * Proibido criar testes inflacionados apenas para aumentar contagens brutas ou métricas vazias de cobertura.
-* **Capacidade de Falha Real:**
-  * Todo o teste deve ser capaz de quebrar perante uma regressão real do comportamento esperado. Evitar testes assentes exclusivamente em mocks da implementação interna.
-* **Fatias Verticais Funcionais (Vertical Slices):**
-  * O código e os testes devem validar fatias verticais que executam da entrada do utilizador até à camada de persistência.
+  * Tests must verify specification contracts, domain invariants, and concrete business rules.
+  * Do not inflate the test suite merely to increase raw test counts or meaningless coverage metrics.
+* **Ability to Catch Real Failures:**
+  * Every test must be capable of failing when the expected behavior regresses. Avoid tests based exclusively on mocks of internal implementation details.
+* **Functional Vertical Slices:**
+  * Code and tests must validate vertical slices that run from user input through to the persistence layer.
 
 ---
 
-## 4. Qualidade, Ferramentas e Linters
+## 4. Quality, Tooling, and Linters
 
-* **Conformidade Obrigatória com Linters e Formatadores:**
-  * Todo o código deve passar nos linters e ferramentas estáticas configuradas no projeto sem avisos (*warnings*) pendentes.
-  * Proibido suprimir regras de análise estática sem justificação técnica fundamentada.
-* **Automação e Integração Contínua (CI):**
-  * A suíte de testes de especificação e os linters devem passar a 100% no pipeline de CI antes de qualquer merge.
+* **Compliance with Linters and Formatters Is Mandatory:**
+  * All code must pass the project's configured linters and static analysis tools with no outstanding warnings.
+  * Do not suppress static analysis rules without a well-founded technical justification.
+* **Automation and Continuous Integration (CI):**
+  * The specification test suite and linters must pass 100% in the CI pipeline before any merge.
 
 ---
 
-## 5. Regras Proibidas (Red Lines)
+## 5. Prohibited Practices (Red Lines)
 
-1. **Dead Demos:** Proibido desenvolver interfaces isoladas ou maquetes visuais suportadas por dados estáticos sem ligação à lógica e ao modelo de dados.
-2. **Friday Dumps:** Proibido acumular alterações massivas sem histórico incremental de commits. O histórico de versões deve refletir progresso distribuído no tempo.
-3. **Código Opaco / Não Explicado:** Código cuja razão de existir ou funcionamento não seja dominado pelo desenvolvedor não pode ser submetido.
-4. **Violação da Definition of Done:** Nenhuma funcionalidade é dada como concluída se não puder ser executada na tag da respetiva iteração (`iter-N`).
+1. **Dead Demos:** Do not build isolated interfaces or visual mockups backed by static data that are not connected to the logic and data model.
+2. **Friday Dumps:** Do not accumulate massive changes without an incremental commit history. The version history must reflect progress distributed over time.
+3. **Opaque / Unexplained Code:** Code whose purpose or operation is not understood by the developer must not be submitted.
+4. **Violation of the Definition of Done:** A feature is not considered complete if it cannot be run from the tag for its iteration (`iter-N`).
 
-## 6. Comunicação de Negócio e Documentação de Desenho
+## 6. Business Communication and Design Documentation
 
-* **Alinhamento Prévio de Lógica de Negócio (Business Logic):**
-  * Qualquer decisão relevante de lógica de negócio, regras de triagem ou validações de domínio deve ser **obrigatoriamente comunicada e alinhada com a equipa antes de ser decidida ou implementada**.
-  * É estritamente proibido que um desenvolvedor ou agente assuma ou altere fluxos de negócio unilateralmente sem validação coletiva.
-* **Documentação Obrigatória de Decisões de Arquitetura e Modelação:**
-  * Todas as decisões arquiteturais estruturais (padrões adotados, desenho de agregados, contratos de API e modelos de entidades) devem ser formalmente documentadas no repositório (ex.: Architecture Decision Records / ADRs ou notas na documentação técnica).
-  * O objetivo é assegurar transparência, consistência e domínio técnico partilhado por todos os membros da equipa.
+* **Prior Alignment on Business Logic:**
+  * Any significant business logic decision, triage rule, or domain validation must **be communicated to and aligned with the team before it is decided or implemented**.
+  * Developers and agents must not unilaterally assume or change business workflows without team validation.
+* **Architecture and Modeling Decisions Must Be Documented:**
+  * All structural architectural decisions (adopted patterns, aggregate design, API contracts, and entity models) must be formally documented in the repository (e.g., Architecture Decision Records / ADRs or notes in the technical documentation).
+  * The goal is to ensure transparency, consistency, and shared technical understanding across the team.
   
