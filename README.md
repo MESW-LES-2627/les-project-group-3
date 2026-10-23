@@ -172,7 +172,7 @@ production secrets.
 
 ### Demo: publish an animal and see it in the catalog
 
-1. Open <http://localhost:3000>. Visitors land on the public catalog (`/animals`).
+1. Open <https://les-project-group-3-deploy.vercel.app>. Visitors land on the public catalog (`/animals`).
 2. Create an account at `/register`; you are taken back to the catalog, which now
    shows **Publish an animal**.
 3. Publish an animal (name, species, optional age). It appears in the catalog as
