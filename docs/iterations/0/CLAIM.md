@@ -9,8 +9,8 @@ Every link below points at the tag `iter-0`, so nothing needs hunting.
 | :-- | :-- |
 | Tag | [iter-0](https://github.com/MESW-LES-2627/les-project-group-3/tree/iter-0) |
 | Compare with the last tag | First iteration, there is no earlier tag. [Whole history, root commit to `iter-0`](https://github.com/MESW-LES-2627/les-project-group-3/compare/d351ee989d0994d681ae3ee7a82112b6d49183b1...iter-0) |
-| Production | TODO: production URL |
-| Staging | TODO: staging URL, or "none" and why |
+| Production | [les-project-group-3-deploy.vercel.app](https://les-project-group-3-deploy.vercel.app) |
+| Staging | None. Iteration 0 runs a single deployed environment, Production. |
 | Pipeline | [CI status of the tagged commit](https://github.com/MESW-LES-2627/les-project-group-3/commit/iter-0). Workflow: [ci.yml](https://github.com/MESW-LES-2627/les-project-group-3/blob/iter-0/.github/workflows/ci.yml) |
 | MVP | [MVP Vision](https://github.com/MESW-LES-2627/les-project-group-3/blob/iter-0/docs/product/MVPVision.md) |
 | Vision | [Vision](https://github.com/MESW-LES-2627/les-project-group-3/blob/iter-0/docs/product/Vision.md) |
