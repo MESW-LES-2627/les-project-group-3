@@ -241,7 +241,7 @@ These documents still describe the association-based model and must be updated o
 | :-- | :-- |
 | [Vision](Vision.md) | Mark as long-term vision, point to this document; or revise statement, actors, pillars, platform model, prioritization table, out-of-scope. |
 | [DomainModel](../domain/DomainModel.md) | Remove association, staff, wishlist, foster and volunteer elements; add `ownerId`; remove `location` (`Animal` holds one state object); add `Report`. |
-| [StateMachines](../domain/StateMachines.md) | Remove machines 2 (location), 5, 6 and 7; simplify trial; drop location effects from the trial table and from the cross-machine rules and invariants; update the State pattern notes (one state object per animal). |
+| `StateMachines.md` | **Done:** removed and replaced by [AdoptionPipeline](../domain/AdoptionPipeline.md) (proposed). |
 | [PrototypeFlows_Fostering_Donations](PrototypeFlows_Fostering_Donations.md) | Becomes post-MVP reference; MVP flows (publish animal, apply, track, trial) to be written. |
 | [Glossary](../domain/Glossary.md) | Remove association terms; add owner, report. |
 | [DatabaseDesignDecisions](../architecture/DatabaseDesignDecisions.md) and `database/create.sql` | Remove association tables; `animals.owner_id` references `users`; drop the `location` column if present; add reports. Check every table that references `association_id`. |

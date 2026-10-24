@@ -55,7 +55,7 @@ Full document: [MVP Vision](docs/product/MVPVision.md).
 | Document | What it covers |
 | :-- | :-- |
 | [Domain Model](docs/domain/DomainModel.md) | Aggregates, entities and relationships |
-| [State Machines](docs/domain/StateMachines.md) | Lifecycles and cross-machine rules |
+| [Adoption Pipeline](docs/domain/AdoptionPipeline.md) | Adoption application and animal status lifecycles, chat and handover (proposed) |
 | [Glossary](docs/domain/Glossary.md) | Ubiquitous language used in code and stories |
 
 > The domain documents and the database design still describe the full Vision
