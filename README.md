@@ -17,28 +17,14 @@ unanswered applications.
 
 Full document: [Product Vision](docs/product/Vision.md).
 
-## MVP Vision: what we had to let go
+## MVP
 
-Eight weeks (4 sprints) cannot deliver the full vision, so the MVP pivots to a
-**peer-to-peer adoption marketplace**: any registered user can publish animals they
-need to rehome, and anyone can find and adopt one. We kept what answers the adopter's
-main pains and cut everything that depended on associations.
+The MVP is a **peer-to-peer adoption platform**: anyone can publish an animal for
+adoption, and anyone can find one that fits their home with the **Matchmaker** and adopt
+it through a conversation with the owner, from the first message to the handover, all
+inside the platform. Applicants follow every request in the **Adoption Tracker**.
 
-| Let go | Why | Returns with |
-| :-- | :-- | :-- |
-| Associations: registration, verification, staff roles, data isolation | An animal's owner is now a `User` (MD1–MD3). Abstractions for associations would solve a problem the MVP no longer has, and the later migration is cheap. | Associations increment |
-| Fostering: foster family engine and the animal location state machine | Without fostering, location is fully derived from adoption status. A separate machine would allow contradictory states (MD4). | Fostering increment |
-| Volunteering: walks, operational roster, volunteer hub | Needs associations or facilities to organize shifts. | Volunteering increment |
-| Solidarity wishlist and pledges | Needs the association concept to limit abuse. | Wishlist increment |
-| Trial fee and Stripe payments | The trial stays, approved by the owner, but with no fee. | Trial fee increment |
-| Kanban board for applications | Replaced by a simpler owner's application list. | — |
-
-**What stays:** authentication, public catalog with filters, adoption applications with
-their full state machine, Adoption Tracker, in-app and email notifications, the
-Matchmaker, and the Foster-to-Adopt trial. **New in the MVP:** moderation (reporting
-listings and users), because no organization stands behind a listing anymore.
-
-Full document: [MVP Vision](docs/product/MVPVision.md).
+Full feature list: [MVP](docs/product/MVP.md).
 
 ## Documentation
 
@@ -47,7 +33,7 @@ Full document: [MVP Vision](docs/product/MVPVision.md).
 | Document | What it covers |
 | :-- | :-- |
 | [Vision](docs/product/Vision.md) | Long-term product vision, pillars, actors and state models |
-| [MVP Vision](docs/product/MVPVision.md) | Scope pivot, MVP feature set and sprint plan |
+| [MVP](docs/product/MVP.md) | Features the application will have |
 | [Prototype flows: fostering and donations](docs/product/PrototypeFlows_Fostering_Donations.md) | Happy paths for post-MVP modules |
 
 ### Domain
@@ -57,10 +43,6 @@ Full document: [MVP Vision](docs/product/MVPVision.md).
 | [Domain Model](docs/domain/DomainModel.md) | Aggregates, entities and relationships |
 | [Adoption Pipeline](docs/domain/AdoptionPipeline.md) | Adoption application and animal status lifecycles, chat and handover (proposed) |
 | [Glossary](docs/domain/Glossary.md) | Ubiquitous language used in code and stories |
-
-> The domain documents and the database design still describe the full Vision
-> (associations, fostering). The MVP changes are listed in
-> [MVP Vision §13](docs/product/MVPVision.md#13-impact-on-existing-documents).
 
 ### Architecture
 

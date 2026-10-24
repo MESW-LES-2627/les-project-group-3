@@ -6,7 +6,7 @@
 
 ## 1. Why
 
-* `StateMachines.md` was written for the Vision. The [MVP Vision](../product/MVPVision.md) removed most of its machines (associations, location, fostering, wishlist, verification).
+* `StateMachines.md` was written for the Vision. The [MVP](../product/MVP.md) dropped most of its machines (associations, location, fostering, wishlist, verification).
 * The adoption application (8 states: `Submitted`, `Screening`, `Interview`, `OnHold`, ...) was modelled on a shelter, where staff screen and interview applicants. In the MVP's peer-to-peer marketplace there is no staff. Owner and applicant got to know each other **off the platform**, after contact details were revealed at `Interview`. Chat was deferred.
 * **Goal:** the whole adoption happens inside Patas. The pipeline stays small, and **the conversation is the screening**: the owner gets to know the applicant by talking and seeing photos of the home, not by reading a long form.
 
@@ -80,7 +80,7 @@ stateDiagram-v2
 ```
 
 * `Adopted` is final for the listing in the MVP (D5).
-* There is no location dimension (MVP decision MD4): the animal is with the adopter when it is `InTrial` or `Adopted`.
+* There is no location dimension (see ADR 0004): the animal is with the adopter when it is `InTrial` or `Adopted`.
 
 ## 5. Cross-Aggregate Rules
 
@@ -110,7 +110,7 @@ Each application has exactly **one conversation**. There are no free direct mess
   * *System message*: Matchmaker profile card at the start, status changes, handover confirmations.
 * **Guidelines panel** next to the chat, advisory only, never blocking: suggested questions for the owner (who lives in the home, outdoor space, hours alone, experience), safety tips (meet in a public place first) and the platform rule that **adoption is not a sale**.
 * **Report** on any message, handled by moderation (A7).
-* **Contact details are never shown by the platform.** Everything needed happens in the conversation (answers MVP open question 3).
+* **Contact details are never shown by the platform.** Everything needed happens in the conversation.
 
 ## 7. Photos
 
@@ -151,5 +151,5 @@ The adoption is completed only when **both** sides confirm: the owner ("I handed
 ## 11. Impact on Other Documents
 
 * `StateMachines.md`: **removed** (git history).
-* [MVPVision](../product/MVPVision.md): once agreed, update A4/A5 (application states, tracker), move chat from "Also deferred" to the core scope, close open question 3.
+* [MVP](../product/MVP.md): already lists the chat-based adoption; adjust it if the team changes this proposal.
 * `database/create.sql`: the `application_status` enum is outdated (the file is not authoritative; migrations are).
