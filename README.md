@@ -46,6 +46,7 @@ Full feature list: [MVP](docs/product/MVP.md).
 | Document | What it covers |
 | :-- | :-- |
 | [Architecture Decision Records](docs/architecture/adr/) | One record per structural decision (authentication, deployment, aggregates, API, services) |
+| [OOD deliverables](docs/design/) | Class diagram, component diagram and event storming |
 
 ### Research
 
@@ -61,7 +62,7 @@ Full feature list: [MVP](docs/product/MVP.md).
 | [Definition of Done](docs/process/DEFINITION_OF_DONE.md) | When a story counts as done |
 | [Pull request template](.github/pull_request_template.md) | DoD evidence checklist for every PR |
 | [AGENTS.md](AGENTS.md) | Engineering rules and AI usage guidelines |
-| [Vertical prototype spec](docs/integrations/vertical-prototype/VerticalPrototypeSpec.md) | Iteration 0 slice: publish an animal, see it in the catalog |
+| [Vertical prototype spec](docs/iterations/0/VerticalPrototypeSpec.md) | Iteration 0 slice: publish an animal, see it in the catalog |
 | [Demo steps](#demo-publish-an-animal-and-see-it-in-the-catalog) | How to run the Iteration 0 demo |
 | [CI workflow](.github/workflows/ci.yml) | Linters and tests on every PR |
 

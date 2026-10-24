@@ -5,7 +5,7 @@
 | **Status** | Accepted |
 | **Date** | 2026-10-20 |
 | **Scope** | Backend layering, every router |
-| **Related** | [VerticalPrototypeSpec](../../integrations/vertical-prototype/VerticalPrototypeSpec.md) §3.2, [0004-animal-aggregate](0004-animal-aggregate.md), [0005-fetch-animal-data](0005-fetch-animal-data.md) |
+| **Related** | [VerticalPrototypeSpec](../../iterations/0/VerticalPrototypeSpec.md) §3.2, [0004-animal-aggregate](0004-animal-aggregate.md), [0005-fetch-animal-data](0005-fetch-animal-data.md) |
 
 ## Context
 
