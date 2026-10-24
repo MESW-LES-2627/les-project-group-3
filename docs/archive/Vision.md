@@ -109,7 +109,7 @@
   * **The adopter requests it; the association approves or declines it** for each application.
   * The association may set a **trial-period fee**, paid online through the platform (**Stripe, in test mode**, given the academic context of the project).
   * During the trial, the association follows up on the adaptation through the platform (check-ins, notes, trial end date), minimizing returns after definitive adoption.
-  * The trial has its own lifecycle (`Requested → Approved → Active → Succeeded/Failed`, or `Declined`/`Cancelled`). The application only enters `Trial Period` once the trial is `Active` (approved and, if a fee applies, paid). If the trial is declined or cancelled, the application simply continues in `Interview` (e.g., toward a direct adoption). See [StateMachines](../domain/StateMachines.md).
+  * The trial has its own lifecycle (`Requested → Approved → Active → Succeeded/Failed`, or `Declined`/`Cancelled`). The application only enters `Trial Period` once the trial is `Active` (approved and, if a fee applies, paid). If the trial is declined or cancelled, the application simply continues in `Interview` (e.g., toward a direct adoption). These lifecycles were in `StateMachines.md` (removed; see git history). The MVP pipeline is in [AdoptionPipeline](../domain/AdoptionPipeline.md).
 
 * **Parametric Temporary Fostering Engine (Foster Families):**
   * Volunteer families register their availability with flexible parameters:
@@ -163,7 +163,7 @@
 
 ## 6. State Models
 
-> **Normative source:** the detailed diagrams, transition rules and cross-machine synchronization live in [StateMachines](../domain/StateMachines.md). This section summarizes them.
+> **Normative source:** the detailed diagrams, transition rules and cross-machine synchronization lived in `StateMachines.md` (removed; see git history). This section summarizes them. The MVP adoption pipeline is in [AdoptionPipeline](../domain/AdoptionPipeline.md).
 >
 > **Decision recorded:** the original vision mixed temporary fostering and the adoption trial in a single animal state. Option B below (two independent dimensions) is adopted.
 >
@@ -220,7 +220,7 @@ Closed               : from Submitted, Screening, On Hold (animal adopted by som
 
 ### 6.3 Supporting state machines
 
-Trial Period, Foster Assignment, Pledge and Association Verification are defined in [StateMachines](../domain/StateMachines.md).
+Trial Period, Foster Assignment, Pledge and Association Verification were defined in `StateMachines.md` (removed; see git history).
 
 ---
 
@@ -283,8 +283,8 @@ To ensure success within a 4-Sprint schedule (8 weeks of development), the broad
 | Document | Purpose |
 | :--- | :--- |
 | [Glossary](../domain/Glossary.md) | Ubiquitous Language: exact names used in code and stories |
-| [DomainModel](../domain/DomainModel.md) | Aggregates, entities and relationships |
-| [StateMachines](../domain/StateMachines.md) | Normative lifecycles and cross-machine rules |
+| [DomainModel](DomainModel.md) | Aggregates, entities and relationships |
+| [AdoptionPipeline](../domain/AdoptionPipeline.md) | MVP adoption pipeline and lifecycles (proposed) |
 | [PrototypeFlows_Fostering_Donations](PrototypeFlows_Fostering_Donations.md) | Happy paths for the Fostering and Wishlist prototype |
 
 ---

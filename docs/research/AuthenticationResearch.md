@@ -4,7 +4,7 @@
 > **Context:** MESW — Software Engineering Laboratory (2026/27)  
 > **Product:** Patas — Collaborative Animal Welfare Platform  
 > **Architecture Context:** Next.js (Frontend / BFF) + FastAPI (Backend / Domain Core) + PostgreSQL 16  
-> **Related Documents:** [DomainModel](../domain/DomainModel.md), [DatabaseDesignDecisions](../architecture/DatabaseDesignDecisions.md), [create.sql](../../database/create.sql)
+> **Related Documents:** [DomainModel](../archive/DomainModel.md), [DatabaseDesignDecisions](../archive/DatabaseDesignDecisions.md), [create.sql](../archive/create.sql)
 
 ---
 
@@ -12,7 +12,7 @@
 
 A fundamental rule of modern software engineering and security is: **"Never roll your own authentication or cryptography from scratch"**. Writing custom password hashing, token validation, session management, and credential recovery introduces critical vulnerabilities, high maintenance costs, and zero domain value to the animal protection mission of Patas.
 
-Our relational baseline in [create.sql](../../database/create.sql) intentionally models `patas.users` as a **clean domain profile entity** (`id`, `name`, `email`, `is_platform_admin`), deliberately **omitting credential columns** (such as `password_hash` or `salt`). This decouples identity authentication from domain authorization and allows any hardened third-party identity system to be integrated seamlessly.
+Our relational baseline in [create.sql](../archive/create.sql) intentionally models `patas.users` as a **clean domain profile entity** (`id`, `name`, `email`, `is_platform_admin`), deliberately **omitting credential columns** (such as `password_hash` or `salt`). This decouples identity authentication from domain authorization and allows any hardened third-party identity system to be integrated seamlessly.
 
 With the team transition to **Next.js** (which provides a server-side runtime via Route Handlers, Server Actions, and Middleware), this spike evaluates the three leading architectural options for securing the communication between Next.js, FastAPI, and PostgreSQL.
 
@@ -126,7 +126,7 @@ The Python FastAPI backend remains the single source of truth for all database o
 
 ## 4. Alignment with the Relational Schema (`create.sql`)
 
-Whichever strategy is chosen, the domain schema in [create.sql](../../database/create.sql) remains clean and consistent:
+Whichever strategy is chosen, the domain schema in [create.sql](../archive/create.sql) remains clean and consistent:
 
 1. **Clean Aggregate Root:**  
    `patas.users` requires **zero modification**. It continues to represent the business persona of a citizen:

@@ -3,13 +3,13 @@
 > **Document:** Architecture and Relational Modeling Decision Record
 > **Context:** MESW, Software Engineering Laboratory (2026/27)
 > **Product:** Patas, Collaborative Animal Welfare Platform
-> **Related File:** [create.sql](../../database/create.sql)
+> **Related File:** [create.sql](create.sql)
 
 ---
 
 ## 1. Context and Motivation
 
-The Patas project defined its domain model in [DomainModel](../domain/DomainModel.md) and the lifecycle state machines in [StateMachines](../domain/StateMachines.md), with the terminology fixed in [Glossary](../domain/Glossary.md) and the scope in [Vision](../product/Vision.md).
+The Patas project defined its domain model in [DomainModel](DomainModel.md) and the lifecycle state machines in `StateMachines.md` (removed), with the terminology fixed in [Glossary](../domain/Glossary.md) and the scope in [Vision](Vision.md).
 To support backend API development (FastAPI / SQLAlchemy / Alembic) and maintain compliance with the governance guidelines in [AGENTS](../../AGENTS.md), it was necessary to consolidate, optimize, and critically audit the initial relational database schema (PostgreSQL 16).
 
 This document formalizes the architectural decisions made collaboratively by the team. Decisions 1 to 6 correspond to the initial version of the schema; Decisions 7 to 11 result from the **alignment review** with the corrected version of the domain documents (new states, entities, and rules) and the script validation in a PostgreSQL 16 instance.
@@ -19,7 +19,7 @@ This document formalizes the architectural decisions made collaboratively by the
 ## 2. Architectural Decisions
 
 ### Decision 1: Repositioning and Consolidation of SQL Scripts
-* **Decision:** The `database/` folder was moved outside the backend to reside at the repository root (`/database`), and the previously fragmented scripts (`schema.sql`, `indexes.sql`, `triggers.sql`) were unified into a single canonical and self-sufficient file: [create.sql](../../database/create.sql).
+* **Decision:** The `database/` folder was moved outside the backend to reside at the repository root (`/database`), and the previously fragmented scripts (`schema.sql`, `indexes.sql`, `triggers.sql`) were unified into a single canonical and self-sufficient file: [create.sql](create.sql).
 * **Justification:**
   * Decouples the pure relational specification from the backend framework implementation.
   * Adopts the academic reference pattern (LBAW/FEUP), allowing the complete end-to-end schema to be created in a single sequential execution.
@@ -91,7 +91,7 @@ This document formalizes the architectural decisions made collaboratively by the
 * **Alignment with the Matchmaker:**
   * The free text `description` column accommodates behavioral notes from the shelter without requiring dozens of sparse and rigid columns in the database.
   * An application service layer in the backend (*Write-Time Parser* / NLP) will process this text to feed the *Matchmaker* affinity algorithms.
-* **Complement (alignment review):** The catalog requires filters by size, age, and compatibility (see [Vision](../product/Vision.md), Pillar 1). While `age_in_months`, `size`, `temperament`, and `photos` are explicit relational columns, multi-dimensional compatibility and behavioral criteria are consolidated into an extensible native `compatibility jsonb` column indexed with GIN (see Decision 12).
+* **Complement (alignment review):** The catalog requires filters by size, age, and compatibility (see [Vision](Vision.md), Pillar 1). While `age_in_months`, `size`, `temperament`, and `photos` are explicit relational columns, multi-dimensional compatibility and behavioral criteria are consolidated into an extensible native `compatibility jsonb` column indexed with GIN (see Decision 12).
 
 ---
 
@@ -103,7 +103,7 @@ This document formalizes the architectural decisions made collaboratively by the
 ---
 
 ### Decision 7: Alignment with State Machines
-* **Decision:** Enumerated types and state columns now exactly reflect [StateMachines](../domain/StateMachines.md).
+* **Decision:** Enumerated types and state columns now exactly reflect `StateMachines.md` (removed).
 * **Changes:**
 
 | Element | Change | Origin |
@@ -147,7 +147,7 @@ This document formalizes the architectural decisions made collaboratively by the
 | `medium` | from 50% up to below 100% |
 | `low` | 100% or more (remains listed and accepting pledges until closed) |
 
-* **Open point:** the thresholds (50% and 100%) and the possibility of manual priority are recorded as Decision D6 in [Vision](../product/Vision.md).
+* **Open point:** the thresholds (50% and 100%) and the possibility of manual priority are recorded as Decision D6 in [Vision](Vision.md).
 
 ---
 
@@ -171,7 +171,7 @@ This document formalizes the architectural decisions made collaboratively by the
 * **Decision:** Replace static compatibility boolean columns (`good_with_children`, `good_with_dogs`, `good_with_cats`) on `animals` with an extensible native `compatibility jsonb NOT NULL DEFAULT '{}'::jsonb` column, accompanied by a structural object check constraint (`CHECK (jsonb_typeof(compatibility) = 'object')`) and indexed with a dedicated GIN index using native `jsonb_path_ops`.
 * **Technical Justification:**
   * **Schema Evolution & Migration Independence:** In agile development and ongoing algorithmic tuning, the matching engine continually introduces new behavioral traits (e.g., `needs_yard`, `energy_level`, `barking_tendency`, `experience_needed`, `house_trained`, `good_with_birds`, `time_alone_tolerance`, `bonded_pair`). Modeling these as rigid relational columns forces disruptive database migrations and schema churn at every iteration.
-  * **Rich Domain Model & Value Object Pattern (AGENTS.md Compliance):** In strict Domain-Driven Design and OOP, compatibility is not an independent entity with relational identity; it is a multi-dimensional `CompatibilityProfile` **Value Object** within the `Animal` Aggregate Root (matching `+Compatibility compatibility` in [DomainModel](../domain/DomainModel.md)). Relational identity and state machine dimensions (`adoption_status`, `location`, `association_id`) remain strictly normalized, while the behavioral profile is encapsulated.
+  * **Rich Domain Model & Value Object Pattern (AGENTS.md Compliance):** In strict Domain-Driven Design and OOP, compatibility is not an independent entity with relational identity; it is a multi-dimensional `CompatibilityProfile` **Value Object** within the `Animal` Aggregate Root (matching `+Compatibility compatibility` in [DomainModel](DomainModel.md)). Relational identity and state machine dimensions (`adoption_status`, `location`, `association_id`) remain strictly normalized, while the behavioral profile is encapsulated.
   * **Native PostgreSQL 16 Performance (`jsonb_path_ops` & Containment `@>`):** Both `jsonb` and `jsonb_path_ops` are 100% native PostgreSQL core features requiring zero external extensions. The `jsonb_path_ops` operator class builds compact hash-based GIN index entries that support top-speed containment queries:
     ```sql
     -- Fast index scan for catalog and matching:
@@ -183,7 +183,7 @@ This document formalizes the architectural decisions made collaboratively by the
 
 ## 3. Domain Model and Schema Mapping
 
-| Domain Model ([DomainModel](../domain/DomainModel.md)) | Table |
+| Domain Model ([DomainModel](DomainModel.md)) | Table |
 | :--- | :--- |
 | `User` | `users` |
 | `MatchmakerProfile` | `matchmaker_profiles` |
@@ -220,8 +220,8 @@ These rules are **not** in the schema, as they depend on context that the RDBMS 
 
 ## 5. Current State of Files
 
-* Executable master script: [create.sql](../../database/create.sql)
-* Conceptual domain document: [DomainModel](../domain/DomainModel.md)
-* Lifecycle and state machines: [StateMachines](../domain/StateMachines.md)
+* Executable master script: [create.sql](create.sql)
+* Conceptual domain document: [DomainModel](DomainModel.md)
+* Lifecycle and state machines: `StateMachines.md` (removed)
 * Terminology: [Glossary](../domain/Glossary.md)
-* Vision and open decisions: [Vision](../product/Vision.md)
+* Vision and open decisions: [Vision](Vision.md)

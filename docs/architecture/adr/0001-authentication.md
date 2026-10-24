@@ -5,7 +5,7 @@
 | **Status** | Accepted |
 | **Date** | 2026-10-16 |
 | **Scope** | F1 (authentication), vertical prototype |
-| **Related** | [AuthenticationResearch](../../research/AuthenticationResearch.md), [VerticalPrototypeSpec](../../integrations/vertical-prototype/VerticalPrototypeSpec.md) |
+| **Related** | [AuthenticationResearch](../../research/AuthenticationResearch.md), [VerticalPrototypeSpec](../../iterations/0/VerticalPrototypeSpec.md) |
 
 ## Context
 

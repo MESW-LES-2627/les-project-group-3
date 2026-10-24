@@ -5,13 +5,13 @@
 | **Status** | Accepted |
 | **Date** | 2026-10-17 |
 | **Scope** | A1 (create) and A2 (list), vertical prototype |
-| **Related** | [MVPVision](../../product/MVPVision.md), [VerticalPrototypeSpec](../../integrations/vertical-prototype/VerticalPrototypeSpec.md), ADR 0001 |
+| **Related** | [MVPVision](https://github.com/MESW-LES-2627/les-project-group-3/blob/iter-0/docs/product/MVPVision.md), [VerticalPrototypeSpec](../../integrations/vertical-prototype/VerticalPrototypeSpec.md), ADR 0001 |
 
 ## Context
 
 The MVP is a peer-to-peer marketplace: any registered user publishes animals
-(MVPVision MD1, MD2, MD4). `database/create.sql`, [DomainModel](../../domain/DomainModel.md) and
-[StateMachines](../../domain/StateMachines.md) still describe the association model and the location state,
+(MVPVision MD1, MD2, MD4). `database/create.sql`, [DomainModel](../../archive/DomainModel.md) and
+[StateMachines](https://github.com/MESW-LES-2627/les-project-group-3/blob/iter-0/docs/domain/StateMachines.md) still describe the association model and the location state,
 so the `animals` table is defined by Alembic (migration `0003`), not by `create.sql`.
 
 ## Decisions
@@ -52,7 +52,7 @@ so the `animals` table is defined by Alembic (migration `0003`), not by `create.
 * (+) `owner_id` makes "my animals" (A1) a simple `WHERE` later.
 * (-) Native enums need a `CAST` in the raw SQL, and adding a value needs
   `ALTER TYPE ... ADD VALUE`.
-* (-) `create.sql`, [DomainModel](../../domain/DomainModel.md) and [StateMachines](../../domain/StateMachines.md) still describe the
+* (-) `create.sql`, [DomainModel](../../archive/DomainModel.md) and [StateMachines](https://github.com/MESW-LES-2627/les-project-group-3/blob/iter-0/docs/domain/StateMachines.md) still describe the
   association model; reconciling them is a separate task.
 * (-) Until the State pattern lands, nothing prevents an invalid status change,
   which is acceptable because nothing changes the status yet.

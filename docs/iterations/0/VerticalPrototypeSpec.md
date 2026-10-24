@@ -5,7 +5,7 @@
 | **Project** | Patas: Collaborative Animal Welfare Platform |
 | **Context** | MESW, Software Engineering Laboratory (2026/27), Integration 0 sprint review |
 | **Status** | Implemented in iteration 0; the two decisions in §7 are resolved in [ADR 0001](../../architecture/adr/0001-authentication.md) and [ADR 0004](../../architecture/adr/0004-animal-aggregate.md) |
-| **Related documents** | [MVPVision](../../product/MVPVision.md) (A1, A2), [AuthenticationResearch](../../research/AuthenticationResearch.md), [DEFINITION_OF_DONE](../../process/DEFINITION_OF_DONE.md), [DatabaseDesignDecisions](../../architecture/DatabaseDesignDecisions.md) |
+| **Related documents** | [MVPVision](https://github.com/MESW-LES-2627/les-project-group-3/blob/iter-0/docs/product/MVPVision.md) (A1, A2), [AuthenticationResearch](../../research/AuthenticationResearch.md), [DEFINITION_OF_DONE](../../process/DEFINITION_OF_DONE.md), [DatabaseDesignDecisions](../../archive/DatabaseDesignDecisions.md) |
 
 ---
 
@@ -75,7 +75,7 @@ Layers: **router → application service → domain → repository**.
 
 ### 3.3 Database
 
-An Alembic migration creates only what the slice needs: `users` and `animals` (with `owner_id` referencing `users`, per decisions MD1 and MD2 of [MVPVision](../../product/MVPVision.md)). The status column uses the existing `adoption_status` values.
+An Alembic migration creates only what the slice needs: `users` and `animals` (with `owner_id` referencing `users`, per decisions MD1 and MD2 of [MVPVision](https://github.com/MESW-LES-2627/les-project-group-3/blob/iter-0/docs/product/MVPVision.md)). The status column uses the existing `adoption_status` values.
 
 ## 4. Test Strategy (DoD #3)
 
@@ -110,5 +110,5 @@ Both are structural decisions and need an ADR (`AGENTS.md` §6, DoD #7).
 
 ## 8. Known Gaps
 
-* [MVPVision](../../product/MVPVision.md) is still a draft, and `database/create.sql`, [DomainModel](../../domain/DomainModel.md) and [StateMachines](../../domain/StateMachines.md) still describe the association model. The slice follows the MVP Vision decisions (owner is a `User`).
+* [MVPVision](https://github.com/MESW-LES-2627/les-project-group-3/blob/iter-0/docs/product/MVPVision.md) is still a draft, and `database/create.sql`, [DomainModel](../../archive/DomainModel.md) and [StateMachines](https://github.com/MESW-LES-2627/les-project-group-3/blob/iter-0/docs/domain/StateMachines.md) still describe the association model. The slice follows the MVP Vision decisions (owner is a `User`).
 * The business logic of this slice is minimal (field validation only). Agreement on it is recorded as DoD #2 evidence in the PR.
