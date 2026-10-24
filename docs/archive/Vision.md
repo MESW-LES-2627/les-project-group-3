@@ -283,7 +283,7 @@ To ensure success within a 4-Sprint schedule (8 weeks of development), the broad
 | Document | Purpose |
 | :--- | :--- |
 | [Glossary](../domain/Glossary.md) | Ubiquitous Language: exact names used in code and stories |
-| [DomainModel](../domain/DomainModel.md) | Aggregates, entities and relationships |
+| [DomainModel](DomainModel.md) | Aggregates, entities and relationships |
 | [AdoptionPipeline](../domain/AdoptionPipeline.md) | MVP adoption pipeline and lifecycles (proposed) |
 | [PrototypeFlows_Fostering_Donations](PrototypeFlows_Fostering_Donations.md) | Happy paths for the Fostering and Wishlist prototype |
 

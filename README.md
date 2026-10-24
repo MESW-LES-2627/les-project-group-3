@@ -15,7 +15,7 @@ period), **Care** (volunteers walking, feeding and transporting animals) and
 process in real time through the **Adoption Tracker**, ending the "black hole" of
 unanswered applications.
 
-Full document: [Product Vision](docs/product/Vision.md).
+Full document (archived, not maintained): [Product Vision](docs/archive/Vision.md).
 
 ## MVP
 
@@ -32,15 +32,12 @@ Full feature list: [MVP](docs/product/MVP.md).
 
 | Document | What it covers |
 | :-- | :-- |
-| [Vision](docs/product/Vision.md) | Long-term product vision, pillars, actors and state models |
 | [MVP](docs/product/MVP.md) | Features the application will have |
-| [Prototype flows: fostering and donations](docs/product/PrototypeFlows_Fostering_Donations.md) | Happy paths for post-MVP modules |
 
 ### Domain
 
 | Document | What it covers |
 | :-- | :-- |
-| [Domain Model](docs/domain/DomainModel.md) | Aggregates, entities and relationships |
 | [Adoption Pipeline](docs/domain/AdoptionPipeline.md) | Adoption application and animal status lifecycles, chat and handover (proposed) |
 | [Glossary](docs/domain/Glossary.md) | Ubiquitous language used in code and stories |
 
@@ -49,7 +46,6 @@ Full feature list: [MVP](docs/product/MVP.md).
 | Document | What it covers |
 | :-- | :-- |
 | [Architecture Decision Records](docs/architecture/adr/) | One record per structural decision (authentication, deployment, aggregates, API, services) |
-| [Database Design Decisions](docs/architecture/DatabaseDesignDecisions.md) | Baseline schema decisions |
 
 ### Research
 
@@ -68,6 +64,12 @@ Full feature list: [MVP](docs/product/MVP.md).
 | [Vertical prototype spec](docs/integrations/vertical-prototype/VerticalPrototypeSpec.md) | Iteration 0 slice: publish an animal, see it in the catalog |
 | [Demo steps](#demo-publish-an-animal-and-see-it-in-the-catalog) | How to run the Iteration 0 demo |
 | [CI workflow](.github/workflows/ci.yml) | Linters and tests on every PR |
+
+### Archive
+
+[docs/archive](docs/archive/) keeps the documents written for the long-term Vision
+(product vision, domain model, database design, fostering and donation flows). They are
+no longer maintained.
 
 ## Run the application with Docker Compose
 
@@ -120,8 +122,8 @@ production secrets.
 
    PostgreSQL is available to tools on your machine at `localhost:5433`. Containers
    connect to it using the Compose service name `db`. Alembic owns the application
-   schema and creates it in the next step; `database/create.sql` is retained as a
-   reference and is not run by Compose.
+   schema and creates it in the next step; the old `create.sql` baseline is archived
+   in `docs/archive/` and is not run by Compose.
 
 2. Apply the backend's Alembic migrations. These create/update the domain tables and
    the `patas_auth` schema used by Better Auth:

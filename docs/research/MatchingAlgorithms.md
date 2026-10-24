@@ -93,7 +93,7 @@ const response = await env.AI.run("@cf/meta/llama-3.1-8b-instruct", {
 
 ### Phase 2: Schema Integration with `Animal` & `MatchmakerProfile`
 
-To ensure clean querying, schema agility, and alignment with [DatabaseDesignDecisions](../architecture/DatabaseDesignDecisions.md) (Decision 12) and [DomainModel](../domain/DomainModel.md), data is partitioned between indexed relational columns and an extensible native JSONB compatibility profile:
+To ensure clean querying, schema agility, and alignment with [DatabaseDesignDecisions](../archive/DatabaseDesignDecisions.md) (Decision 12) and [DomainModel](../archive/DomainModel.md), data is partitioned between indexed relational columns and an extensible native JSONB compatibility profile:
 
 | Layer | Source | Attributes | Storage & Usage |
 | :--- | :--- | :--- | :--- |
@@ -108,7 +108,7 @@ The decision to consolidate all compatibility and behavioral attributes into a s
 1. **Schema Agility & Zero Migration Friction:**
    During agile iterations and algorithm calibration, the team regularly introduces new criteria (e.g., `needs_yard`, `barking_tendency`, `house_trained`, `good_with_birds`, `time_alone_tolerance`, `hypoallergenic`). Storing these as individual relational columns would require database migrations, altering baseline schemas, and deploying schema updates for every single new trait. With native JSONB, new criteria can be extracted and consumed immediately without touching the database schema.
 2. **Rich Domain Model & Value Object Pattern (AGENTS.md Compliance):**
-   In Domain-Driven Design, compatibility is not an independent entity with lifecycle or relational identity; it is a multi-dimensional **Value Object** (`CompatibilityProfile` inside the `Animal` Aggregate Root, mirroring `+Compatibility compatibility` in [DomainModel](../domain/DomainModel.md)). Relational normalization is preserved for core transactional state (`adoption_status`, `location`, `association_id`), while the behavioral profile is cleanly encapsulated.
+   In Domain-Driven Design, compatibility is not an independent entity with lifecycle or relational identity; it is a multi-dimensional **Value Object** (`CompatibilityProfile` inside the `Animal` Aggregate Root, mirroring `+Compatibility compatibility` in [DomainModel](../archive/DomainModel.md)). Relational normalization is preserved for core transactional state (`adoption_status`, `location`, `association_id`), while the behavioral profile is cleanly encapsulated.
 3. **Native PostgreSQL 16 Performance (`jsonb_path_ops` & Containment `@>`):**
    Both `jsonb` and the `jsonb_path_ops` operator class are **100% native PostgreSQL core features** requiring zero external extensions. A GIN index with `jsonb_path_ops` hashes paths and values into compact index entries, enabling ultra-fast containment queries:
    ```sql

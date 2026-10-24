@@ -2,7 +2,7 @@
 
 > **Status: Proposed.** Awaiting team alignment (`AGENTS.md` §6). Open decisions are listed in [section 10](#10-open-decisions).
 >
-> This document replaces `StateMachines.md`, which described the long-term [Vision](../product/Vision.md) (associations, fostering, location, wishlist, verification). It can still be read in the git history.
+> This document replaces `StateMachines.md`, which described the long-term [Vision](../archive/Vision.md) (associations, fostering, location, wishlist, verification). It can still be read in the git history.
 
 ## 1. Why
 
@@ -152,4 +152,3 @@ The adoption is completed only when **both** sides confirm: the owner ("I handed
 
 * `StateMachines.md`: **removed** (git history).
 * [MVP](../product/MVP.md): already lists the chat-based adoption; adjust it if the team changes this proposal.
-* `database/create.sql`: the `application_status` enum is outdated (the file is not authoritative; migrations are).

@@ -1,6 +1,6 @@
 # Domain Glossary (Ubiquitous Language)
 
-This document defines the core terminology for the **Patas** platform. Its purpose is to establish a Ubiquitous Language to be shared across the development team, domain experts, and stakeholders, ensuring that code and communication use the exact same vocabulary. Lifecycles are in [AdoptionPipeline](AdoptionPipeline.md); the object model is in [DomainModel](DomainModel.md).
+This document defines the core terminology for the **Patas** platform. Its purpose is to establish a Ubiquitous Language to be shared across the development team, domain experts, and stakeholders, ensuring that code and communication use the exact same vocabulary. Lifecycles are in [AdoptionPipeline](AdoptionPipeline.md); the Vision-era object model is archived in [DomainModel](../archive/DomainModel.md).
 
 ## 1. Actors & Roles
 *   **Visitor:** An unauthenticated user browsing the public catalog, viewing animal profiles and wishlists, or taking the Matchmaker quiz. Visitors cannot apply, pledge or sign up for anything.
