@@ -12,15 +12,12 @@ import { auth } from "@/lib/auth";
 import { backendUrl } from "@/lib/backend";
 import {
   isMatchmakerAnswers,
+  type DeleteOutcome,
   type MatchmakerAnswers,
+  type SaveOutcome,
 } from "@/lib/matchmaker-profile";
 
 const UNAVAILABLE = "The service is unavailable, please try again.";
-
-export type SaveOutcome =
-  | { ok: true; answers: MatchmakerAnswers }
-  | { ok: false; error: string };
-export type DeleteOutcome = { ok: true } | { ok: false; error: string };
 
 // Checked on every call, not only on the page: a Server Action is a public endpoint.
 // redirect() throws, so this must stay outside any try/catch.

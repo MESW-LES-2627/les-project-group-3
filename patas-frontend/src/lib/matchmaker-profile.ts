@@ -91,6 +91,19 @@ export function firstUnanswered(draft: Draft): AnswerKey | null {
   return ANSWER_KEYS.find((key) => draft[key] === null) ?? null;
 }
 
+// True when the draft holds exactly the saved answers (or nothing, if none is saved).
+export function matchesSaved(
+  draft: Draft,
+  saved: MatchmakerAnswers | null,
+): boolean {
+  return ANSWER_KEYS.every((key) => draft[key] === (saved ? saved[key] : null));
+}
+
+export type SaveOutcome =
+  | { ok: true; answers: MatchmakerAnswers }
+  | { ok: false; error: string };
+export type DeleteOutcome = { ok: true } | { ok: false; error: string };
+
 export type Option<T extends string> = {
   value: T;
   label: string;

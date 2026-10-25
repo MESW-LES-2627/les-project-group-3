@@ -18,18 +18,24 @@ export type ChangedAnswer = { key: AnswerKey; id: number };
 type ProfileSummaryProps = {
   draft: Draft;
   changed: ChangedAnswer | null;
+  // Placement in the page grid, decided by whoever hosts the summary.
+  className?: string;
 };
 
 // Progress and a live sentence. On a phone it is a slim bar (the meter and the count);
 // from lg up it is a panel that also reads the answers back as a sentence.
-export function ProfileSummary({ draft, changed }: ProfileSummaryProps) {
+export function ProfileSummary({
+  draft,
+  changed,
+  className,
+}: ProfileSummaryProps) {
   const count = answeredCount(draft);
   const total = ANSWER_KEYS.length;
 
   return (
     <aside
       aria-label="Your profile so far"
-      className="sticky top-0 z-10 border-b border-line bg-background py-3 lg:top-24 lg:rounded-2xl lg:border lg:bg-surface lg:p-6 lg:shadow-sm"
+      className={`sticky top-0 z-10 border-b border-line bg-background py-3 lg:top-24 lg:rounded-2xl lg:border lg:bg-surface lg:p-6 lg:shadow-sm ${className ?? ""}`}
     >
       <h2 className="mb-3 hidden text-lg font-semibold text-forest lg:block">
         Your profile
