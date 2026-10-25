@@ -10,6 +10,9 @@
   --color-ink: var(--foreground);
   --color-forest: #183b32;
   --color-leaf: #2f7157;
+  /* A faint leaf tint on a white base, for a selected card. Mixed with white (not
+     transparent) so it never sits on the page's grey-green background. */
+  --color-leaf-tint: color-mix(in srgb, var(--color-leaf) 4%, white);
   --color-muted: #64746c;
   --color-line: #dce5dc;
   --color-sunlight: #f2bd56;

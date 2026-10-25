@@ -56,7 +56,7 @@ export function OptionCardGroup<T extends string>({
                 className="peer sr-only"
               />
               <span
-                className={`flex w-full flex-col gap-2 rounded-2xl border bg-surface p-4 pr-12 shadow-sm transition-[background-color,border-color,box-shadow] duration-150 ease-out-expo motion-reduce:transition-none peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-forest peer-checked:border-leaf peer-checked:bg-leaf/6 peer-checked:shadow-md peer-checked:ring-1 peer-checked:ring-leaf peer-not-checked:hover:border-leaf ${
+                className={`flex w-full flex-col gap-2 rounded-2xl border bg-surface p-4 pr-12 shadow-sm transition-[background-color,border-color,box-shadow] duration-150 ease-out-expo motion-reduce:transition-none peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-forest peer-checked:border-leaf peer-checked:bg-leaf-tint peer-checked:shadow-md peer-checked:ring-1 peer-checked:ring-leaf peer-not-checked:hover:border-leaf ${
                   invalid ? "border-red-700" : "border-muted/75"
                 }`}
               >
