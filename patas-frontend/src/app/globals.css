@@ -17,6 +17,16 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-phrase-flash: phrase-flash 700ms var(--ease-out-expo) 1;
+
+  @keyframes phrase-flash {
+    from {
+      background-color: color-mix(in srgb, var(--color-leaf) 30%, transparent);
+    }
+    to {
+      background-color: transparent;
+    }
+  }
 }
 
 body {
