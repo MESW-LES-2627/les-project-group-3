@@ -39,6 +39,7 @@ _SELECT = text(
     WHERE user_id = :user_id
     """
 )
+_DELETE = text("DELETE FROM patas.matchmaker_profiles WHERE user_id = :user_id")
 
 
 class MatchmakerProfileRepository:
@@ -85,3 +86,7 @@ class MatchmakerProfileRepository:
             has_dogs=row.has_dogs,
             has_cats=row.has_cats,
         )
+
+    async def delete(self, user_id: UUID) -> None:
+        """Remove the user's profile. A user without one is not an error."""
+        await self._session.execute(_DELETE, {"user_id": user_id})

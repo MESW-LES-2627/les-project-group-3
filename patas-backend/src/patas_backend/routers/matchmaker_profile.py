@@ -87,3 +87,13 @@ async def save_matchmaker_profile(
         has_cats=body.has_cats,
     )
     return MatchmakerProfileResponse.from_domain(profile)
+
+
+@router.delete("/me/matchmaker-profile", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_matchmaker_profile(
+    user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[
+        MatchmakerProfileService, Depends(get_matchmaker_profile_service)
+    ],
+) -> None:
+    await service.delete(user)

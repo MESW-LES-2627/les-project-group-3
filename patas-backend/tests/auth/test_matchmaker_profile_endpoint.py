@@ -140,3 +140,66 @@ async def test_at_08_a_visitor_cannot_save_and_nothing_is_stored(
 
 async def test_a_visitor_cannot_read_a_profile(client: httpx.AsyncClient) -> None:
     assert (await client.get(PROFILE)).status_code == 401
+
+
+async def test_deleting_the_profile_brings_back_the_empty_questions(
+    client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine
+) -> None:
+    await client.put(PROFILE, json=CARLAS_ANSWERS, headers=_as(issuer, CARLA))
+
+    deleted = await client.delete(PROFILE, headers=_as(issuer, CARLA))
+
+    assert deleted.status_code == 204
+    assert deleted.content == b""
+    visit = await client.get(PROFILE, headers=_as(issuer, CARLA))
+    assert visit.status_code == 404
+    assert await _stored_profiles(engine) == 0
+
+
+async def test_a_deleted_profile_can_be_saved_again(
+    client: httpx.AsyncClient, issuer: TokenIssuer
+) -> None:
+    await client.put(PROFILE, json=CARLAS_ANSWERS, headers=_as(issuer, CARLA))
+    deleted = await client.delete(PROFILE, headers=_as(issuer, CARLA))
+    # Without this the save below would just overwrite the old profile.
+    assert deleted.status_code == 204
+    assert (await client.get(PROFILE, headers=_as(issuer, CARLA))).status_code == 404
+    again = {**CARLAS_ANSWERS, "housing": "house_with_yard"}
+
+    await client.put(PROFILE, json=again, headers=_as(issuer, CARLA))
+
+    visit = await client.get(PROFILE, headers=_as(issuer, CARLA))
+    assert visit.json() == again
+
+
+async def test_deleting_my_profile_leaves_other_profiles_alone(
+    client: httpx.AsyncClient, issuer: TokenIssuer
+) -> None:
+    await client.put(PROFILE, json=CARLAS_ANSWERS, headers=_as(issuer, CARLA))
+    await client.put(PROFILE, json=BRUNOS_ANSWERS, headers=_as(issuer, BRUNO))
+
+    await client.delete(PROFILE, headers=_as(issuer, BRUNO))
+
+    carlas = await client.get(PROFILE, headers=_as(issuer, CARLA))
+    assert carlas.json() == CARLAS_ANSWERS
+    brunos = await client.get(PROFILE, headers=_as(issuer, BRUNO))
+    assert brunos.status_code == 404
+
+
+async def test_deleting_when_there_is_no_profile_still_succeeds(
+    client: httpx.AsyncClient, issuer: TokenIssuer
+) -> None:
+    response = await client.delete(PROFILE, headers=_as(issuer, CARLA))
+
+    assert response.status_code == 204
+
+
+async def test_a_visitor_cannot_delete_a_profile(
+    client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine
+) -> None:
+    await client.put(PROFILE, json=CARLAS_ANSWERS, headers=_as(issuer, CARLA))
+
+    response = await client.delete(PROFILE)
+
+    assert response.status_code == 401
+    assert await _stored_profiles(engine) == 1

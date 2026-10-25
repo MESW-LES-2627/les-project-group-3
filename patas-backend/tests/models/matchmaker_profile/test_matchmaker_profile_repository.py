@@ -61,6 +61,11 @@ async def _get(factory: Factory, user_id: UUID) -> MatchmakerProfile | None:
         return await MatchmakerProfileRepository(session).get(user_id)
 
 
+async def _delete(factory: Factory, user_id: UUID) -> None:
+    async with factory.begin() as session:
+        await MatchmakerProfileRepository(session).delete(user_id)
+
+
 async def _count(factory: Factory) -> int:
     async with factory() as session:
         return await session.scalar(
@@ -164,3 +169,49 @@ async def test_save_never_commits_so_the_caller_can_roll_back(
         await session.rollback()
 
     assert await _get(session_factory, carla) is None
+
+
+async def test_delete_removes_the_users_profile(
+    session_factory: Factory, carla: UUID
+) -> None:
+    await _save(session_factory, _profile(carla))
+
+    await _delete(session_factory, carla)
+
+    assert await _get(session_factory, carla) is None
+    assert await _count(session_factory) == 0
+
+
+async def test_delete_only_removes_that_users_profile(
+    session_factory: Factory, carla: UUID
+) -> None:
+    bruno = await _provision(session_factory, BRUNO_ID, "bruno@example.com")
+    brunos = _profile(bruno, housing=HousingType.HOUSE_NO_YARD, has_children=True)
+    await _save(session_factory, _profile(carla))
+    await _save(session_factory, brunos)
+
+    await _delete(session_factory, carla)
+
+    assert await _get(session_factory, carla) is None
+    assert await _get(session_factory, bruno) == brunos
+
+
+async def test_deleting_a_missing_profile_is_not_an_error(
+    session_factory: Factory, carla: UUID
+) -> None:
+    await _delete(session_factory, carla)
+
+    assert await _get(session_factory, carla) is None
+
+
+async def test_delete_never_commits_so_the_caller_can_roll_back(
+    session_factory: Factory, carla: UUID
+) -> None:
+    profile = _profile(carla)
+    await _save(session_factory, profile)
+
+    async with session_factory() as session:
+        await MatchmakerProfileRepository(session).delete(carla)
+        await session.rollback()
+
+    assert await _get(session_factory, carla) == profile

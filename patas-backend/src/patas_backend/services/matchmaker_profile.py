@@ -49,3 +49,8 @@ class MatchmakerProfileService:
         async with self._session_factory.begin() as session:
             await MatchmakerProfileRepository(session).save(profile)
         return profile
+
+    async def delete(self, user: User) -> None:
+        """Remove the user's own profile. Having none is not an error."""
+        async with self._session_factory.begin() as session:
+            await MatchmakerProfileRepository(session).delete(user.id)
