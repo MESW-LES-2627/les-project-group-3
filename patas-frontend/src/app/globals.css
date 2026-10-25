@@ -22,3 +22,18 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+/* Browser surfaces that would otherwise keep the platform defaults. */
+:root {
+  accent-color: var(--color-leaf);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-leaf) 25%, white);
+  color: var(--color-forest);
+}
+
+input,
+textarea {
+  caret-color: var(--color-leaf);
+}
