@@ -10,15 +10,44 @@
   --color-ink: var(--foreground);
   --color-forest: #183b32;
   --color-leaf: #2f7157;
+  /* A faint leaf tint on a white base, for a selected card. Mixed with white (not
+     transparent) so it never sits on the page's grey-green background. */
+  --color-leaf-tint: color-mix(in srgb, var(--color-leaf) 4%, white);
   --color-muted: #64746c;
   --color-line: #dce5dc;
   --color-sunlight: #f2bd56;
   --color-surface: #ffffff;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-phrase-flash: phrase-flash 700ms var(--ease-out-expo) 1;
+
+  @keyframes phrase-flash {
+    from {
+      background-color: color-mix(in srgb, var(--color-leaf) 30%, transparent);
+    }
+    to {
+      background-color: transparent;
+    }
+  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+/* Browser surfaces that would otherwise keep the platform defaults. */
+:root {
+  accent-color: var(--color-leaf);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-leaf) 25%, white);
+  color: var(--color-forest);
+}
+
+input,
+textarea {
+  caret-color: var(--color-leaf);
 }

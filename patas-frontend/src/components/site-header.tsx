@@ -34,6 +34,12 @@ export async function SiteHeader() {
         <div className="flex shrink-0 items-center gap-3 sm:gap-5">
           {session ? (
             <>
+              <Link
+                href="/matchmaker"
+                className="rounded text-sm font-semibold text-forest transition hover:text-leaf focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-forest"
+              >
+                Matchmaker
+              </Link>
               <span className="hidden max-w-40 truncate text-sm text-muted md:block">
                 {session.user.name ? `Hello, ${session.user.name}` : "Welcome back"}
               </span>
