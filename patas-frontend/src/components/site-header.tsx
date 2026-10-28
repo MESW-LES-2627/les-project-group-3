@@ -22,13 +22,21 @@ export async function SiteHeader() {
           <span className="text-xl font-bold text-forest">Patas</span>
         </Link>
 
-        <nav aria-label="Main navigation" className="hidden sm:block">
+        <nav aria-label="Main navigation" className="hidden sm:flex sm:items-center sm:gap-6">
           <Link
             href="/animals"
             className="text-sm font-medium text-muted transition hover:text-forest"
           >
             Browse animals
           </Link>
+          {session && (
+            <Link
+              href="/animals/mine"
+              className="text-sm font-medium text-muted transition hover:text-forest"
+            >
+              My animals
+            </Link>
+          )}
         </nav>
 
         <div className="flex shrink-0 items-center gap-3 sm:gap-5">
