@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from uuid import UUID
 
-from patas_backend.models.matching import EnergyLevel, ExperienceLevel
+from patas_backend.models.matching import EnergyLevel, ExperienceLevel, TimeAway
 
 
 class InvalidMatchmakerProfile(ValueError):
@@ -13,12 +13,6 @@ class HousingType(StrEnum):
     APARTMENT = "apartment"
     HOUSE_NO_YARD = "house_no_yard"
     HOUSE_WITH_YARD = "house_with_yard"
-
-
-class TimeAway(StrEnum):
-    FEW_HOURS = "few_hours"
-    HALF_DAY = "half_day"
-    MOST_OF_DAY = "most_of_day"
 
 
 def _choice[E: StrEnum](scale: type[E], field: str, value: object) -> E:

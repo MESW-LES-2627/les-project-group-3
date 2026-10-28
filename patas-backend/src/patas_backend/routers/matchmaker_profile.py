@@ -4,11 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, StrictBool
 
 from patas_backend.auth.dependencies import get_current_user
-from patas_backend.models.matching import EnergyLevel, ExperienceLevel
+from patas_backend.models.matching import EnergyLevel, ExperienceLevel, TimeAway
 from patas_backend.models.matchmaker_profile import (
     HousingType,
     MatchmakerProfile,
-    TimeAway,
 )
 from patas_backend.models.user import User
 from patas_backend.services.matchmaker_profile import MatchmakerProfileService

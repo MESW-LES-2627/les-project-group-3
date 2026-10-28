@@ -2,12 +2,11 @@ from uuid import UUID
 
 import pytest
 
-from patas_backend.models.matching import EnergyLevel, ExperienceLevel
+from patas_backend.models.matching import EnergyLevel, ExperienceLevel, TimeAway
 from patas_backend.models.matchmaker_profile import (
     HousingType,
     InvalidMatchmakerProfile,
     MatchmakerProfile,
-    TimeAway,
 )
 
 USER_ID = UUID("5d0c7a52-3b1e-4c8f-9a6d-2e4f8b1c7d90")

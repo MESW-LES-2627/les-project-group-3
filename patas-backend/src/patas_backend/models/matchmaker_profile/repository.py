@@ -3,11 +3,10 @@ from uuid import UUID
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from patas_backend.models.matching import EnergyLevel, ExperienceLevel
+from patas_backend.models.matching import EnergyLevel, ExperienceLevel, TimeAway
 from patas_backend.models.matchmaker_profile.matchmaker_profile import (
     HousingType,
     MatchmakerProfile,
-    TimeAway,
 )
 
 _UPSERT = text(
