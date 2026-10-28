@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from patas_backend.models.animal import (
@@ -77,8 +79,32 @@ class AnimalService:
             await AnimalRepository(session).add(animal)
         return animal
 
-    async def list_catalog(self) -> list[Animal]:
+    async def list_catalog(self, species: Species | None = None) -> list[Animal]:
         """A2 (list): every published animal, newest first. Public."""
         # Read-only: a plain session, no transaction to commit.
         async with self._session_factory() as session:
-            return await AnimalRepository(session).list_all()
+            animals = await AnimalRepository(session).list_all()
+            if species is not None:
+                animals = [a for a in animals if a.species == species]
+            return animals
+
+    async def list_by_owner(self, owner: User) -> list[Animal]:
+        """List all animals owned by the user, published and unpublished."""
+        async with self._session_factory() as session:
+            return await AnimalRepository(session).list_by_owner(owner.id)
+
+    async def get(self, animal_id: UUID) -> Animal | None:
+        """Fetch an animal by id."""
+        async with self._session_factory() as session:
+            return await AnimalRepository(session).get_by_id(animal_id)
+
+    async def unpublish(self, owner: User, animal_id: UUID) -> Animal | None:
+        """Unpublish an animal. Raises AnimalUnauthorized if caller is not the owner."""
+        async with self._session_factory.begin() as session:
+            repo = AnimalRepository(session)
+            animal = await repo.get_by_id(animal_id)
+            if animal is None:
+                return None
+            animal.unpublish(by_user_id=owner.id)
+            await repo.update(animal)
+            return animal

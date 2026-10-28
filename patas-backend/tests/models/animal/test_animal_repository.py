@@ -133,7 +133,10 @@ async def test_the_stored_adoption_status_is_loaded(
 
     await _add(session_factory, animal)
 
-    assert (await _list(session_factory))[0].adoption_status is status
+    async with session_factory() as session:
+        listed = await AnimalRepository(session).list_by_owner(ana)
+
+    assert listed[0].adoption_status is status
 
 
 async def test_the_catalog_lists_the_newest_animal_first(
@@ -165,3 +168,58 @@ async def test_add_never_commits_so_the_caller_can_roll_back(
         await session.rollback()
 
     assert await _list(session_factory) == []
+
+
+async def test_unpublished_animals_do_not_appear_in_catalog(
+    session_factory: Factory, ana: UUID
+) -> None:
+    rex = _publish(ana, name="Rex")
+    mia = _publish(ana, name="Mia")
+    rex.adoption_status = AdoptionStatus.UNAVAILABLE
+
+    await _add(session_factory, rex)
+    await _add(session_factory, mia)
+
+    listed = await _list(session_factory)
+    assert [a.name for a in listed] == ["Mia"]
+
+
+async def test_list_by_owner_returns_all_animals_including_unpublished(
+    session_factory: Factory, ana: UUID
+) -> None:
+    bob = await _provision(session_factory, BOB_ID, "bob@example.com")
+    rex = _publish(ana, name="Rex")
+    mia = _publish(ana, name="Mia")
+    bolt = _publish(bob, name="Bolt")
+    rex.adoption_status = AdoptionStatus.UNAVAILABLE
+
+    await _add(session_factory, rex)
+    await _add(session_factory, mia)
+    await _add(session_factory, bolt)
+
+    async with session_factory() as session:
+        ana_animals = await AnimalRepository(session).list_by_owner(ana)
+
+    assert [a.name for a in ana_animals] == ["Mia", "Rex"]
+    assert ana_animals[1].adoption_status is AdoptionStatus.UNAVAILABLE
+
+
+async def test_get_by_id_and_update(session_factory: Factory, ana: UUID) -> None:
+    rex = _publish(ana, name="Rex")
+    await _add(session_factory, rex)
+
+    async with session_factory.begin() as session:
+        repo = AnimalRepository(session)
+        loaded = await repo.get_by_id(rex.id)
+        assert loaded is not None
+        assert loaded.name == "Rex"
+        assert loaded.adoption_status is AdoptionStatus.AVAILABLE
+
+        loaded.unpublish(by_user_id=ana)
+        await repo.update(loaded)
+
+    async with session_factory() as session:
+        repo = AnimalRepository(session)
+        updated = await repo.get_by_id(rex.id)
+        assert updated is not None
+        assert updated.adoption_status is AdoptionStatus.UNAVAILABLE

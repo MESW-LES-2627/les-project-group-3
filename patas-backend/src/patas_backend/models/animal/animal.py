@@ -19,6 +19,10 @@ class InvalidAnimal(ValueError):
     """An Animal invariant was violated."""
 
 
+class AnimalUnauthorized(PermissionError):
+    """The caller is not the owner of the animal."""
+
+
 def validate_name(name: str) -> str:
     cleaned = name.strip()
     if not cleaned:
@@ -134,6 +138,17 @@ class Animal:
             special_care_notes=special_care_notes,
             other_details=other_details,
         )
+
+    @property
+    def is_published(self) -> bool:
+        """An animal is published if its adoption status is not unavailable."""
+        return self.adoption_status != AdoptionStatus.UNAVAILABLE
+
+    def unpublish(self, by_user_id: UUID) -> None:
+        """Unpublish the listing so it disappears from the catalog."""
+        if self.owner_id != by_user_id:
+            raise AnimalUnauthorized("Only the owner can unpublish this animal")
+        self.adoption_status = AdoptionStatus.UNAVAILABLE
 
     def match_profile(self) -> AnimalMatchProfile:
         """This animal on the Matchmaker scales. Built on each call, so it follows

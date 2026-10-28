@@ -12,6 +12,7 @@ from patas_backend.models.animal import (
     AnimalMatchProfile,
     AnimalSex,
     AnimalSize,
+    AnimalUnauthorized,
     FirstTimeOwnerSuitability,
     InvalidAnimal,
     NeuteredStatus,
@@ -146,9 +147,50 @@ def get_animal_service(request: Request) -> AnimalService:
 @router.get("/animals", response_model=list[AnimalResponse])
 async def list_animals(
     service: Annotated[AnimalService, Depends(get_animal_service)],
+    species: Species | None = None,
 ) -> list[AnimalResponse]:
-    """The public catalog: no authentication dependency (AC5)."""
-    return [AnimalResponse.from_domain(a) for a in await service.list_catalog()]
+    """The public catalog: public, lists only published animals."""
+    return [
+        AnimalResponse.from_domain(a)
+        for a in await service.list_catalog(species=species)
+    ]
+
+
+@router.get("/me/animals", response_model=list[AnimalResponse])
+async def list_my_animals(
+    owner: Annotated[User, Depends(get_current_user)],
+    service: Annotated[AnimalService, Depends(get_animal_service)],
+) -> list[AnimalResponse]:
+    """The logged-in user's animals, including unpublished ones."""
+    return [AnimalResponse.from_domain(a) for a in await service.list_by_owner(owner)]
+
+
+@router.get("/animals/{animal_id}", response_model=AnimalResponse)
+async def get_animal(
+    animal_id: UUID,
+    service: Annotated[AnimalService, Depends(get_animal_service)],
+) -> AnimalResponse:
+    """Public animal profile: 404 if not found or unpublished."""
+    animal = await service.get(animal_id)
+    if animal is None or not animal.is_published:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Animal not found")
+    return AnimalResponse.from_domain(animal)
+
+
+@router.post("/animals/{animal_id}/unpublish", response_model=AnimalResponse)
+async def unpublish_animal(
+    animal_id: UUID,
+    owner: Annotated[User, Depends(get_current_user)],
+    service: Annotated[AnimalService, Depends(get_animal_service)],
+) -> AnimalResponse:
+    try:
+        animal = await service.unpublish(owner, animal_id)
+    except AnimalUnauthorized as error:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, str(error)) from error
+
+    if animal is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Animal not found")
+    return AnimalResponse.from_domain(animal)
 
 
 @router.post(

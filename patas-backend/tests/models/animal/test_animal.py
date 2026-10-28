@@ -8,6 +8,7 @@ from patas_backend.models.animal import (
     AnimalCompatibility,
     AnimalSex,
     AnimalSize,
+    AnimalUnauthorized,
     FirstTimeOwnerSuitability,
     InvalidAnimal,
     NeuteredStatus,
@@ -106,3 +107,24 @@ def test_optional_profile_fields_are_kept_and_free_text_is_trimmed() -> None:
 def test_invalid_portuguese_postal_code_is_rejected(postal_code: str) -> None:
     with pytest.raises(InvalidAnimal, match="Portuguese format"):
         _publish(postal_code=postal_code)
+
+
+def test_owner_can_unpublish_animal() -> None:
+    animal = _publish()
+    assert animal.is_published is True
+
+    animal.unpublish(by_user_id=OWNER_ID)
+
+    assert animal.adoption_status is AdoptionStatus.UNAVAILABLE
+    assert animal.is_published is False
+
+
+def test_non_owner_cannot_unpublish_animal() -> None:
+    animal = _publish()
+    other_user = uuid4()
+
+    with pytest.raises(AnimalUnauthorized):
+        animal.unpublish(by_user_id=other_user)
+
+    assert animal.adoption_status is AdoptionStatus.AVAILABLE
+    assert animal.is_published is True
