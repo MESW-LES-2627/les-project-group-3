@@ -1,5 +1,5 @@
 from dataclasses import fields
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import httpx
 import pytest
@@ -8,9 +8,12 @@ from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 from token_issuer import USER_ID, TokenIssuer
 
 from patas_backend.models.animal import (
+    AdoptionStatus,
     Animal,
     AnimalMatchProfile,
     AnimalRepository,
+    AnimalSex,
+    AnimalSize,
     Species,
 )
 from patas_backend.models.user import User, UserRepository
@@ -217,3 +220,146 @@ async def test_invalid_animal_is_rejected_and_nothing_is_stored(
 
     assert response.status_code == 422
     assert await _stored_animals(engine) == 0
+
+
+ANA = {
+    "sub": "11111111-1111-1111-1111-111111111111",
+    "name": "Ana",
+    "email": "ana@example.com",
+}
+BRUNO = {
+    "sub": "22222222-2222-2222-2222-222222222222",
+    "name": "Bruno",
+    "email": "bruno@example.com",
+}
+
+
+async def _seed_data(engine: AsyncEngine) -> tuple[Animal, Animal, Animal]:
+    """Seed data: Rex (Ana), Mia (Ana), Bolt (Bruno)."""
+    ana_user = User.provision(id=UUID(ANA["sub"]), name=ANA["name"], email=ANA["email"])
+    bruno_user = User.provision(
+        id=UUID(BRUNO["sub"]), name=BRUNO["name"], email=BRUNO["email"]
+    )
+    rex = Animal.publish(
+        owner_id=ana_user.id,
+        name="Rex",
+        species=Species.DOG,
+        size=AnimalSize.MEDIUM,
+        sex=AnimalSex.MALE,
+        age_in_months=36,
+    )
+    mia = Animal.publish(
+        owner_id=ana_user.id,
+        name="Mia",
+        species=Species.CAT,
+        size=AnimalSize.SMALL,
+        sex=AnimalSex.FEMALE,
+        age_in_months=6,
+    )
+    bolt = Animal.publish(
+        owner_id=bruno_user.id,
+        name="Bolt",
+        species=Species.DOG,
+        size=AnimalSize.LARGE,
+        sex=AnimalSex.MALE,
+        age_in_months=120,
+    )
+    async with async_sessionmaker(engine).begin() as session:
+        user_repo = UserRepository(session)
+        await user_repo.ensure_exists(ana_user)
+        await user_repo.ensure_exists(bruno_user)
+        animal_repo = AnimalRepository(session)
+        await animal_repo.add(rex)
+        await animal_repo.add(mia)
+        await animal_repo.add(bolt)
+    return rex, mia, bolt
+
+
+async def test_acceptance_test_ana_sees_rex_and_mia_but_not_bolt(
+    client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine
+) -> None:
+    # Given the seed data, Ana's "My animals" shows Rex and Mia but not Bolt.
+    await _seed_data(engine)
+
+    response = await client.get(
+        "/me/animals",
+        headers=_bearer(issuer.token(**ANA)),
+    )
+
+    assert response.status_code == 200
+    names = [animal["name"] for animal in response.json()]
+    assert "Rex" in names
+    assert "Mia" in names
+    assert "Bolt" not in names
+
+
+async def test_acceptance_test_bruno_cannot_unpublish_rex(
+    client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine
+) -> None:
+    # When Bruno tries to unpublish Rex, then it is refused and Rex is unchanged.
+    rex, _, _ = await _seed_data(engine)
+
+    response = await client.post(
+        f"/animals/{rex.id}/unpublish",
+        headers=_bearer(issuer.token(**BRUNO)),
+    )
+
+    assert response.status_code == 403
+
+    # Rex is unchanged
+    async with async_sessionmaker(engine)() as session:
+        loaded = await AnimalRepository(session).get_by_id(rex.id)
+        assert loaded is not None
+        assert loaded.adoption_status is AdoptionStatus.AVAILABLE
+
+
+async def test_acceptance_test_visitor_cannot_unpublish_rex_or_view_my_animals(
+    client: httpx.AsyncClient, engine: AsyncEngine
+) -> None:
+    # When a visitor who is not logged in tries unpublish or my animals, it is refused.
+    rex, _, _ = await _seed_data(engine)
+
+    unpublish_response = await client.post(f"/animals/{rex.id}/unpublish")
+    assert unpublish_response.status_code == 401
+
+    my_animals_response = await client.get("/me/animals")
+    assert my_animals_response.status_code == 401
+
+
+async def test_acceptance_test_unpublish_flow_catalog_and_detail(
+    client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine
+) -> None:
+    # Seed data: Rex (Ana), Mia (Ana), Bolt (Bruno)
+    rex, _, _ = await _seed_data(engine)
+
+    # Given Rex appears in the catalog filtered by "dog"
+    catalog_dog = await client.get("/animals?species=dog")
+    assert catalog_dog.status_code == 200
+    dog_names = [a["name"] for a in catalog_dog.json()]
+    assert "Rex" in dog_names
+
+    # When Ana unpublishes him
+    unpublish_res = await client.post(
+        f"/animals/{rex.id}/unpublish",
+        headers=_bearer(issuer.token(**ANA)),
+    )
+    assert unpublish_res.status_code == 200
+    assert unpublish_res.json()["adoption_status"] == "unavailable"
+
+    # Then Rex is in neither the catalog nor the "dog" results.
+    general_catalog = (await client.get("/animals")).json()
+    assert all(a["id"] != str(rex.id) for a in general_catalog)
+
+    filtered_catalog = (await client.get("/animals?species=dog")).json()
+    assert all(a["id"] != str(rex.id) for a in filtered_catalog)
+
+    # A visitor gets "not found" on Rex's page.
+    visitor_detail = await client.get(f"/animals/{rex.id}")
+    assert visitor_detail.status_code == 404
+
+    # Rex still appears in Ana's "My animals", marked as unpublished.
+    ana_animals = (
+        await client.get("/me/animals", headers=_bearer(issuer.token(**ANA)))
+    ).json()
+    rex_in_mine = next(a for a in ana_animals if a["id"] == str(rex.id))
+    assert rex_in_mine["adoption_status"] == "unavailable"
