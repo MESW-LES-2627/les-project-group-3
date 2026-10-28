@@ -141,7 +141,7 @@ async function MyAnimalList({ token }: { token: string }) {
   );
 }
 
-export default async function MyAnimalsPage() {
+async function AuthenticatedMyAnimalList() {
   const requestHeaders = await headers();
   const session = await auth.api.getSession({ headers: requestHeaders });
   if (!session) {
@@ -149,7 +149,10 @@ export default async function MyAnimalsPage() {
   }
 
   const { token } = await auth.api.getToken({ headers: requestHeaders });
+  return <MyAnimalList token={token} />;
+}
 
+export default async function MyAnimalsPage() {
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6 sm:py-14">
       <section className="flex flex-col justify-between gap-6 border-b border-line pb-8 sm:flex-row sm:items-end">
@@ -176,7 +179,7 @@ export default async function MyAnimalsPage() {
         </div>
       </section>
       <Suspense fallback={<p>Loading your animals…</p>}>
-        <MyAnimalList token={token} />
+        <AuthenticatedMyAnimalList />
       </Suspense>
     </main>
   );
