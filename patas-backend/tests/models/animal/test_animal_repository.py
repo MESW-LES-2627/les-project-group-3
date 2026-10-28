@@ -133,7 +133,10 @@ async def test_the_stored_adoption_status_is_loaded(
 
     await _add(session_factory, animal)
 
-    assert (await _list(session_factory))[0].adoption_status is status
+    async with session_factory() as session:
+        listed = await AnimalRepository(session).list_by_owner(ana)
+
+    assert listed[0].adoption_status is status
 
 
 async def test_the_catalog_lists_the_newest_animal_first(
