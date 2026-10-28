@@ -15,6 +15,7 @@ type OptionCardGroupProps<T extends string> = {
   onChange: (value: T) => void;
   icons?: Partial<Record<T, LucideIcon>>;
   error?: string | null;
+  optional?: boolean;
 };
 
 // One question, answered by picking a card. Native radio inputs sit under the cards
@@ -28,6 +29,7 @@ export function OptionCardGroup<T extends string>({
   onChange,
   icons,
   error,
+  optional = false,
 }: OptionCardGroupProps<T>) {
   const errorId = useId();
   const invalid = Boolean(error) && value === null;
@@ -52,7 +54,7 @@ export function OptionCardGroup<T extends string>({
                 value={option.value}
                 checked={value === option.value}
                 onChange={() => onChange(option.value)}
-                required
+                required={!optional}
                 className="peer sr-only"
               />
               <span

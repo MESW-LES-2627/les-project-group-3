@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
 import { backendUrl } from "@/lib/backend";
+import { OPTIONAL_ANIMAL_FIELDS } from "@/lib/animal-profile";
 
 export type PublishState = { error: string | null };
 
@@ -21,6 +22,32 @@ export async function publishAnimalAction(
   const { token } = await auth.api.getToken({ headers: requestHeaders });
 
   const age = String(form.get("age_in_months") ?? "").trim();
+  const ageInMonths = age === "" ? null : Number(age);
+  if (
+    age !== "" &&
+    (!/^\d+$/.test(age) ||
+      !Number.isSafeInteger(Number(age)) ||
+      Number(age) < 0)
+  ) {
+    return { error: "Age must be a whole number of months, zero or greater." };
+  }
+  const fields = ["name", "species", ...OPTIONAL_ANIMAL_FIELDS];
+  if (
+    fields.some(
+      (name) => form.get(name) !== null && typeof form.get(name) !== "string",
+    )
+  ) {
+    return { error: "Please submit text values for the animal details." };
+  }
+  const optionalFields = Object.fromEntries(
+    OPTIONAL_ANIMAL_FIELDS.map((name) => {
+      const value = form.get(name);
+      return [
+        name,
+        typeof value === "string" && value.trim() !== "" ? value.trim() : null,
+      ];
+    }),
+  );
   let response: Response;
   try {
     response = await fetch(`${backendUrl()}/animals`, {
@@ -32,7 +59,8 @@ export async function publishAnimalAction(
       body: JSON.stringify({
         name: String(form.get("name") ?? ""),
         species: String(form.get("species") ?? ""),
-        age_in_months: age === "" ? null : Number(age),
+        age_in_months: ageInMonths,
+        ...optionalFields,
       }),
     });
   } catch {

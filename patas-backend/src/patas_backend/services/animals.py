@@ -1,6 +1,16 @@
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from patas_backend.models.animal import Animal, AnimalRepository, Species
+from patas_backend.models.animal import (
+    Animal,
+    AnimalCompatibility,
+    AnimalRepository,
+    AnimalSex,
+    AnimalSize,
+    FirstTimeOwnerSuitability,
+    NeuteredStatus,
+    Species,
+)
+from patas_backend.models.matching.scales import EnergyLevel
 from patas_backend.models.user import User
 
 
@@ -17,12 +27,51 @@ class AnimalService:
         name: str,
         species: Species,
         age_in_months: int | None,
+        sex: AnimalSex | None = None,
+        is_neutered: NeuteredStatus | None = None,
+        postal_code: str | None = None,
+        size: AnimalSize | None = None,
+        activity_level: EnergyLevel | None = None,
+        space_requirement: AnimalSize | None = None,
+        shedding: EnergyLevel | None = None,
+        grooming_needs: EnergyLevel | None = None,
+        behaves_well_with_children: AnimalCompatibility | None = None,
+        behaves_well_with_dogs: AnimalCompatibility | None = None,
+        behaves_well_with_cats: AnimalCompatibility | None = None,
+        behaves_well_with_other_animals: AnimalCompatibility | None = None,
+        training_needs: EnergyLevel | None = None,
+        tolerance_for_time_alone: EnergyLevel | None = None,
+        noise_level: EnergyLevel | None = None,
+        suitable_for_first_time_owners: FirstTimeOwnerSuitability | None = None,
+        special_care_notes: str | None = None,
+        other_details: str | None = None,
     ) -> Animal:
         """A1 (create): the logged-in user publishes an animal they own."""
         # Built before the transaction opens: an invalid animal raises InvalidAnimal
         # and nothing reaches the database (AC3).
         animal = Animal.publish(
-            owner_id=owner.id, name=name, species=species, age_in_months=age_in_months
+            owner_id=owner.id,
+            name=name,
+            species=species,
+            age_in_months=age_in_months,
+            sex=sex,
+            is_neutered=is_neutered,
+            postal_code=postal_code,
+            size=size,
+            activity_level=activity_level,
+            space_requirement=space_requirement,
+            shedding=shedding,
+            grooming_needs=grooming_needs,
+            behaves_well_with_children=behaves_well_with_children,
+            behaves_well_with_dogs=behaves_well_with_dogs,
+            behaves_well_with_cats=behaves_well_with_cats,
+            behaves_well_with_other_animals=behaves_well_with_other_animals,
+            training_needs=training_needs,
+            tolerance_for_time_alone=tolerance_for_time_alone,
+            noise_level=noise_level,
+            suitable_for_first_time_owners=suitable_for_first_time_owners,
+            special_care_notes=special_care_notes,
+            other_details=other_details,
         )
         async with self._session_factory.begin() as session:
             await AnimalRepository(session).add(animal)

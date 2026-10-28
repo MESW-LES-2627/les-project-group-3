@@ -7,9 +7,15 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from patas_backend.models.animal import (
     AdoptionStatus,
     Animal,
+    AnimalCompatibility,
     AnimalRepository,
+    AnimalSex,
+    AnimalSize,
+    FirstTimeOwnerSuitability,
+    NeuteredStatus,
     Species,
 )
+from patas_backend.models.matching.scales import EnergyLevel
 from patas_backend.models.user import User, UserRepository
 
 ANA_ID = UUID("0b1f2a3c-4d5e-4f60-8a7b-9c0d1e2f3a4b")
@@ -77,6 +83,36 @@ async def test_an_animal_of_unknown_age_round_trips(
     session_factory: Factory, ana: UUID
 ) -> None:
     animal = _publish(ana, age_in_months=None)
+
+    await _add(session_factory, animal)
+
+    assert await _list(session_factory) == [animal]
+
+
+async def test_optional_animal_profile_round_trips(
+    session_factory: Factory, ana: UUID
+) -> None:
+    animal = _publish(
+        ana,
+        sex=AnimalSex.FEMALE,
+        is_neutered=NeuteredStatus.YES,
+        postal_code="1234-567",
+        size=AnimalSize.SMALL,
+        activity_level=EnergyLevel.MODERATE,
+        space_requirement=AnimalSize.MEDIUM,
+        shedding=EnergyLevel.LOW,
+        grooming_needs=EnergyLevel.HIGH,
+        behaves_well_with_children=AnimalCompatibility.WITH_SUPERVISION,
+        behaves_well_with_dogs=AnimalCompatibility.UNKNOWN,
+        behaves_well_with_cats=AnimalCompatibility.YES,
+        behaves_well_with_other_animals=AnimalCompatibility.NO,
+        training_needs=EnergyLevel.LOW,
+        tolerance_for_time_alone=EnergyLevel.MODERATE,
+        noise_level=EnergyLevel.LOW,
+        suitable_for_first_time_owners=FirstTimeOwnerSuitability.WITH_SUPPORT,
+        special_care_notes="Medication",
+        other_details="Enjoys sunny spots",
+    )
 
     await _add(session_factory, animal)
 
