@@ -1,3 +1,4 @@
+from dataclasses import fields
 from uuid import uuid4
 
 import httpx
@@ -6,8 +7,14 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 from token_issuer import USER_ID, TokenIssuer
 
-from patas_backend.models.animal import Animal, AnimalRepository, Species
+from patas_backend.models.animal import (
+    Animal,
+    AnimalMatchProfile,
+    AnimalRepository,
+    Species,
+)
 from patas_backend.models.user import User, UserRepository
+from patas_backend.routers.animals import AnimalMatchProfileResponse
 
 
 def _bearer(token: str) -> dict[str, str]:
@@ -60,6 +67,16 @@ async def test_catalog_is_public_and_lists_published_animals(
             "suitable_for_first_time_owners": None,
             "special_care_notes": None,
             "other_details": None,
+            "match_profile": {
+                "activity": None,
+                "max_time_alone": None,
+                "experience_needed": None,
+                "space_needed": None,
+                "safe_with_children": None,
+                "safe_with_dogs": None,
+                "safe_with_cats": None,
+                "size": None,
+            },
         }
     ]
 
@@ -122,6 +139,16 @@ async def test_animal_profile_fields_are_saved_and_listed(
     assert published["behaves_well_with_children"] == "with_supervision"
     assert published["suitable_for_first_time_owners"] == "with_support"
     assert published["special_care_notes"] == "Needs daily medication"
+    assert published["match_profile"] == {
+        "activity": "moderate",
+        "max_time_alone": "half_day",  # tolerance moderate
+        "experience_needed": "some",  # with_support
+        "space_needed": "small",
+        "safe_with_children": None,  # with_supervision: not settled
+        "safe_with_dogs": None,  # unknown
+        "safe_with_cats": True,
+        "size": "small",
+    }
     assert (await client.get("/animals")).json() == [published]
 
 
@@ -135,11 +162,20 @@ async def test_animal_profile_fields_are_optional(
     )
 
     assert response.status_code == 201
+    published = response.json()
+    # The derived view is an object, so its values are checked on their own.
+    assert all(value is None for value in published.pop("match_profile").values())
     assert all(
         value is None
-        for key, value in response.json().items()
+        for key, value in published.items()
         if key not in {"id", "owner_id", "name", "species", "adoption_status"}
     )
+
+
+def test_the_match_profile_response_carries_every_domain_field() -> None:
+    assert set(AnimalMatchProfileResponse.model_fields) == {
+        f.name for f in fields(AnimalMatchProfile)
+    }
 
 
 async def test_publishing_without_a_token_is_rejected_and_nothing_is_stored(

@@ -9,6 +9,7 @@ from patas_backend.models.animal import (
     AdoptionStatus,
     Animal,
     AnimalCompatibility,
+    AnimalMatchProfile,
     AnimalSex,
     AnimalSize,
     FirstTimeOwnerSuitability,
@@ -16,7 +17,11 @@ from patas_backend.models.animal import (
     NeuteredStatus,
     Species,
 )
-from patas_backend.models.matching.scales import EnergyLevel
+from patas_backend.models.matching.scales import (
+    EnergyLevel,
+    ExperienceLevel,
+    TimeAway,
+)
 from patas_backend.models.user import User
 from patas_backend.services.animals import AnimalService
 
@@ -48,6 +53,32 @@ class PublishAnimalRequest(BaseModel):
     other_details: str | None = None
 
 
+class AnimalMatchProfileResponse(BaseModel):
+    # Derived from the animal, never sent by a client: the request model has no
+    # counterpart.
+    activity: EnergyLevel | None
+    max_time_alone: TimeAway | None
+    experience_needed: ExperienceLevel | None
+    space_needed: AnimalSize | None
+    safe_with_children: bool | None
+    safe_with_dogs: bool | None
+    safe_with_cats: bool | None
+    size: AnimalSize | None
+
+    @classmethod
+    def from_domain(cls, profile: AnimalMatchProfile) -> "AnimalMatchProfileResponse":
+        return cls(
+            activity=profile.activity,
+            max_time_alone=profile.max_time_alone,
+            experience_needed=profile.experience_needed,
+            space_needed=profile.space_needed,
+            safe_with_children=profile.safe_with_children,
+            safe_with_dogs=profile.safe_with_dogs,
+            safe_with_cats=profile.safe_with_cats,
+            size=profile.size,
+        )
+
+
 class AnimalResponse(BaseModel):
     id: UUID
     owner_id: UUID
@@ -73,6 +104,7 @@ class AnimalResponse(BaseModel):
     suitable_for_first_time_owners: FirstTimeOwnerSuitability | None
     special_care_notes: str | None
     other_details: str | None
+    match_profile: AnimalMatchProfileResponse
 
     @classmethod
     def from_domain(cls, animal: Animal) -> "AnimalResponse":
@@ -101,6 +133,9 @@ class AnimalResponse(BaseModel):
             suitable_for_first_time_owners=animal.suitable_for_first_time_owners,
             special_care_notes=animal.special_care_notes,
             other_details=animal.other_details,
+            match_profile=AnimalMatchProfileResponse.from_domain(
+                animal.match_profile()
+            ),
         )
 
 
