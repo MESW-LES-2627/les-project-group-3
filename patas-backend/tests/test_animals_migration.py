@@ -93,3 +93,31 @@ async def test_updated_at_changes_on_update(
             await conn.execute(text("SELECT created_at, updated_at FROM patas.animals"))
         ).one()
     assert row.updated_at > row.created_at
+
+
+async def test_animal_profile_columns_are_nullable(engine: AsyncEngine) -> None:
+    async with engine.connect() as conn:
+        rows = (
+            await conn.execute(
+                text(
+                    """
+                        SELECT column_name, is_nullable
+                        FROM information_schema.columns
+                        WHERE table_schema = 'patas' AND table_name = 'animals'
+                          AND column_name IN (
+                            'sex', 'is_neutered', 'postal_code', 'size',
+                            'activity_level', 'space_requirement', 'shedding',
+                            'grooming_needs',
+                            'behaves_well_with_children', 'behaves_well_with_dogs',
+                            'behaves_well_with_cats', 'behaves_well_with_other_animals',
+                            'training_needs', 'tolerance_for_time_alone', 'noise_level',
+                            'suitable_for_first_time_owners', 'special_care_notes',
+                            'other_details'
+                          )
+                        """
+                )
+            )
+        ).all()
+
+    assert len(rows) == 18
+    assert all(row.is_nullable == "YES" for row in rows)

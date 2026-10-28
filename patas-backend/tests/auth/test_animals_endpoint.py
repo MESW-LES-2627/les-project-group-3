@@ -42,6 +42,24 @@ async def test_catalog_is_public_and_lists_published_animals(
             "species": "cat",
             "age_in_months": 14,
             "adoption_status": "available",
+            "sex": None,
+            "is_neutered": None,
+            "postal_code": None,
+            "size": None,
+            "activity_level": None,
+            "space_requirement": None,
+            "shedding": None,
+            "grooming_needs": None,
+            "behaves_well_with_children": None,
+            "behaves_well_with_dogs": None,
+            "behaves_well_with_cats": None,
+            "behaves_well_with_other_animals": None,
+            "training_needs": None,
+            "tolerance_for_time_alone": None,
+            "noise_level": None,
+            "suitable_for_first_time_owners": None,
+            "special_care_notes": None,
+            "other_details": None,
         }
     ]
 
@@ -61,8 +79,67 @@ async def test_published_animal_appears_in_the_catalog_owned_by_the_publisher(
     assert published["owner_id"] == USER_ID
     assert published["name"] == "Rex"
     assert published["adoption_status"] == "available"
+    assert published["sex"] is None
+    assert published["behaves_well_with_dogs"] is None
     catalog = (await client.get("/animals")).json()
     assert catalog == [published]
+
+
+async def test_animal_profile_fields_are_saved_and_listed(
+    client: httpx.AsyncClient, issuer: TokenIssuer
+) -> None:
+    response = await client.post(
+        "/animals",
+        json={
+            "name": "Milo",
+            "species": "cat",
+            "sex": "male",
+            "is_neutered": "yes",
+            "postal_code": "1234-567",
+            "size": "small",
+            "activity_level": "moderate",
+            "space_requirement": "small",
+            "shedding": "low",
+            "grooming_needs": "high",
+            "behaves_well_with_children": "with_supervision",
+            "behaves_well_with_dogs": "unknown",
+            "behaves_well_with_cats": "yes",
+            "behaves_well_with_other_animals": "no",
+            "training_needs": "low",
+            "tolerance_for_time_alone": "moderate",
+            "noise_level": "low",
+            "suitable_for_first_time_owners": "with_support",
+            "special_care_notes": "Needs daily medication",
+            "other_details": "Enjoys sunny spots",
+        },
+        headers=_bearer(issuer.token()),
+    )
+
+    assert response.status_code == 201
+    published = response.json()
+    assert published["sex"] == "male"
+    assert published["is_neutered"] == "yes"
+    assert published["behaves_well_with_children"] == "with_supervision"
+    assert published["suitable_for_first_time_owners"] == "with_support"
+    assert published["special_care_notes"] == "Needs daily medication"
+    assert (await client.get("/animals")).json() == [published]
+
+
+async def test_animal_profile_fields_are_optional(
+    client: httpx.AsyncClient, issuer: TokenIssuer
+) -> None:
+    response = await client.post(
+        "/animals",
+        json={"name": "Milo", "species": "cat"},
+        headers=_bearer(issuer.token()),
+    )
+
+    assert response.status_code == 201
+    assert all(
+        value is None
+        for key, value in response.json().items()
+        if key not in {"id", "owner_id", "name", "species", "adoption_status"}
+    )
 
 
 async def test_publishing_without_a_token_is_rejected_and_nothing_is_stored(
@@ -83,6 +160,14 @@ async def test_publishing_without_a_token_is_rejected_and_nothing_is_stored(
             {"name": "Rex", "species": "dog", "age_in_months": -1}, id="negative-age"
         ),
         pytest.param({"name": "Rex", "species": "rabbit"}, id="unknown-species"),
+        pytest.param(
+            {"name": "Rex", "species": "dog", "postal_code": "12345"},
+            id="invalid-postal-code",
+        ),
+        pytest.param(
+            {"name": "Rex", "species": "dog", "activity_level": "extreme"},
+            id="invalid-activity-level",
+        ),
     ],
 )
 async def test_invalid_animal_is_rejected_and_nothing_is_stored(

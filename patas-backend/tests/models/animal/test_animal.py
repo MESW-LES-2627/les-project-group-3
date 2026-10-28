@@ -2,7 +2,18 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from patas_backend.models.animal import AdoptionStatus, Animal, InvalidAnimal, Species
+from patas_backend.models.animal import (
+    AdoptionStatus,
+    Animal,
+    AnimalCompatibility,
+    AnimalSex,
+    AnimalSize,
+    FirstTimeOwnerSuitability,
+    InvalidAnimal,
+    NeuteredStatus,
+    Species,
+)
+from patas_backend.models.matching.scales import EnergyLevel
 
 OWNER_ID = UUID("0b1f2a3c-4d5e-4f60-8a7b-9c0d1e2f3a4b")
 
@@ -57,3 +68,41 @@ def test_invariants_hold_when_built_directly() -> None:
     # Loading from the database goes through the constructor, not `publish`.
     with pytest.raises(InvalidAnimal):
         Animal(id=uuid4(), owner_id=OWNER_ID, name=" ", species=Species.DOG)
+
+
+def test_optional_profile_fields_are_empty_by_default() -> None:
+    animal = _publish()
+
+    assert animal.sex is None
+    assert animal.is_neutered is None
+    assert animal.activity_level is None
+    assert animal.behaves_well_with_children is None
+    assert animal.special_care_notes is None
+
+
+def test_optional_profile_fields_are_kept_and_free_text_is_trimmed() -> None:
+    animal = _publish(
+        sex=AnimalSex.FEMALE,
+        is_neutered=NeuteredStatus.YES,
+        postal_code="1234-567",
+        size=AnimalSize.SMALL,
+        activity_level=EnergyLevel.MODERATE,
+        behaves_well_with_children=AnimalCompatibility.WITH_SUPERVISION,
+        suitable_for_first_time_owners=FirstTimeOwnerSuitability.WITH_SUPPORT,
+        special_care_notes="  Daily medication  ",
+    )
+
+    assert animal.sex is AnimalSex.FEMALE
+    assert animal.is_neutered is NeuteredStatus.YES
+    assert animal.activity_level is EnergyLevel.MODERATE
+    assert animal.behaves_well_with_children is AnimalCompatibility.WITH_SUPERVISION
+    assert (
+        animal.suitable_for_first_time_owners is FirstTimeOwnerSuitability.WITH_SUPPORT
+    )
+    assert animal.special_care_notes == "Daily medication"
+
+
+@pytest.mark.parametrize("postal_code", ["1234567", "1234-56A", "123-4567"])
+def test_invalid_portuguese_postal_code_is_rejected(postal_code: str) -> None:
+    with pytest.raises(InvalidAnimal, match="Portuguese format"):
+        _publish(postal_code=postal_code)
