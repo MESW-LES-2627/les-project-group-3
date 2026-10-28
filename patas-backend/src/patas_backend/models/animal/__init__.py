@@ -1,4 +1,8 @@
-from patas_backend.models.animal.animal import Animal, InvalidAnimal
+from patas_backend.models.animal.animal import (
+    Animal,
+    AnimalUnauthorized,
+    InvalidAnimal,
+)
 from patas_backend.models.animal.enums import (
     AdoptionStatus,
     AnimalCompatibility,
@@ -19,6 +23,7 @@ __all__ = [
     "AnimalRepository",
     "AnimalSex",
     "AnimalSize",
+    "AnimalUnauthorized",
     "FirstTimeOwnerSuitability",
     "InvalidAnimal",
     "NeuteredStatus",
