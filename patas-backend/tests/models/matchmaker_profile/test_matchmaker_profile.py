@@ -2,6 +2,7 @@ from uuid import UUID
 
 import pytest
 
+from patas_backend.models.animal import AnimalSize
 from patas_backend.models.matching import EnergyLevel, ExperienceLevel, TimeAway
 from patas_backend.models.matchmaker_profile import (
     HousingType,
@@ -76,3 +77,21 @@ def test_a_household_answer_must_be_yes_or_no(field: str, value: object) -> None
     # "no" is a truthy string: accepting it would silently mean "yes".
     with pytest.raises(InvalidMatchmakerProfile, match=field):
         _profile(**{field: value})
+
+
+SPACE_OFFERED = {
+    HousingType.APARTMENT: AnimalSize.SMALL,
+    HousingType.HOUSE_NO_YARD: AnimalSize.MEDIUM,
+    HousingType.HOUSE_WITH_YARD: AnimalSize.LARGE,
+}
+
+
+@pytest.mark.parametrize("housing", HousingType)
+def test_housing_offers_a_space_on_the_animals_scale(housing: HousingType) -> None:
+    assert _profile(housing=housing).space_offered is SPACE_OFFERED[housing]
+
+
+def test_more_room_at_home_never_offers_less_space() -> None:
+    offered = [_profile(housing=h).space_offered for h in HousingType]
+
+    assert offered == sorted(offered, key=list(AnimalSize).index)
