@@ -11,6 +11,7 @@ from patas_backend.models.animal.enums import (
     NeuteredStatus,
     Species,
 )
+from patas_backend.models.animal.match_profile import AnimalMatchProfile
 from patas_backend.models.matching.scales import EnergyLevel
 
 
@@ -133,3 +134,8 @@ class Animal:
             special_care_notes=special_care_notes,
             other_details=other_details,
         )
+
+    def match_profile(self) -> AnimalMatchProfile:
+        """This animal on the Matchmaker scales. Built on each call, so it follows
+        the animal when it changes."""
+        return AnimalMatchProfile.of(self)
