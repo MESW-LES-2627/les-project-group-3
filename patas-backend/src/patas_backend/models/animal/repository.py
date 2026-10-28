@@ -1,9 +1,9 @@
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from patas_backend.models.animal.animal import (
+from patas_backend.models.animal.animal import Animal
+from patas_backend.models.animal.enums import (
     AdoptionStatus,
-    Animal,
     AnimalCompatibility,
     AnimalSex,
     AnimalSize,

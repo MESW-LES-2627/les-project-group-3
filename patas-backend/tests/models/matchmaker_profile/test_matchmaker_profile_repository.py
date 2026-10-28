@@ -6,12 +6,11 @@ import pytest_asyncio
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from patas_backend.models.matching import EnergyLevel, ExperienceLevel
+from patas_backend.models.matching import EnergyLevel, ExperienceLevel, TimeAway
 from patas_backend.models.matchmaker_profile import (
     HousingType,
     MatchmakerProfile,
     MatchmakerProfileRepository,
-    TimeAway,
 )
 from patas_backend.models.user import User, UserRepository
 

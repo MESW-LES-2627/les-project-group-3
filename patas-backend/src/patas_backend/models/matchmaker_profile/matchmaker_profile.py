@@ -2,7 +2,8 @@ from dataclasses import dataclass
 from enum import StrEnum
 from uuid import UUID
 
-from patas_backend.models.matching import EnergyLevel, ExperienceLevel
+from patas_backend.models.animal import AnimalSize
+from patas_backend.models.matching import EnergyLevel, ExperienceLevel, TimeAway
 
 
 class InvalidMatchmakerProfile(ValueError):
@@ -15,10 +16,12 @@ class HousingType(StrEnum):
     HOUSE_WITH_YARD = "house_with_yard"
 
 
-class TimeAway(StrEnum):
-    FEW_HOURS = "few_hours"
-    HALF_DAY = "half_day"
-    MOST_OF_DAY = "most_of_day"
+# How much room each housing type gives, on the scale an animal's space is asked in.
+_SPACE_OFFERED = {
+    HousingType.APARTMENT: AnimalSize.SMALL,
+    HousingType.HOUSE_NO_YARD: AnimalSize.MEDIUM,
+    HousingType.HOUSE_WITH_YARD: AnimalSize.LARGE,
+}
 
 
 def _choice[E: StrEnum](scale: type[E], field: str, value: object) -> E:
@@ -59,3 +62,8 @@ class MatchmakerProfile:
         self.has_children = _yes_or_no("has_children", self.has_children)
         self.has_dogs = _yes_or_no("has_dogs", self.has_dogs)
         self.has_cats = _yes_or_no("has_cats", self.has_cats)
+
+    @property
+    def space_offered(self) -> AnimalSize:
+        """The housing on the animal's space scale, to compare with its space needed."""
+        return _SPACE_OFFERED[self.housing]

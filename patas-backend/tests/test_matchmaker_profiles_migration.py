@@ -6,8 +6,8 @@ from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from patas_backend.models.matching import EnergyLevel, ExperienceLevel
-from patas_backend.models.matchmaker_profile import HousingType, TimeAway
+from patas_backend.models.matching import EnergyLevel, ExperienceLevel, TimeAway
+from patas_backend.models.matchmaker_profile import HousingType
 
 USER_ID = UUID("5d0c7a52-3b1e-4c8f-9a6d-2e4f8b1c7d90")
 

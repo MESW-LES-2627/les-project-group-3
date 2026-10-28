@@ -14,3 +14,11 @@ class ExperienceLevel(StrEnum):
     NONE = "none"
     SOME = "some"
     EXPERIENCED = "experienced"
+
+
+class TimeAway(StrEnum):
+    # An adopter's time away from home, and the longest an animal can be left alone
+    # (scoring reads the animal side as a ceiling).
+    FEW_HOURS = "few_hours"
+    HALF_DAY = "half_day"
+    MOST_OF_DAY = "most_of_day"
