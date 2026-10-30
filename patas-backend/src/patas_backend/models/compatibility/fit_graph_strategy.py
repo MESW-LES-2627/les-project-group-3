@@ -55,6 +55,8 @@ class FitGraphStrategy(CompatibilityStrategy):
     @staticmethod
     def _weighted_average(valued: Valued) -> float:
         total_weight = sum(a.dimension.weight for a, _ in valued)
+        if total_weight == 0:
+            raise ValueError("no dimension applies to this adopter, nothing to score")
         return sum(a.dimension.weight * fit for a, fit in valued) / total_weight
 
     @abstractmethod

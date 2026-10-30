@@ -2,7 +2,13 @@ import pytest
 from profiles import make_adopter
 
 from patas_backend.models.animal import AnimalMatchProfile, AnimalSize
-from patas_backend.models.compatibility import Assessment, FitGraph, ReasonKind
+from patas_backend.models.compatibility import (
+    Assessment,
+    Dimension,
+    FitGraph,
+    ReasonKind,
+    Wording,
+)
 from patas_backend.models.matching import EnergyLevel, ExperienceLevel, TimeAway
 from patas_backend.models.matchmaker_profile import HousingType, MatchmakerProfile
 
@@ -241,3 +247,23 @@ def test_a_reason_is_a_strength_when_it_fits_in_full_and_a_concern_otherwise(
     )
 
     assert assessed["time_alone"].reason.kind is kind
+
+
+def test_a_dimension_without_a_partial_wording_refuses_a_partial_fit() -> None:
+    # Household tables only give 1 or 0, so they carry no partial wording at all.
+    dogs_dimension = next(d for d in FitGraph.standard().dimensions if d.name == "dogs")
+    assert dogs_dimension.wording.partly is None
+
+    half_fit = Dimension(
+        name="half",
+        weight=1,
+        critical=False,
+        safety=False,
+        adopter_value=lambda adopter: adopter.activity,
+        animal_value=lambda animal: animal.activity,
+        table={(MODERATE, MODERATE): 0.5},
+        wording=Wording(fits="fits", misfit="misfit", unknown="unknown"),
+    )
+
+    with pytest.raises(ValueError, match="partial"):
+        half_fit.assess(make_adopter(), AnimalMatchProfile(activity=MODERATE))

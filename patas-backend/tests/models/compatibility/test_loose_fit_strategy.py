@@ -1,10 +1,13 @@
+import pytest
 from profiles import make_adopter, make_animal, texts
 
 from patas_backend.models.animal import AnimalMatchProfile, AnimalSize
 from patas_backend.models.compatibility import (
     FitGraph,
+    FitGraphStrategy,
     LooseFitStrategy,
     ReasonKind,
+    StrictFitStrategy,
     rules,
 )
 from patas_backend.models.compatibility.fit_graph import STANDARD_DIMENSIONS
@@ -145,3 +148,13 @@ def test_the_graph_it_judges_with_can_be_replaced() -> None:
 
     assert result.score == 50
     assert texts(result) == (rules.ACTIVITY_WORDING.partly,)
+
+
+@pytest.mark.parametrize("strategy", [LooseFitStrategy, StrictFitStrategy])
+def test_a_graph_with_nothing_that_applies_is_refused_not_divided_by_zero(
+    strategy: type[FitGraphStrategy],
+) -> None:
+    children_only = FitGraph(dimensions=(STANDARD_DIMENSIONS[4],))
+
+    with pytest.raises(ValueError, match="no dimension applies"):
+        strategy(children_only).evaluate(make_adopter(), make_animal())

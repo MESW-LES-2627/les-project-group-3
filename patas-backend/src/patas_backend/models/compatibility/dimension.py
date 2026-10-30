@@ -11,9 +11,10 @@ class Wording:
     """What to tell the adopter, by how well the animal fits on one dimension."""
 
     fits: str
-    partly: str
     misfit: str
     unknown: str
+    # None: the dimension's table never gives a partial fit.
+    partly: str | None = None
 
 
 @dataclass(frozen=True)
@@ -62,5 +63,9 @@ class Dimension[A, B]:
         if fit >= 1.0:
             return Reason(self.wording.fits, ReasonKind.STRENGTH)
         if fit > 0.0:
+            if self.wording.partly is None:
+                raise ValueError(
+                    f"{self.name} has no wording for a partial fit ({fit})"
+                )
             return Reason(self.wording.partly, ReasonKind.CONCERN)
         return Reason(self.wording.misfit, ReasonKind.CONCERN)

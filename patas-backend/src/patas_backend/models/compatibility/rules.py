@@ -105,11 +105,9 @@ SPACE_WORDING = Wording(
 
 
 def household_wording(noun: str) -> Wording:
-    safe_with = f"Safe with {noun}"
-    # The table only gives 1 or 0, so a partial fit cannot happen here.
+    # The table only gives 1 or 0, so there is no partial wording.
     return Wording(
-        fits=safe_with,
-        partly=safe_with,
+        fits=f"Safe with {noun}",
         misfit=f"Not safe with {noun}",
         unknown=f"The owner did not say if it is safe with {noun}",
     )
