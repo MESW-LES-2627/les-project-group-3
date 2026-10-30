@@ -4,6 +4,7 @@ from patas_backend.models.compatibility.dimension import (
     Wording,
 )
 from patas_backend.models.compatibility.fit_graph import FitGraph
+from patas_backend.models.compatibility.interaction import Interaction, Penalty
 from patas_backend.models.compatibility.result import (
     CompatibilityResult,
     InvalidCompatibilityResult,
@@ -16,6 +17,8 @@ __all__ = [
     "CompatibilityStrategy",
     "Dimension",
     "FitGraph",
+    "Interaction",
     "InvalidCompatibilityResult",
+    "Penalty",
     "Wording",
 ]

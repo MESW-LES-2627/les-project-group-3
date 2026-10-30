@@ -1,5 +1,6 @@
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any
 
 from patas_backend.models.animal import AnimalMatchProfile, AnimalSize
@@ -9,7 +10,8 @@ from patas_backend.models.compatibility.dimension import (
     Dimension,
     Wording,
 )
-from patas_backend.models.matching import ExperienceLevel, TimeAway
+from patas_backend.models.compatibility.interaction import Interaction, Penalty
+from patas_backend.models.matching import ExperienceLevel, LifeStage, TimeAway
 from patas_backend.models.matchmaker_profile import MatchmakerProfile
 
 
@@ -120,6 +122,64 @@ STANDARD_DIMENSIONS: tuple[Dimension[Any, Any], ...] = (
 )
 
 
+def _unit(value: StrEnum) -> float:
+    """Where a value sits on its scale: 0 for the first, 1 for the last."""
+    scale = list(type(value))
+    return scale.index(value) / (len(scale) - 1)
+
+
+# An edge never fires on a blank animal answer: it punishes a known problem only.
+def _training_beyond_experience(
+    adopter: MatchmakerProfile, animal: AnimalMatchProfile
+) -> float:
+    if animal.training_needs is None:
+        return 0.0
+    return max(0.0, _unit(animal.training_needs) - _unit(adopter.experience))
+
+
+def _noise_beyond_housing(
+    adopter: MatchmakerProfile, animal: AnimalMatchProfile
+) -> float:
+    if animal.noise_level is None:
+        return 0.0
+    return max(0.0, _unit(animal.noise_level) - _unit(adopter.housing))
+
+
+def _baby_needs_company_and_training(
+    adopter: MatchmakerProfile, animal: AnimalMatchProfile
+) -> float:
+    if animal.life_stage is not LifeStage.BABY:
+        return 0.0
+    absence = _unit(adopter.time_away)
+    inexperience = 1.0 - _unit(adopter.experience)
+    return (absence + inexperience) / 2
+
+
+STANDARD_INTERACTIONS: tuple[Interaction, ...] = (
+    Interaction(
+        name="training_experience",
+        max_penalty=15,
+        severity=_training_beyond_experience,
+        reason="Its training needs are high for your experience",
+    ),
+    Interaction(
+        name="noise_housing",
+        max_penalty=10,
+        severity=_noise_beyond_housing,
+        reason="It can be noisy, which may not suit your home",
+    ),
+    Interaction(
+        name="baby_care",
+        max_penalty=15,
+        severity=_baby_needs_company_and_training,
+        reason="A young animal needs company and training you may find hard to give",
+    ),
+)
+
+# Stacked edges are held here so a hard match still scores apart from a hopeless one.
+MAX_TOTAL_PENALTY = 25.0
+
+
 @dataclass(frozen=True)
 class FitGraph:
     """The attributes of an adopter and an animal, and how they bear on each other.
@@ -130,10 +190,12 @@ class FitGraph:
     """
 
     dimensions: tuple[Dimension[Any, Any], ...]
+    interactions: tuple[Interaction, ...] = ()
+    max_total_penalty: float = float("inf")
 
     @classmethod
     def standard(cls) -> "FitGraph":
-        return cls(STANDARD_DIMENSIONS)
+        return cls(STANDARD_DIMENSIONS, STANDARD_INTERACTIONS, MAX_TOTAL_PENALTY)
 
     def assess(
         self, adopter: MatchmakerProfile, animal: AnimalMatchProfile
@@ -141,3 +203,14 @@ class FitGraph:
         """The dimensions that apply to this adopter, measured, in a fixed order."""
         assessed = (d.assess(adopter, animal) for d in self.dimensions)
         return [a for a in assessed if a is not None]
+
+    def penalties(
+        self, adopter: MatchmakerProfile, animal: AnimalMatchProfile
+    ) -> list[Penalty]:
+        """The interactions that fire for this pair, at full strength, in order."""
+        fired = (i.assess(adopter, animal) for i in self.interactions)
+        return [p for p in fired if p is not None]
+
+    def total_penalty(self, penalties: Sequence[Penalty]) -> float:
+        """The points to take off, held at the cap. Every reason still shows."""
+        return min(sum(p.points for p in penalties), self.max_total_penalty)
