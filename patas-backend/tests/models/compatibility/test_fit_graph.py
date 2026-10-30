@@ -1,13 +1,10 @@
-from uuid import UUID
-
 import pytest
+from profiles import make_adopter
 
 from patas_backend.models.animal import AnimalMatchProfile, AnimalSize
 from patas_backend.models.compatibility import Assessment, FitGraph, ReasonKind
 from patas_backend.models.matching import EnergyLevel, ExperienceLevel, TimeAway
 from patas_backend.models.matchmaker_profile import HousingType, MatchmakerProfile
-
-USER_ID = UUID("0b1f2a3c-4d5e-4f60-8a7b-9c0d1e2f3a4b")
 
 LOW, MODERATE, HIGH = EnergyLevel.LOW, EnergyLevel.MODERATE, EnergyLevel.HIGH
 FEW_HOURS, HALF_DAY, MOST_OF_DAY = (
@@ -85,21 +82,6 @@ FLAGS = {
 HOUSEHOLD = ["children", "dogs", "cats"]
 
 
-def _adopter(**overrides: object) -> MatchmakerProfile:
-    answers: dict[str, object] = {
-        "user_id": USER_ID,
-        "housing": APARTMENT,
-        "activity": MODERATE,
-        "time_away": HALF_DAY,
-        "experience": SOME,
-        "has_children": False,
-        "has_dogs": False,
-        "has_cats": False,
-        **overrides,
-    }
-    return MatchmakerProfile(**answers)  # type: ignore[arg-type]
-
-
 def _assess(
     adopter: MatchmakerProfile, animal: AnimalMatchProfile
 ) -> dict[str, Assessment]:
@@ -111,7 +93,9 @@ def test_activity_fit_follows_the_table(
     pair: tuple[EnergyLevel, EnergyLevel], fit: float
 ) -> None:
     adopter, animal = pair
-    assessed = _assess(_adopter(activity=adopter), AnimalMatchProfile(activity=animal))
+    assessed = _assess(
+        make_adopter(activity=adopter), AnimalMatchProfile(activity=animal)
+    )
 
     assert assessed["activity"].fit == fit
 
@@ -122,7 +106,7 @@ def test_time_alone_fit_follows_the_table(
 ) -> None:
     away, longest_alone = pair
     assessed = _assess(
-        _adopter(time_away=away), AnimalMatchProfile(max_time_alone=longest_alone)
+        make_adopter(time_away=away), AnimalMatchProfile(max_time_alone=longest_alone)
     )
 
     assert assessed["time_alone"].fit == fit
@@ -134,7 +118,7 @@ def test_experience_fit_follows_the_table(
 ) -> None:
     has, needed = pair
     assessed = _assess(
-        _adopter(experience=has), AnimalMatchProfile(experience_needed=needed)
+        make_adopter(experience=has), AnimalMatchProfile(experience_needed=needed)
     )
 
     assert assessed["experience"].fit == fit
@@ -146,7 +130,7 @@ def test_space_fit_follows_the_table(
 ) -> None:
     housing, needed = pair
     assessed = _assess(
-        _adopter(housing=housing), AnimalMatchProfile(space_needed=needed)
+        make_adopter(housing=housing), AnimalMatchProfile(space_needed=needed)
     )
 
     assert assessed["space"].fit == fit
@@ -158,7 +142,7 @@ def test_household_fit_is_full_when_safe_and_zero_when_not(
     member: str, safe: bool, fit: float
 ) -> None:
     assessed = _assess(
-        _adopter(**{f"has_{member}": True}),
+        make_adopter(**{f"has_{member}": True}),
         AnimalMatchProfile(**{f"safe_with_{member}": safe}),
     )
 
@@ -169,7 +153,7 @@ def test_household_fit_is_full_when_safe_and_zero_when_not(
     "name", [*HOUSEHOLD, "activity", "time_alone", "experience", "space"]
 )
 def test_an_animal_answer_left_blank_has_no_fit_and_says_so(name: str) -> None:
-    adopter = _adopter(has_children=True, has_dogs=True, has_cats=True)
+    adopter = make_adopter(has_children=True, has_dogs=True, has_cats=True)
 
     blank = _assess(adopter, AnimalMatchProfile())[name]
     answered = _assess(
@@ -199,12 +183,12 @@ def test_a_household_dimension_only_counts_when_the_adopter_has_it(
         safe_with_children=False, safe_with_dogs=False, safe_with_cats=False
     )
 
-    assert member not in _assess(_adopter(), unsafe)
-    assert member in _assess(_adopter(**{f"has_{member}": True}), unsafe)
+    assert member not in _assess(make_adopter(), unsafe)
+    assert member in _assess(make_adopter(**{f"has_{member}": True}), unsafe)
 
 
 def test_assessments_come_in_a_fixed_order() -> None:
-    adopter = _adopter(has_children=True, has_dogs=True, has_cats=True)
+    adopter = make_adopter(has_children=True, has_dogs=True, has_cats=True)
 
     names = [
         a.dimension.name
@@ -215,7 +199,7 @@ def test_assessments_come_in_a_fixed_order() -> None:
 
 
 def test_an_adopter_without_household_is_assessed_on_lifestyle_only() -> None:
-    assessed = _assess(_adopter(), AnimalMatchProfile())
+    assessed = _assess(make_adopter(), AnimalMatchProfile())
 
     assert list(assessed) == ["activity", "time_alone", "experience", "space"]
 
@@ -229,12 +213,12 @@ def test_dimensions_carry_the_agreed_weights_and_flags() -> None:
 def test_each_band_of_fit_has_its_own_reason() -> None:
     # Time alone: a few hours is the animal's limit and the adopter is away for...
     reasons = {
-        _assess(_adopter(time_away=away), AnimalMatchProfile(max_time_alone=FEW_HOURS))[
-            "time_alone"
-        ].reason
+        _assess(
+            make_adopter(time_away=away), AnimalMatchProfile(max_time_alone=FEW_HOURS)
+        )["time_alone"].reason
         for away in TimeAway
     }
-    reasons.add(_assess(_adopter(), AnimalMatchProfile())["time_alone"].reason)
+    reasons.add(_assess(make_adopter(), AnimalMatchProfile())["time_alone"].reason)
 
     # Fits, partly, misfit (0.0) and unknown.
     assert len(reasons) == 4
@@ -253,7 +237,7 @@ def test_a_reason_is_a_strength_when_it_fits_in_full_and_a_concern_otherwise(
 ) -> None:
     # The animal's limit is a few hours: fit 1.0, 0.5 and 0.0 as the adopter is away.
     assessed = _assess(
-        _adopter(time_away=away), AnimalMatchProfile(max_time_alone=FEW_HOURS)
+        make_adopter(time_away=away), AnimalMatchProfile(max_time_alone=FEW_HOURS)
     )
 
     assert assessed["time_alone"].reason.kind is kind

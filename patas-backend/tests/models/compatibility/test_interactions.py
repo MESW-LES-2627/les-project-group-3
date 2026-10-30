@@ -1,6 +1,5 @@
-from uuid import UUID
-
 import pytest
+from profiles import make_adopter
 
 from patas_backend.models.animal import AnimalMatchProfile
 from patas_backend.models.compatibility import FitGraph, ReasonKind
@@ -11,8 +10,6 @@ from patas_backend.models.matching import (
     TimeAway,
 )
 from patas_backend.models.matchmaker_profile import HousingType, MatchmakerProfile
-
-USER_ID = UUID("0b1f2a3c-4d5e-4f60-8a7b-9c0d1e2f3a4b")
 
 LOW, MODERATE, HIGH = EnergyLevel.LOW, EnergyLevel.MODERATE, EnergyLevel.HIGH
 FEW_HOURS, HALF_DAY, MOST_OF_DAY = (
@@ -68,21 +65,6 @@ BABY_X_TIME_AND_EXPERIENCE = {
 MAX_PENALTY = {"training_experience": 15, "noise_housing": 10, "baby_care": 15}
 
 
-def _adopter(**overrides: object) -> MatchmakerProfile:
-    answers: dict[str, object] = {
-        "user_id": USER_ID,
-        "housing": WITH_YARD,
-        "activity": MODERATE,
-        "time_away": FEW_HOURS,
-        "experience": EXPERIENCED,
-        "has_children": False,
-        "has_dogs": False,
-        "has_cats": False,
-        **overrides,
-    }
-    return MatchmakerProfile(**answers)  # type: ignore[arg-type]
-
-
 def _points(name: str, adopter: MatchmakerProfile, animal: AnimalMatchProfile) -> float:
     penalties = {
         p.interaction.name: p for p in FitGraph.standard().penalties(adopter, animal)
@@ -98,7 +80,7 @@ def test_training_needs_beyond_the_adopters_experience_cost_points(
 
     result = _points(
         "training_experience",
-        _adopter(experience=experience),
+        make_adopter(experience=experience),
         AnimalMatchProfile(training_needs=training),
     )
 
@@ -113,7 +95,7 @@ def test_noise_beyond_what_the_home_tolerates_costs_points(
 
     result = _points(
         "noise_housing",
-        _adopter(housing=housing),
+        make_adopter(housing=housing),
         AnimalMatchProfile(noise_level=noise),
     )
 
@@ -128,7 +110,7 @@ def test_a_baby_animal_costs_points_for_time_away_and_missing_experience(
 
     result = _points(
         "baby_care",
-        _adopter(time_away=away, experience=experience),
+        make_adopter(time_away=away, experience=experience),
         AnimalMatchProfile(life_stage=LifeStage.BABY),
     )
 
@@ -137,7 +119,7 @@ def test_a_baby_animal_costs_points_for_time_away_and_missing_experience(
 
 @pytest.mark.parametrize("stage", [LifeStage.ADULT, LifeStage.SENIOR, None])
 def test_only_a_baby_animal_gets_the_baby_edge(stage: LifeStage | None) -> None:
-    worst_adopter = _adopter(time_away=MOST_OF_DAY, experience=NONE)
+    worst_adopter = make_adopter(time_away=MOST_OF_DAY, experience=NONE)
 
     assert (
         _points("baby_care", worst_adopter, AnimalMatchProfile(life_stage=stage)) == 0
@@ -145,13 +127,17 @@ def test_only_a_baby_animal_gets_the_baby_edge(stage: LifeStage | None) -> None:
 
 
 def test_an_edge_never_fires_on_an_answer_the_owner_left_blank() -> None:
-    worst_adopter = _adopter(housing=APARTMENT, time_away=MOST_OF_DAY, experience=NONE)
+    worst_adopter = make_adopter(
+        housing=APARTMENT, time_away=MOST_OF_DAY, experience=NONE
+    )
 
     assert FitGraph.standard().penalties(worst_adopter, AnimalMatchProfile()) == []
 
 
 def test_penalties_come_in_a_fixed_order_with_a_reason_each() -> None:
-    worst_adopter = _adopter(housing=APARTMENT, time_away=MOST_OF_DAY, experience=NONE)
+    worst_adopter = make_adopter(
+        housing=APARTMENT, time_away=MOST_OF_DAY, experience=NONE
+    )
     everything_wrong = AnimalMatchProfile(
         training_needs=HIGH, noise_level=HIGH, life_stage=LifeStage.BABY
     )
@@ -172,7 +158,7 @@ def test_each_edge_carries_the_agreed_maximum_penalty() -> None:
 def test_the_total_penalty_is_the_plain_sum_below_the_cap() -> None:
     graph = FitGraph.standard()
     penalties = graph.penalties(
-        _adopter(experience=NONE), AnimalMatchProfile(training_needs=HIGH)
+        make_adopter(experience=NONE), AnimalMatchProfile(training_needs=HIGH)
     )
 
     assert graph.total_penalty(penalties) == pytest.approx(15.0)
@@ -180,7 +166,9 @@ def test_the_total_penalty_is_the_plain_sum_below_the_cap() -> None:
 
 def test_stacked_penalties_are_capped_but_every_reason_still_shows() -> None:
     graph = FitGraph.standard()
-    worst_adopter = _adopter(housing=APARTMENT, time_away=MOST_OF_DAY, experience=NONE)
+    worst_adopter = make_adopter(
+        housing=APARTMENT, time_away=MOST_OF_DAY, experience=NONE
+    )
     everything_wrong = AnimalMatchProfile(
         training_needs=HIGH, noise_level=HIGH, life_stage=LifeStage.BABY
     )
