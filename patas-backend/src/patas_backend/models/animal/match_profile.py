@@ -10,6 +10,7 @@ from patas_backend.models.animal.enums import (
 from patas_backend.models.matching.scales import (
     EnergyLevel,
     ExperienceLevel,
+    LifeStage,
     TimeAway,
 )
 
@@ -37,8 +38,24 @@ _SAFE_WITH = {
 }
 
 
+# Placeholder thresholds, a team rule (the same for dogs and cats): under a year is
+# a baby, eight years and over is a senior.
+_BABY_BELOW_MONTHS = 12
+_SENIOR_FROM_MONTHS = 96
+
+
 def _translate[K, V](table: Mapping[K, V | None], answer: K | None) -> V | None:
     return None if answer is None else table[answer]
+
+
+def _life_stage(age_in_months: int | None) -> LifeStage | None:
+    if age_in_months is None:
+        return None
+    if age_in_months < _BABY_BELOW_MONTHS:
+        return LifeStage.BABY
+    if age_in_months >= _SENIOR_FROM_MONTHS:
+        return LifeStage.SENIOR
+    return LifeStage.ADULT
 
 
 @dataclass(frozen=True)
@@ -58,6 +75,11 @@ class AnimalMatchProfile:
     # No adopter answer to pair with: a modifier for scoring, never used to guess
     # a blank space_needed.
     size: AnimalSize | None = None
+    # Likewise unpaired: scoring reads each only against an adopter answer, as an
+    # edge (training needs and age against experience, noise against housing).
+    training_needs: EnergyLevel | None = None
+    noise_level: EnergyLevel | None = None
+    life_stage: LifeStage | None = None
 
     @classmethod
     def of(cls, animal: "Animal") -> "AnimalMatchProfile":
@@ -74,4 +96,7 @@ class AnimalMatchProfile:
             safe_with_dogs=_translate(_SAFE_WITH, animal.behaves_well_with_dogs),
             safe_with_cats=_translate(_SAFE_WITH, animal.behaves_well_with_cats),
             size=animal.size,
+            training_needs=animal.training_needs,
+            noise_level=animal.noise_level,
+            life_stage=_life_stage(animal.age_in_months),
         )

@@ -11,7 +11,12 @@ from patas_backend.models.animal import (
     FirstTimeOwnerSuitability,
     Species,
 )
-from patas_backend.models.matching import EnergyLevel, ExperienceLevel, TimeAway
+from patas_backend.models.matching import (
+    EnergyLevel,
+    ExperienceLevel,
+    LifeStage,
+    TimeAway,
+)
 from patas_backend.models.matchmaker_profile import MatchmakerProfile
 
 OWNER_ID = UUID("0b1f2a3c-4d5e-4f60-8a7b-9c0d1e2f3a4b")
@@ -144,10 +149,45 @@ def test_every_adopter_answer_has_an_animal_counterpart() -> None:
     assert set(COUNTERPART.values()) <= {f.name for f in fields(AnimalMatchProfile)}
 
 
-def test_size_is_the_only_animal_value_without_an_adopter_answer() -> None:
+def test_only_edge_context_values_have_no_adopter_answer() -> None:
     unpaired = {f.name for f in fields(AnimalMatchProfile)} - set(COUNTERPART.values())
 
-    assert unpaired == {"size"}
+    # Scoring reads these only against an adopter answer, as an edge of the graph.
+    assert unpaired == {"size", "training_needs", "noise_level", "life_stage"}
+
+
+@pytest.mark.parametrize("level", EnergyLevel)
+@pytest.mark.parametrize(
+    ("source", "target"),
+    [("training_needs", "training_needs"), ("noise_level", "noise_level")],
+)
+def test_training_needs_and_noise_level_are_carried_over_as_given(
+    source: str, target: str, level: EnergyLevel
+) -> None:
+    projection = _animal(**{source: level}).match_profile()
+
+    assert getattr(projection, target) is level
+
+
+@pytest.mark.parametrize(
+    ("age_in_months", "stage"),
+    [
+        (0, LifeStage.BABY),
+        (11, LifeStage.BABY),
+        (12, LifeStage.ADULT),
+        (95, LifeStage.ADULT),
+        (96, LifeStage.SENIOR),
+        (200, LifeStage.SENIOR),
+    ],
+)
+def test_age_becomes_a_life_stage_at_the_agreed_thresholds(
+    age_in_months: int, stage: LifeStage
+) -> None:
+    assert _animal(age_in_months=age_in_months).match_profile().life_stage is stage
+
+
+def test_an_unknown_age_is_never_guessed_as_a_life_stage() -> None:
+    assert _animal(age_in_months=None).match_profile().life_stage is None
 
 
 def test_the_projection_is_a_snapshot_that_follows_later_changes() -> None:
