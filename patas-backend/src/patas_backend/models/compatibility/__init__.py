@@ -13,6 +13,7 @@ from patas_backend.models.compatibility.result import (
     InvalidCompatibilityResult,
 )
 from patas_backend.models.compatibility.strategy import CompatibilityStrategy
+from patas_backend.models.compatibility.strict_fit_strategy import StrictFitStrategy
 
 __all__ = [
     "Assessment",
@@ -25,6 +26,7 @@ __all__ = [
     "InvalidCompatibilityResult",
     "LooseFitStrategy",
     "Penalty",
+    "StrictFitStrategy",
     "Wording",
     "rules",
 ]
