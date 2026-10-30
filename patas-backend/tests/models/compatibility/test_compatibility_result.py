@@ -5,7 +5,12 @@ import pytest
 from patas_backend.models.compatibility import (
     CompatibilityResult,
     InvalidCompatibilityResult,
+    Reason,
+    ReasonKind,
 )
+
+STRENGTH = Reason("first", ReasonKind.STRENGTH)
+CONCERN = Reason("second", ReasonKind.CONCERN)
 
 
 @pytest.mark.parametrize(
@@ -28,17 +33,17 @@ def test_scored_rounds_half_up_and_clamps_to_the_score_range(
 
 
 def test_scored_keeps_the_reasons_in_order_and_is_compatible() -> None:
-    result = CompatibilityResult.scored(80, ["first", "second"])
+    result = CompatibilityResult.scored(80, [STRENGTH, CONCERN])
 
-    assert result.reasons == ("first", "second")
+    assert result.reasons == (STRENGTH, CONCERN)
     assert result.is_compatible
 
 
-def test_excluded_scores_zero_and_says_why() -> None:
+def test_excluded_scores_zero_and_says_why_as_a_concern() -> None:
     result = CompatibilityResult.excluded("Not safe with children")
 
     assert result.score == 0
-    assert result.reasons == ("Not safe with children",)
+    assert result.reasons == (Reason("Not safe with children", ReasonKind.CONCERN),)
     assert not result.is_compatible
 
 
@@ -50,7 +55,7 @@ def test_a_score_outside_the_range_is_rejected(score: int) -> None:
 
 def test_an_incompatible_result_with_a_score_is_rejected() -> None:
     with pytest.raises(InvalidCompatibilityResult):
-        CompatibilityResult(score=40, reasons=("why",), is_compatible=False)
+        CompatibilityResult(score=40, reasons=(CONCERN,), is_compatible=False)
 
 
 def test_an_incompatible_result_without_a_reason_is_rejected() -> None:

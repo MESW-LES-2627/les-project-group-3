@@ -2,6 +2,7 @@ from uuid import UUID
 
 from patas_backend.models.animal import AnimalMatchProfile, AnimalSize
 from patas_backend.models.compatibility import (
+    CompatibilityResult,
     FitGraph,
     StrictFitStrategy,
     rules,
@@ -16,6 +17,10 @@ from patas_backend.models.matching import (
 from patas_backend.models.matchmaker_profile import HousingType, MatchmakerProfile
 
 USER_ID = UUID("0b1f2a3c-4d5e-4f60-8a7b-9c0d1e2f3a4b")
+
+
+def _texts(result: CompatibilityResult) -> tuple[str, ...]:
+    return tuple(reason.text for reason in result.reasons)
 
 
 def _adopter(**overrides: object) -> MatchmakerProfile:
@@ -58,7 +63,7 @@ def test_the_worked_example_scores_38_where_loose_scores_75() -> None:
 
     assert result.score == 38  # 37.5, rounded half up
     assert result.is_compatible
-    assert result.reasons == (
+    assert _texts(result) == (
         rules.ACTIVITY_WORDING.fits,
         rules.TIME_ALONE_WORDING.partly,
         rules.EXPERIENCE_WORDING.fits,
@@ -82,7 +87,7 @@ def test_two_steps_short_on_a_critical_dimension_hides_the_animal() -> None:
 
     assert not result.is_compatible
     assert result.score == 0
-    assert result.reasons == (rules.TIME_ALONE_WORDING.misfit,)
+    assert _texts(result) == (rules.TIME_ALONE_WORDING.misfit,)
 
 
 def test_a_household_member_the_animal_is_not_safe_with_hides_it() -> None:
@@ -91,7 +96,7 @@ def test_a_household_member_the_animal_is_not_safe_with_hides_it() -> None:
     )
 
     assert not result.is_compatible
-    assert result.reasons == (rules.household_wording("dogs").misfit,)
+    assert _texts(result) == (rules.household_wording("dogs").misfit,)
 
 
 def test_a_blank_answer_costs_through_the_average_but_is_not_the_weakest_link() -> None:
@@ -100,7 +105,7 @@ def test_a_blank_answer_costs_through_the_average_but_is_not_the_weakest_link() 
 
     assert result.is_compatible
     assert result.score == 81  # 81.25
-    assert result.reasons[-1] == rules.SPACE_WORDING.unknown
+    assert result.reasons[-1].text == rules.SPACE_WORDING.unknown
 
 
 def test_an_animal_with_nothing_answered_is_low_but_still_shown() -> None:
@@ -116,7 +121,7 @@ def test_a_blank_household_answer_counts_a_quarter_and_never_hides_the_animal() 
 
     assert result.is_compatible
     assert result.score == 75
-    assert rules.household_wording("children").unknown in result.reasons
+    assert rules.household_wording("children").unknown in _texts(result)
 
 
 def test_an_edge_takes_its_full_penalty_off() -> None:
@@ -125,7 +130,7 @@ def test_an_edge_takes_its_full_penalty_off() -> None:
     )
 
     assert result.score == 85  # 100 - 15
-    assert result.reasons[-1] == rules.EDGE_REASON["training_experience"]
+    assert result.reasons[-1].text == rules.EDGE_REASON["training_experience"]
 
 
 def test_stacked_edges_take_the_cap_off_in_full() -> None:

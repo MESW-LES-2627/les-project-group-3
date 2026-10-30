@@ -2,6 +2,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from patas_backend.models.animal import AnimalMatchProfile
+from patas_backend.models.compatibility.reason import Reason, ReasonKind
 from patas_backend.models.matchmaker_profile import MatchmakerProfile
 
 
@@ -11,7 +12,7 @@ class Penalty:
 
     interaction: "Interaction"
     points: float
-    reason: str
+    reason: Reason
 
 
 @dataclass(frozen=True)
@@ -33,4 +34,5 @@ class Interaction:
         severity = self.severity(adopter, animal)
         if severity <= 0.0:
             return None
-        return Penalty(self, self.max_penalty * severity, self.reason)
+        reason = Reason(self.reason, ReasonKind.CONCERN)
+        return Penalty(self, self.max_penalty * severity, reason)

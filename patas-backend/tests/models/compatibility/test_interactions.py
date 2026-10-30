@@ -3,7 +3,7 @@ from uuid import UUID
 import pytest
 
 from patas_backend.models.animal import AnimalMatchProfile
-from patas_backend.models.compatibility import FitGraph
+from patas_backend.models.compatibility import FitGraph, ReasonKind
 from patas_backend.models.matching import (
     EnergyLevel,
     ExperienceLevel,
@@ -159,7 +159,7 @@ def test_penalties_come_in_a_fixed_order_with_a_reason_each() -> None:
     penalties = FitGraph.standard().penalties(worst_adopter, everything_wrong)
 
     assert [p.interaction.name for p in penalties] == list(MAX_PENALTY)
-    assert all(p.reason for p in penalties)
+    assert all(p.reason.kind is ReasonKind.CONCERN for p in penalties)
     assert len({p.reason for p in penalties}) == len(penalties)
 
 

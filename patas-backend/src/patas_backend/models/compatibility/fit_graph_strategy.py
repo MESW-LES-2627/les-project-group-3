@@ -36,7 +36,7 @@ class FitGraphStrategy(CompatibilityStrategy):
         valued = [(a, self._value(a)) for a in assessed]
         for assessment, fit in valued:
             if self._hides(assessment, fit):
-                return CompatibilityResult.excluded(assessment.reason)
+                return CompatibilityResult.excluded(assessment.reason.text)
 
         penalties = self._graph.penalties(adopter, animal)
         edge_cost = self._graph.total_penalty(penalties) * self.edge_strength

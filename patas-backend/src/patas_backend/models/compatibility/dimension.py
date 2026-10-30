@@ -2,6 +2,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 
 from patas_backend.models.animal import AnimalMatchProfile
+from patas_backend.models.compatibility.reason import Reason, ReasonKind
 from patas_backend.models.matchmaker_profile import MatchmakerProfile
 
 
@@ -21,7 +22,7 @@ class Assessment:
 
     dimension: "Dimension"
     fit: float | None  # None: the owner did not say, which is never a "no"
-    reason: str
+    reason: Reason
 
 
 @dataclass(frozen=True)
@@ -52,13 +53,14 @@ class Dimension[A, B]:
             return None
         answered = self.animal_value(animal)
         if answered is None:
-            return Assessment(self, None, self.wording.unknown)
+            unknown = Reason(self.wording.unknown, ReasonKind.UNKNOWN)
+            return Assessment(self, None, unknown)
         fit = self.table[(asked, answered)]
-        return Assessment(self, fit, self._phrase(fit))
+        return Assessment(self, fit, self._reason(fit))
 
-    def _phrase(self, fit: float) -> str:
+    def _reason(self, fit: float) -> Reason:
         if fit >= 1.0:
-            return self.wording.fits
+            return Reason(self.wording.fits, ReasonKind.STRENGTH)
         if fit > 0.0:
-            return self.wording.partly
-        return self.wording.misfit
+            return Reason(self.wording.partly, ReasonKind.CONCERN)
+        return Reason(self.wording.misfit, ReasonKind.CONCERN)

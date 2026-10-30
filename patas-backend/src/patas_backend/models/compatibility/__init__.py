@@ -13,6 +13,7 @@ from patas_backend.models.compatibility.mode import (
     InvalidCompatibilityMode,
     strategy_for,
 )
+from patas_backend.models.compatibility.reason import Reason, ReasonKind
 from patas_backend.models.compatibility.result import (
     CompatibilityResult,
     InvalidCompatibilityResult,
@@ -33,6 +34,8 @@ __all__ = [
     "InvalidCompatibilityResult",
     "LooseFitStrategy",
     "Penalty",
+    "Reason",
+    "ReasonKind",
     "StrictFitStrategy",
     "Wording",
     "rules",

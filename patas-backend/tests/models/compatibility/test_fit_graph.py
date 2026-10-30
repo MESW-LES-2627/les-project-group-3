@@ -3,7 +3,7 @@ from uuid import UUID
 import pytest
 
 from patas_backend.models.animal import AnimalMatchProfile, AnimalSize
-from patas_backend.models.compatibility import Assessment, FitGraph
+from patas_backend.models.compatibility import Assessment, FitGraph, ReasonKind
 from patas_backend.models.matching import EnergyLevel, ExperienceLevel, TimeAway
 from patas_backend.models.matchmaker_profile import HousingType, MatchmakerProfile
 
@@ -185,8 +185,9 @@ def test_an_animal_answer_left_blank_has_no_fit_and_says_so(name: str) -> None:
         ),
     )[name]
 
-    # Never read as a "no": it has no fit at all, and its wording differs.
+    # Never read as a "no": it has no fit at all, and is its own kind of reason.
     assert blank.fit is None
+    assert blank.reason.kind is ReasonKind.UNKNOWN
     assert blank.reason != answered.reason
 
 
@@ -237,3 +238,22 @@ def test_each_band_of_fit_has_its_own_reason() -> None:
 
     # Fits, partly, misfit (0.0) and unknown.
     assert len(reasons) == 4
+
+
+@pytest.mark.parametrize(
+    ("away", "kind"),
+    [
+        (FEW_HOURS, ReasonKind.STRENGTH),
+        (HALF_DAY, ReasonKind.CONCERN),
+        (MOST_OF_DAY, ReasonKind.CONCERN),
+    ],
+)
+def test_a_reason_is_a_strength_when_it_fits_in_full_and_a_concern_otherwise(
+    away: TimeAway, kind: ReasonKind
+) -> None:
+    # The animal's limit is a few hours: fit 1.0, 0.5 and 0.0 as the adopter is away.
+    assessed = _assess(
+        _adopter(time_away=away), AnimalMatchProfile(max_time_alone=FEW_HOURS)
+    )
+
+    assert assessed["time_alone"].reason.kind is kind

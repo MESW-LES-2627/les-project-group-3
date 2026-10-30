@@ -2,6 +2,8 @@ import math
 from collections.abc import Iterable
 from dataclasses import dataclass
 
+from patas_backend.models.compatibility.reason import Reason, ReasonKind
+
 
 class InvalidCompatibilityResult(ValueError):
     """A CompatibilityResult invariant was violated."""
@@ -12,7 +14,7 @@ class CompatibilityResult:
     """How well an animal fits an adopter: a score, why, and whether to show it."""
 
     score: int
-    reasons: tuple[str, ...]
+    reasons: tuple[Reason, ...]
     is_compatible: bool = True
 
     def __post_init__(self) -> None:
@@ -25,11 +27,14 @@ class CompatibilityResult:
             )
 
     @classmethod
-    def scored(cls, raw_score: float, reasons: Iterable[str]) -> "CompatibilityResult":
+    def scored(
+        cls, raw_score: float, reasons: Iterable[Reason]
+    ) -> "CompatibilityResult":
         # Half rounds up: Python's round() would send 62.5 down and 37.5 up.
         score = math.floor(raw_score + 0.5)
         return cls(score=min(100, max(0, score)), reasons=tuple(reasons))
 
     @classmethod
     def excluded(cls, reason: str) -> "CompatibilityResult":
-        return cls(score=0, reasons=(reason,), is_compatible=False)
+        concern = Reason(reason, ReasonKind.CONCERN)
+        return cls(score=0, reasons=(concern,), is_compatible=False)

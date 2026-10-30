@@ -2,8 +2,10 @@ from uuid import UUID
 
 from patas_backend.models.animal import AnimalMatchProfile, AnimalSize
 from patas_backend.models.compatibility import (
+    CompatibilityResult,
     FitGraph,
     LooseFitStrategy,
+    ReasonKind,
     rules,
 )
 from patas_backend.models.compatibility.fit_graph import STANDARD_DIMENSIONS
@@ -16,6 +18,10 @@ from patas_backend.models.matching import (
 from patas_backend.models.matchmaker_profile import HousingType, MatchmakerProfile
 
 USER_ID = UUID("0b1f2a3c-4d5e-4f60-8a7b-9c0d1e2f3a4b")
+
+
+def _texts(result: CompatibilityResult) -> tuple[str, ...]:
+    return tuple(reason.text for reason in result.reasons)
 
 
 def _adopter(**overrides: object) -> MatchmakerProfile:
@@ -59,12 +65,18 @@ def test_the_worked_example_scores_75_and_explains_each_dimension_in_order() -> 
 
     assert result.score == 75
     assert result.is_compatible
-    assert result.reasons == (
+    assert _texts(result) == (
         rules.ACTIVITY_WORDING.fits,
         rules.TIME_ALONE_WORDING.partly,
         rules.EXPERIENCE_WORDING.fits,
         rules.SPACE_WORDING.partly,
     )
+    assert [r.kind for r in result.reasons] == [
+        ReasonKind.STRENGTH,
+        ReasonKind.CONCERN,
+        ReasonKind.STRENGTH,
+        ReasonKind.CONCERN,
+    ]
 
 
 def test_an_animal_with_nothing_answered_sits_in_the_middle() -> None:
@@ -72,12 +84,13 @@ def test_an_animal_with_nothing_answered_sits_in_the_middle() -> None:
 
     assert result.score == 50
     assert result.is_compatible
-    assert result.reasons == (
+    assert _texts(result) == (
         rules.ACTIVITY_WORDING.unknown,
         rules.TIME_ALONE_WORDING.unknown,
         rules.EXPERIENCE_WORDING.unknown,
         rules.SPACE_WORDING.unknown,
     )
+    assert {r.kind for r in result.reasons} == {ReasonKind.UNKNOWN}
 
 
 def test_a_household_member_the_animal_is_not_safe_with_hides_it() -> None:
@@ -87,7 +100,8 @@ def test_a_household_member_the_animal_is_not_safe_with_hides_it() -> None:
 
     assert not result.is_compatible
     assert result.score == 0
-    assert result.reasons == (rules.household_wording("children").misfit,)
+    assert _texts(result) == (rules.household_wording("children").misfit,)
+    assert result.reasons[0].kind is ReasonKind.CONCERN
 
 
 def test_a_two_step_shortfall_on_a_lifestyle_dimension_lowers_the_score_only() -> None:
@@ -98,7 +112,7 @@ def test_a_two_step_shortfall_on_a_lifestyle_dimension_lowers_the_score_only() -
 
     assert result.is_compatible
     assert result.score == 75
-    assert rules.TIME_ALONE_WORDING.misfit in result.reasons
+    assert rules.TIME_ALONE_WORDING.misfit in _texts(result)
 
 
 def test_a_household_answer_weighs_double_a_lifestyle_one() -> None:
@@ -117,7 +131,7 @@ def test_a_blank_household_answer_counts_half_and_never_hides_the_animal() -> No
 
     assert result.is_compatible
     assert result.score == 83
-    assert rules.household_wording("children").unknown in result.reasons
+    assert rules.household_wording("children").unknown in _texts(result)
 
 
 def test_an_edge_takes_half_its_penalty_off_and_adds_its_reason_last() -> None:
@@ -127,7 +141,8 @@ def test_an_edge_takes_half_its_penalty_off_and_adds_its_reason_last() -> None:
     )
 
     assert result.score == 93  # 100 - 7.5 = 92.5, rounded half up
-    assert result.reasons[-1] == rules.EDGE_REASON["training_experience"]
+    assert result.reasons[-1].text == rules.EDGE_REASON["training_experience"]
+    assert result.reasons[-1].kind is ReasonKind.CONCERN
 
 
 def test_stacked_edges_are_held_at_the_cap_before_being_halved() -> None:
@@ -148,7 +163,7 @@ def test_stacked_edges_are_held_at_the_cap_before_being_halved() -> None:
     result = LooseFitStrategy().evaluate(adopter, animal)
 
     assert result.score == 88  # 100 - 12.5 = 87.5, rounded half up
-    assert result.reasons[-3:] == (
+    assert _texts(result)[-3:] == (
         rules.EDGE_REASON["training_experience"],
         rules.EDGE_REASON["noise_housing"],
         rules.EDGE_REASON["baby_care"],
@@ -163,4 +178,4 @@ def test_the_graph_it_judges_with_can_be_replaced() -> None:
     )
 
     assert result.score == 50
-    assert result.reasons == (rules.ACTIVITY_WORDING.partly,)
+    assert _texts(result) == (rules.ACTIVITY_WORDING.partly,)
