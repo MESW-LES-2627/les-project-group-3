@@ -142,7 +142,6 @@ class Animal:
             other_details=other_details,
         )
 
-
     @property
     def is_published(self) -> bool:
         """An animal is published if its adoption status is not unavailable."""

@@ -110,4 +110,3 @@ class AnimalService:
             animal.unpublish(by_user_id=owner.id)
             await repo.update(animal)
             return animal
-

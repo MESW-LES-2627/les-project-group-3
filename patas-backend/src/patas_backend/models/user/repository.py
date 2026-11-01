@@ -26,7 +26,6 @@ _UPDATE = text(
 )
 
 
-
 class EmailAlreadyRegistered(Exception):
     """The email already belongs to a different user id."""
 
@@ -63,9 +62,7 @@ class UserRepository:
     async def update(self, user: User) -> User:
         """Update an existing user's mutable attributes and return the stored row."""
         row = (
-            await self._session.execute(
-                _UPDATE, {"id": user.id, "name": user.name}
-            )
+            await self._session.execute(_UPDATE, {"id": user.id, "name": user.name})
         ).one()
         return User(
             id=row.id,
@@ -73,7 +70,6 @@ class UserRepository:
             email=row.email,
             is_platform_admin=row.is_platform_admin,
         )
-
 
 
 def _violates_email_uniqueness(error: IntegrityError) -> bool:

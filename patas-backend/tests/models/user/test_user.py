@@ -49,4 +49,3 @@ def test_change_name_rejects_blank(name: str) -> None:
     with pytest.raises(InvalidUser):
         user.change_name(name)
     assert user.name == "Ana"
-

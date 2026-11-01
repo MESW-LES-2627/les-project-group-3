@@ -50,7 +50,6 @@ def _publish(owner_id: UUID, **overrides: object) -> Animal:
     )
 
 
-
 async def _add(factory: Factory, animal: Animal) -> None:
     async with factory.begin() as session:
         await AnimalRepository(session).add(animal)
@@ -133,7 +132,6 @@ async def test_the_stored_adoption_status_is_loaded(
         species=Species.DOG,
         adoption_status=status,
     )
-
 
     await _add(session_factory, animal)
 

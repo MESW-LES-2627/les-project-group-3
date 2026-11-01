@@ -112,4 +112,3 @@ async def test_update_persists_name_change(
 
     assert updated.name == "Ana Silva"
     assert await _rows(engine) == [(ANA_ID, "Ana Silva", "ana@example.com", False)]
-

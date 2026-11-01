@@ -142,7 +142,6 @@ class AnimalResponse(BaseModel):
         )
 
 
-
 def get_animal_service(request: Request) -> AnimalService:
     return AnimalService(request.app.state.session_factory)
 

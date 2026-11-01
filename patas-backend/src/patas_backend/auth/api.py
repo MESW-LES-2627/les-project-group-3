@@ -53,4 +53,3 @@ async def update_me(
         email=updated.email,
         is_platform_admin=updated.is_platform_admin,
     )
-

@@ -41,4 +41,3 @@ class User:
     def change_name(self, name: str) -> None:
         """Change the user's name, enforcing domain invariants."""
         self.name = validate_name(name)
-

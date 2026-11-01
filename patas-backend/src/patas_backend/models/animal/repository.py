@@ -111,7 +111,6 @@ _SELECT_BY_ID = text(
 )
 
 
-
 _UPDATE = text(
     """
     UPDATE patas.animals
@@ -282,7 +281,6 @@ def _from_row(row: Row[Any]) -> Animal:
         special_care_notes=row.special_care_notes,
         other_details=row.other_details,
     )
-
 
 
 class AnimalRepository:

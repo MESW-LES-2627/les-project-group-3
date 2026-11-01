@@ -85,7 +85,6 @@ async def test_catalog_is_public_and_lists_published_animals(
     ]
 
 
-
 async def test_published_animal_appears_in_the_catalog_owned_by_the_publisher(
     client: httpx.AsyncClient, issuer: TokenIssuer
 ) -> None:
@@ -106,7 +105,6 @@ async def test_published_animal_appears_in_the_catalog_owned_by_the_publisher(
     assert published["behaves_well_with_dogs"] is None
     catalog = (await client.get("/animals")).json()
     assert catalog == [published]
-
 
 
 async def test_animal_profile_fields_are_saved_and_listed(
@@ -185,8 +183,6 @@ async def test_animal_profile_fields_are_optional(
             "adoption_status",
         }
     )
-
-
 
 
 def test_the_match_profile_response_carries_every_domain_field() -> None:
@@ -409,4 +405,3 @@ async def test_acceptance_test_at_09_changing_name_updates_animal_publisher_disp
     catalog = (await client.get("/animals")).json()
     rex_in_catalog = next(a for a in catalog if a["id"] == str(rex.id))
     assert rex_in_catalog["owner_name"] == "Ana Silva"
-

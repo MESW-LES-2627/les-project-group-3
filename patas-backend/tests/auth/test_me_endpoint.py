@@ -173,7 +173,6 @@ async def test_patch_me_updates_name(
     ]
 
 
-
 @pytest.mark.parametrize("name", ["", "   "])
 async def test_patch_me_rejects_blank_name_and_leaves_name_unchanged(
     client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine, name: str
@@ -188,4 +187,3 @@ async def test_patch_me_rejects_blank_name_and_leaves_name_unchanged(
 
     assert response.status_code == 422
     assert await _rows(engine) == [(UUID(USER_ID), "Ana", "ana@example.com", False)]
-
