@@ -57,49 +57,60 @@ _INSERT = text(
 _SELECT_ALL_PUBLISHED = text(
     """
     SELECT
-        id, owner_id, name, species, age_in_months, adoption_status, sex,
-        is_neutered, postal_code, size, activity_level, space_requirement,
-        shedding, grooming_needs, behaves_well_with_children,
-        behaves_well_with_dogs, behaves_well_with_cats,
-        behaves_well_with_other_animals, training_needs,
-        tolerance_for_time_alone, noise_level, suitable_for_first_time_owners,
-        special_care_notes, other_details
-    FROM patas.animals
-    WHERE adoption_status != 'unavailable'
-    ORDER BY created_at DESC, id
+        a.id, a.owner_id, u.name AS owner_name, a.name, a.species,
+        a.age_in_months, a.adoption_status, a.sex, a.is_neutered,
+        a.postal_code, a.size, a.activity_level, a.space_requirement,
+        a.shedding, a.grooming_needs, a.behaves_well_with_children,
+        a.behaves_well_with_dogs, a.behaves_well_with_cats,
+        a.behaves_well_with_other_animals, a.training_needs,
+        a.tolerance_for_time_alone, a.noise_level,
+        a.suitable_for_first_time_owners, a.special_care_notes,
+        a.other_details
+    FROM patas.animals a
+    JOIN patas.users u ON u.id = a.owner_id
+    WHERE a.adoption_status != 'unavailable'
+    ORDER BY a.created_at DESC, a.id
     """
 )
 
 _SELECT_BY_OWNER = text(
     """
     SELECT
-        id, owner_id, name, species, age_in_months, adoption_status, sex,
-        is_neutered, postal_code, size, activity_level, space_requirement,
-        shedding, grooming_needs, behaves_well_with_children,
-        behaves_well_with_dogs, behaves_well_with_cats,
-        behaves_well_with_other_animals, training_needs,
-        tolerance_for_time_alone, noise_level, suitable_for_first_time_owners,
-        special_care_notes, other_details
-    FROM patas.animals
-    WHERE owner_id = :owner_id
-    ORDER BY created_at DESC, id
+        a.id, a.owner_id, u.name AS owner_name, a.name, a.species,
+        a.age_in_months, a.adoption_status, a.sex, a.is_neutered,
+        a.postal_code, a.size, a.activity_level, a.space_requirement,
+        a.shedding, a.grooming_needs, a.behaves_well_with_children,
+        a.behaves_well_with_dogs, a.behaves_well_with_cats,
+        a.behaves_well_with_other_animals, a.training_needs,
+        a.tolerance_for_time_alone, a.noise_level,
+        a.suitable_for_first_time_owners, a.special_care_notes,
+        a.other_details
+    FROM patas.animals a
+    JOIN patas.users u ON u.id = a.owner_id
+    WHERE a.owner_id = :owner_id
+    ORDER BY a.created_at DESC, a.id
     """
 )
 
 _SELECT_BY_ID = text(
     """
     SELECT
-        id, owner_id, name, species, age_in_months, adoption_status, sex,
-        is_neutered, postal_code, size, activity_level, space_requirement,
-        shedding, grooming_needs, behaves_well_with_children,
-        behaves_well_with_dogs, behaves_well_with_cats,
-        behaves_well_with_other_animals, training_needs,
-        tolerance_for_time_alone, noise_level, suitable_for_first_time_owners,
-        special_care_notes, other_details
-    FROM patas.animals
-    WHERE id = :id
+        a.id, a.owner_id, u.name AS owner_name, a.name, a.species,
+        a.age_in_months, a.adoption_status, a.sex, a.is_neutered,
+        a.postal_code, a.size, a.activity_level, a.space_requirement,
+        a.shedding, a.grooming_needs, a.behaves_well_with_children,
+        a.behaves_well_with_dogs, a.behaves_well_with_cats,
+        a.behaves_well_with_other_animals, a.training_needs,
+        a.tolerance_for_time_alone, a.noise_level,
+        a.suitable_for_first_time_owners, a.special_care_notes,
+        a.other_details
+    FROM patas.animals a
+    JOIN patas.users u ON u.id = a.owner_id
+    WHERE a.id = :id
     """
 )
+
+
 
 _UPDATE = text(
     """
@@ -209,6 +220,7 @@ def _from_row(row: Row[Any]) -> Animal:
     return Animal(
         id=row.id,
         owner_id=row.owner_id,
+        owner_name=getattr(row, "owner_name", ""),
         name=row.name,
         species=Species(row.species),
         age_in_months=row.age_in_months,
@@ -270,6 +282,7 @@ def _from_row(row: Row[Any]) -> Animal:
         special_care_notes=row.special_care_notes,
         other_details=row.other_details,
     )
+
 
 
 class AnimalRepository:

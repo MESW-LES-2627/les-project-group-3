@@ -16,6 +16,15 @@ _INSERT = text(
 _SELECT = text(
     "SELECT id, name, email, is_platform_admin FROM patas.users WHERE id = :id"
 )
+_UPDATE = text(
+    """
+    UPDATE patas.users
+    SET name = :name
+    WHERE id = :id
+    RETURNING id, name, email, is_platform_admin
+    """
+)
+
 
 
 class EmailAlreadyRegistered(Exception):
@@ -50,6 +59,21 @@ class UserRepository:
             email=row.email,
             is_platform_admin=row.is_platform_admin,
         )
+
+    async def update(self, user: User) -> User:
+        """Update an existing user's mutable attributes and return the stored row."""
+        row = (
+            await self._session.execute(
+                _UPDATE, {"id": user.id, "name": user.name}
+            )
+        ).one()
+        return User(
+            id=row.id,
+            name=row.name,
+            email=row.email,
+            is_platform_admin=row.is_platform_admin,
+        )
+
 
 
 def _violates_email_uniqueness(error: IntegrityError) -> bool:

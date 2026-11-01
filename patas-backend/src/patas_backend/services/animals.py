@@ -55,6 +55,7 @@ class AnimalService:
             owner_id=owner.id,
             name=name,
             species=species,
+            owner_name=owner.name,
             age_in_months=age_in_months,
             sex=sex,
             is_neutered=is_neutered,
@@ -75,6 +76,7 @@ class AnimalService:
             special_care_notes=special_care_notes,
             other_details=other_details,
         )
+
         async with self._session_factory.begin() as session:
             await AnimalRepository(session).add(animal)
         return animal
@@ -108,3 +110,4 @@ class AnimalService:
             animal.unpublish(by_user_id=owner.id)
             await repo.update(animal)
             return animal
+

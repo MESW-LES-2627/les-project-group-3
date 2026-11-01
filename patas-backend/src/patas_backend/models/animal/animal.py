@@ -56,6 +56,7 @@ class Animal:
     owner_id: UUID
     name: str
     species: Species
+    owner_name: str = ""
     age_in_months: int | None = None
     adoption_status: AdoptionStatus = AdoptionStatus.AVAILABLE
     sex: AnimalSex | None = None
@@ -92,6 +93,7 @@ class Animal:
         owner_id: UUID,
         name: str,
         species: Species,
+        owner_name: str = "",
         age_in_months: int | None = None,
         sex: AnimalSex | None = None,
         is_neutered: NeuteredStatus | None = None,
@@ -118,6 +120,7 @@ class Animal:
             owner_id=owner_id,
             name=name,
             species=species,
+            owner_name=owner_name,
             age_in_months=age_in_months,
             sex=sex,
             is_neutered=is_neutered,
@@ -138,6 +141,7 @@ class Animal:
             special_care_notes=special_care_notes,
             other_details=other_details,
         )
+
 
     @property
     def is_published(self) -> bool:
