@@ -30,13 +30,22 @@ export async function SiteHeader() {
             Browse animals
           </Link>
           {session && (
-            <Link
-              href="/animals/mine"
-              className="text-sm font-medium text-muted transition hover:text-forest"
-            >
-              My animals
-            </Link>
+            <>
+              <Link
+                href="/animals/mine"
+                className="text-sm font-medium text-muted transition hover:text-forest"
+              >
+                My animals
+              </Link>
+              <Link
+                href="/profile"
+                className="text-sm font-medium text-muted transition hover:text-forest"
+              >
+                Profile
+              </Link>
+            </>
           )}
+
         </nav>
 
         <div className="flex shrink-0 items-center gap-3 sm:gap-5">

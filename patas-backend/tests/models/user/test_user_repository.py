@@ -99,3 +99,16 @@ async def test_admin_flag_comes_from_the_database(
     returned = await _ensure(session_factory, _ana())
 
     assert returned.is_platform_admin is True
+
+
+async def test_update_persists_name_change(
+    engine: AsyncEngine, session_factory: Factory
+) -> None:
+    user = await _ensure(session_factory, _ana())
+    user.change_name("Ana Silva")
+
+    async with session_factory.begin() as session:
+        updated = await UserRepository(session).update(user)
+
+    assert updated.name == "Ana Silva"
+    assert await _rows(engine) == [(ANA_ID, "Ana Silva", "ana@example.com", False)]

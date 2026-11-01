@@ -48,6 +48,7 @@ async def test_catalog_is_public_and_lists_published_animals(
         {
             "id": str(animal.id),
             "owner_id": str(owner.id),
+            "owner_name": "Ana",
             "name": "Milo",
             "species": "cat",
             "age_in_months": 14,
@@ -97,6 +98,7 @@ async def test_published_animal_appears_in_the_catalog_owned_by_the_publisher(
     assert response.status_code == 201
     published = response.json()
     assert published["owner_id"] == USER_ID
+    assert published["owner_name"] == "Ana"
     assert published["name"] == "Rex"
     assert published["adoption_status"] == "available"
     assert published["sex"] is None
@@ -171,7 +173,15 @@ async def test_animal_profile_fields_are_optional(
     assert all(
         value is None
         for key, value in published.items()
-        if key not in {"id", "owner_id", "name", "species", "adoption_status"}
+        if key
+        not in {
+            "id",
+            "owner_id",
+            "owner_name",
+            "name",
+            "species",
+            "adoption_status",
+        }
     )
 
 
@@ -363,3 +373,35 @@ async def test_acceptance_test_unpublish_flow_catalog_and_detail(
     ).json()
     rex_in_mine = next(a for a in ana_animals if a["id"] == str(rex.id))
     assert rex_in_mine["adoption_status"] == "unavailable"
+
+
+async def test_acceptance_test_at_09_changing_name_updates_animal_publisher_display(
+    client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine
+) -> None:
+    # AC 1: Given Ana is logged in, when she changes her name to "Ana Silva",
+    # then Rex's page shows "Published by Ana Silva".
+    rex, _, _ = await _seed_data(engine)
+
+    # Initial check: Rex is published by Ana
+    detail_res = await client.get(f"/animals/{rex.id}")
+    assert detail_res.status_code == 200
+    assert detail_res.json()["owner_name"] == "Ana"
+
+    # Ana changes her name via PATCH /me
+    patch_res = await client.patch(
+        "/me",
+        json={"name": "Ana Silva"},
+        headers=_bearer(issuer.token(**ANA)),
+    )
+    assert patch_res.status_code == 200
+    assert patch_res.json()["name"] == "Ana Silva"
+
+    # Rex's animal page now reflects the updated publisher name
+    rex_page = await client.get(f"/animals/{rex.id}")
+    assert rex_page.status_code == 200
+    assert rex_page.json()["owner_name"] == "Ana Silva"
+
+    # The public catalog also shows Rex with the updated publisher name
+    catalog = (await client.get("/animals")).json()
+    rex_in_catalog = next(a for a in catalog if a["id"] == str(rex.id))
+    assert rex_in_catalog["owner_name"] == "Ana Silva"

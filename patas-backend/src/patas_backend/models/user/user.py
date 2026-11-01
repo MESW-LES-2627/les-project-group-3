@@ -37,3 +37,7 @@ class User:
     def provision(cls, *, id: UUID, name: str, email: str) -> "User":
         """Create a user on first login. Admin rights are never granted here."""
         return cls(id=id, name=name, email=email)
+
+    def change_name(self, name: str) -> None:
+        """Change the user's name, enforcing domain invariants."""
+        self.name = validate_name(name)

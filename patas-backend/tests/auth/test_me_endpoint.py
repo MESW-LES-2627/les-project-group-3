@@ -147,3 +147,43 @@ async def test_admin_flag_comes_from_the_database(
     response = await client.get("/me", headers=_bearer(issuer.token()))
 
     assert response.json()["is_platform_admin"] is True
+
+
+async def test_patch_me_updates_name(
+    client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine
+) -> None:
+    # First ensure the user exists via GET /me
+    await client.get("/me", headers=_bearer(issuer.token()))
+
+    response = await client.patch(
+        "/me",
+        json={"name": "  Ana Silva  "},
+        headers=_bearer(issuer.token()),
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "id": USER_ID,
+        "name": "Ana Silva",
+        "email": "ana@example.com",
+        "is_platform_admin": False,
+    }
+    assert await _rows(engine) == [
+        (UUID(USER_ID), "Ana Silva", "ana@example.com", False)
+    ]
+
+
+@pytest.mark.parametrize("name", ["", "   "])
+async def test_patch_me_rejects_blank_name_and_leaves_name_unchanged(
+    client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine, name: str
+) -> None:
+    await client.get("/me", headers=_bearer(issuer.token()))
+
+    response = await client.patch(
+        "/me",
+        json={"name": name},
+        headers=_bearer(issuer.token()),
+    )
+
+    assert response.status_code == 422
+    assert await _rows(engine) == [(UUID(USER_ID), "Ana", "ana@example.com", False)]

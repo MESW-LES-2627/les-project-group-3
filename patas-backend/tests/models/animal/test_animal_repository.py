@@ -41,6 +41,7 @@ def _publish(owner_id: UUID, **overrides: object) -> Animal:
     return Animal.publish(
         **{
             "owner_id": owner_id,
+            "owner_name": "Owner",
             "name": "Rex",
             "species": Species.DOG,
             "age_in_months": 12,
@@ -126,6 +127,7 @@ async def test_the_stored_adoption_status_is_loaded(
     animal = Animal(
         id=uuid4(),
         owner_id=ana,
+        owner_name="Owner",
         name="Rex",
         species=Species.DOG,
         adoption_status=status,
