@@ -35,3 +35,18 @@ def test_trims_surrounding_whitespace_in_name_and_email() -> None:
 def test_invariants_hold_when_built_directly() -> None:
     with pytest.raises(InvalidUser):
         User(id=USER_ID, name="   ", email="ana@example.com")
+
+
+def test_change_name_updates_and_trims() -> None:
+    user = User.provision(id=USER_ID, name="Ana", email="ana@example.com")
+    user.change_name("  Ana Silva  ")
+    assert user.name == "Ana Silva"
+
+
+@pytest.mark.parametrize("name", ["", "   "])
+def test_change_name_rejects_blank(name: str) -> None:
+    user = User.provision(id=USER_ID, name="Ana", email="ana@example.com")
+    with pytest.raises(InvalidUser):
+        user.change_name(name)
+    assert user.name == "Ana"
+
