@@ -1,12 +1,12 @@
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-import logging
 
-from alembic import command
 from alembic.config import Config
 from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from alembic import command
 from patas_backend.auth.api import router as auth_router
 from patas_backend.auth.keys import JwksKeyProvider, RemoteJwksKeyProvider
 from patas_backend.auth.verifier import JwtVerifier
@@ -30,11 +30,13 @@ def create_app(
         try:
             logger.info("Running database migrations automatically...")
             alembic_cfg = Config("alembic.ini")
-            
+
             # Convert async database URL to sync URL for Alembic if necessary
-            sync_url = settings.database_url.replace("postgresql+asyncpg://", "postgresql://")
+            sync_url = settings.database_url.replace(
+                "postgresql+asyncpg://", "postgresql://"
+            )
             alembic_cfg.set_main_option("sqlalchemy.url", sync_url)
-            
+
             command.upgrade(alembic_cfg, "head")
             logger.info("Database migrations completed successfully.")
         except Exception as e:
