@@ -1,14 +1,19 @@
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+from alembic.config import Config
 from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from alembic import command
 from patas_backend.auth.api import router as auth_router
 from patas_backend.auth.keys import JwksKeyProvider, RemoteJwksKeyProvider
 from patas_backend.auth.verifier import JwtVerifier
 from patas_backend.config import Settings
 from patas_backend.routers import animals, health, matchmaker_profile
+
+logger = logging.getLogger(__name__)
 
 
 def create_app(
@@ -21,6 +26,23 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        # Run database migrations automatically on startup
+        try:
+            logger.info("Running database migrations automatically...")
+            alembic_cfg = Config("alembic.ini")
+
+            # Convert async database URL to sync URL for Alembic if necessary
+            sync_url = settings.database_url.replace(
+                "postgresql+asyncpg://", "postgresql://"
+            )
+            alembic_cfg.set_main_option("sqlalchemy.url", sync_url)
+
+            command.upgrade(alembic_cfg, "head")
+            logger.info("Database migrations completed successfully.")
+        except Exception as e:
+            logger.error(f"Failed to run database migrations automatically: {e}")
+            raise e  # Prevent app from starting with an incompatible database schema
+
         yield
         await engine.dispose()
 
