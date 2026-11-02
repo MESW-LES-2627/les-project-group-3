@@ -27,19 +27,15 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-        # Run database migrations automatically on startup
         try:
             logger.info("Running database migrations automatically...")
             alembic_cfg = Config("alembic.ini")
             alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
-
-            # env.py is async and calls asyncio.run, which cannot run inside the
-            # server's event loop: a worker thread has no loop of its own.
             await asyncio.to_thread(command.upgrade, alembic_cfg, "head")
             logger.info("Database migrations completed successfully.")
         except Exception as e:
             logger.error(f"Failed to run database migrations automatically: {e}")
-            raise e  # Prevent app from starting with an incompatible database schema
+            raise e
 
         yield
         await engine.dispose()
