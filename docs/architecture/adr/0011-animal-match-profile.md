@@ -7,6 +7,11 @@
 | **Scope** | US-07 (describe how my animal lives with others); the link between an animal and a Matchmaker profile |
 | **Related** | [0008-matchmaker-profile](0008-matchmaker-profile.md), [0010-animal-profile-fields](0010-animal-profile-fields.md), [MatchingAlgorithms](../../research/MatchingAlgorithms.md) |
 
+> **Amended by [0013-compatibility-scoring](0013-compatibility-scoring.md):** the
+> match profile also carries `training_needs`, `noise_level` and a derived
+> `life_stage`, which have no adopter counterpart (so decisions 6 and 7 now leave
+> four values unpaired, not one), and the animal response exposes them.
+
 ## Context
 
 The Matchmaker profile (ADR 0008) holds an adopter's answers on shared scales.
