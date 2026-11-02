@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
+import { FitSection } from "@/components/compatibility/fit-section";
 import { backendUrl } from "@/lib/backend";
 
 type Props = {
@@ -78,80 +79,87 @@ async function AnimalDetail({ params }: Props) {
   }
 
   return (
-    <section className="rounded-2xl border border-line bg-surface p-6 shadow-sm sm:p-8">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="rounded-full bg-leaf/10 px-3 py-1 text-xs font-semibold capitalize text-leaf">
-          {animal.species}
-        </span>
-        <span className="rounded-full bg-sunlight/20 px-3 py-1 text-xs font-medium capitalize text-forest">
-          {animal.adoption_status.replaceAll("_", " ")}
-        </span>
-      </div>
-
-      <h1 className="mt-4 text-3xl font-bold text-forest sm:text-4xl">
-        {animal.name}
-      </h1>
-
-      <p className="mt-2 text-sm text-muted">
-        Published by {animal.owner_name}
-      </p>
-
-      <div className="mt-6 grid grid-cols-2 gap-4 border-t border-line pt-6 sm:grid-cols-3">
-        <div>
-          <span className="text-xs font-medium text-muted">Age</span>
-          <p className="text-sm font-semibold text-forest">
-            {animal.age_in_months !== null
-              ? `${animal.age_in_months} months`
-              : "Not listed"}
-          </p>
+    <div className="flex flex-col gap-8">
+      <section className="rounded-2xl border border-line bg-surface p-6 shadow-sm sm:p-8">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="rounded-full bg-leaf/10 px-3 py-1 text-xs font-semibold capitalize text-leaf">
+            {animal.species}
+          </span>
+          <span className="rounded-full bg-sunlight/20 px-3 py-1 text-xs font-medium capitalize text-forest">
+            {animal.adoption_status.replaceAll("_", " ")}
+          </span>
         </div>
-        {animal.sex && (
+
+        <h1 className="mt-4 text-3xl font-bold text-forest sm:text-4xl">
+          {animal.name}
+        </h1>
+
+        <p className="mt-2 text-sm text-muted">
+          Published by {animal.owner_name}
+        </p>
+
+        <div className="mt-6 grid grid-cols-2 gap-4 border-t border-line pt-6 sm:grid-cols-3">
           <div>
-            <span className="text-xs font-medium text-muted">Sex</span>
-            <p className="text-sm font-semibold capitalize text-forest">
-              {animal.sex}
-            </p>
-          </div>
-        )}
-        {animal.size && (
-          <div>
-            <span className="text-xs font-medium text-muted">Size</span>
-            <p className="text-sm font-semibold capitalize text-forest">
-              {animal.size}
-            </p>
-          </div>
-        )}
-        {animal.postal_code && (
-          <div>
-            <span className="text-xs font-medium text-muted">Postal Code</span>
+            <span className="text-xs font-medium text-muted">Age</span>
             <p className="text-sm font-semibold text-forest">
-              {animal.postal_code}
+              {animal.age_in_months !== null
+                ? `${animal.age_in_months} months`
+                : "Not listed"}
             </p>
           </div>
-        )}
-      </div>
-
-      {(animal.special_care_notes || animal.other_details) && (
-        <div className="mt-6 border-t border-line pt-6 space-y-4">
-          {animal.special_care_notes && (
+          {animal.sex && (
             <div>
-              <h2 className="text-sm font-semibold text-forest">Special Care</h2>
-              <p className="mt-1 text-sm text-muted">
-                {animal.special_care_notes}
+              <span className="text-xs font-medium text-muted">Sex</span>
+              <p className="text-sm font-semibold capitalize text-forest">
+                {animal.sex}
               </p>
             </div>
           )}
-          {animal.other_details && (
+          {animal.size && (
             <div>
-              <h2 className="text-sm font-semibold text-forest">Other Details</h2>
-              <p className="mt-1 text-sm text-muted">
-                {animal.other_details}
+              <span className="text-xs font-medium text-muted">Size</span>
+              <p className="text-sm font-semibold capitalize text-forest">
+                {animal.size}
+              </p>
+            </div>
+          )}
+          {animal.postal_code && (
+            <div>
+              <span className="text-xs font-medium text-muted">Postal Code</span>
+              <p className="text-sm font-semibold text-forest">
+                {animal.postal_code}
               </p>
             </div>
           )}
         </div>
-      )}
-    </section>
+
+        {(animal.special_care_notes || animal.other_details) && (
+          <div className="mt-6 border-t border-line pt-6 space-y-4">
+            {animal.special_care_notes && (
+              <div>
+                <h2 className="text-sm font-semibold text-forest">Special Care</h2>
+                <p className="mt-1 text-sm text-muted">
+                  {animal.special_care_notes}
+                </p>
+              </div>
+            )}
+            {animal.other_details && (
+              <div>
+                <h2 className="text-sm font-semibold text-forest">Other Details</h2>
+                <p className="mt-1 text-sm text-muted">
+                  {animal.other_details}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+      <FitSection
+        animalId={animal.id}
+        animalName={animal.name}
+        ownerId={animal.owner_id}
+      />
+    </div>
   );
 }
 
