@@ -35,7 +35,7 @@ def test_an_unknown_mode_is_rejected_and_the_allowed_ones_are_listed(
 
 
 def test_the_two_modes_judge_the_same_pair_differently() -> None:
-    # The worked example: loose scores 75, strict 38. Swapping them would fail here.
+    # The worked example: loose scores 75, strict 56. Swapping them would fail here.
     adopter = MatchmakerProfile(
         user_id=UUID("0b1f2a3c-4d5e-4f60-8a7b-9c0d1e2f3a4b"),
         housing=HousingType.APARTMENT,
@@ -54,4 +54,4 @@ def test_the_two_modes_judge_the_same_pair_differently() -> None:
     )
 
     assert strategy_for("loose").evaluate(adopter, animal).score == 75
-    assert strategy_for("strict").evaluate(adopter, animal).score == 38
+    assert strategy_for("strict").evaluate(adopter, animal).score == 56

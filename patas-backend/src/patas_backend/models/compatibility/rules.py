@@ -124,6 +124,9 @@ EDGE_REASON = {
 }
 # Stacked edges are held here so a hard match still scores apart from a hopeless one.
 MAX_TOTAL_PENALTY = 25.0
+# How hard the strict match leans on its weakest critical fit: the score is scaled by
+# 1 - strength * (1 - weakest). 1.0 lets one half-fit halve the score, 0 ignores it.
+WEAKEST_LINK_STRENGTH = 0.5
 
 
 def _unit(value: StrEnum) -> float:

@@ -16,8 +16,9 @@ from patas_backend.models.matching import (
 from patas_backend.models.matchmaker_profile import HousingType
 
 
-def test_the_worked_example_scores_38_where_loose_scores_75() -> None:
-    # Time alone and space are one step short: the weakest link halves the 0.75.
+def test_the_worked_example_scores_56_where_loose_scores_75() -> None:
+    # Time alone and space are one step short: the weakest link (0.5) takes a
+    # quarter off the 0.75, so it is scaled by 0.75.
     adopter = make_adopter(
         housing=HousingType.APARTMENT,
         time_away=TimeAway.HALF_DAY,
@@ -27,7 +28,7 @@ def test_the_worked_example_scores_38_where_loose_scores_75() -> None:
 
     result = StrictFitStrategy().evaluate(adopter, animal)
 
-    assert result.score == 38  # 37.5, rounded half up
+    assert result.score == 56  # 0.75 x 0.75 = 56.25
     assert result.is_compatible
     assert texts(result) == (
         rules.ACTIVITY_WORDING.fits,
@@ -37,13 +38,13 @@ def test_the_worked_example_scores_38_where_loose_scores_75() -> None:
     )
 
 
-def test_one_step_short_on_one_critical_dimension_scales_the_score_by_its_fit() -> None:
-    # Time alone fits 0.5, the rest 1: base 0.875, weakest 0.5.
+def test_one_step_short_on_one_critical_dimension_takes_a_quarter_off() -> None:
+    # Time alone fits 0.5, the rest 1: base 0.875, weakest 0.5, scaled by 0.75.
     result = StrictFitStrategy().evaluate(
         make_adopter(time_away=TimeAway.HALF_DAY), make_animal()
     )
 
-    assert result.score == 44  # 43.75
+    assert result.score == 66  # 65.6
 
 
 def test_two_steps_short_on_a_critical_dimension_hides_themake_animal() -> None:

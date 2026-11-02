@@ -212,10 +212,10 @@ async def test_at_11_the_strict_match_recalculates_the_score(
 
     response = await client.get(_url(animal, "strict"), headers=_as(issuer, CARLA))
 
-    # The same 0.75 base, scaled by the weakest link (0.5): 37.5, rounded up.
+    # The same 0.75 base, scaled by 0.75 for the weakest link (0.5): 56.25.
     assert response.status_code == 200
     assert response.json()["mode"] == "strict"
-    assert response.json()["score"] == 38
+    assert response.json()["score"] == 56
     assert response.json()["is_compatible"] is True
 
 
