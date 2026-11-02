@@ -90,6 +90,7 @@ class AnimalMatchProfileResponse(BaseModel):
 class AnimalResponse(BaseModel):
     id: UUID
     owner_id: UUID
+    owner_name: str
     name: str
     species: Species
     age_in_months: int | None
@@ -119,6 +120,7 @@ class AnimalResponse(BaseModel):
         return cls(
             id=animal.id,
             owner_id=animal.owner_id,
+            owner_name=animal.owner_name,
             name=animal.name,
             species=animal.species,
             age_in_months=animal.age_in_months,

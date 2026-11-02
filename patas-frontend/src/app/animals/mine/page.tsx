@@ -17,6 +17,7 @@ type Animal = {
   species: string;
   name: string;
   owner_id: string;
+  owner_name: string;
   age_in_months: number | null;
   adoption_status: string;
 };
@@ -32,10 +33,12 @@ function isAnimal(value: unknown): value is Animal {
     typeof animal.species === "string" &&
     typeof animal.name === "string" &&
     typeof animal.owner_id === "string" &&
+    typeof animal.owner_name === "string" &&
     (animal.age_in_months === null || typeof animal.age_in_months === "number") &&
     typeof animal.adoption_status === "string"
   );
 }
+
 
 async function getMyAnimals(token: string): Promise<Animal[]> {
   const response = await fetch(`${backendUrl()}/me/animals`, {
@@ -114,7 +117,11 @@ async function MyAnimalList({ token }: { token: string }) {
               <h3 className="mt-5 text-2xl font-semibold text-forest">
                 {animal.name}
               </h3>
+              <p className="mt-1 text-xs text-muted">
+                Published by {animal.owner_name}
+              </p>
               <div className="mt-2">
+
                 {animal.age_in_months !== null ? (
                   <p className="text-sm text-muted">
                     <span className="font-medium text-forest">Age</span>

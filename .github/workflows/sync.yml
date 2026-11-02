@@ -1,0 +1,22 @@
+name: Push to Deploy Repo
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Push to deployment repository
+        env:
+          DEPLOY_PAT: ${{ secrets.DEPLOY_TOKEN }}
+        run: |
+          git remote add deploy https://ammp102:$DEPLOY_PAT@github.com/ammp102/les-project-group-3-deploy.git
+          git push deploy HEAD:main --force
