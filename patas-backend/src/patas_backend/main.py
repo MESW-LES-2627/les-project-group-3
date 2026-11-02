@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -26,22 +27,15 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-        # Run database migrations automatically on startup
         try:
             logger.info("Running database migrations automatically...")
             alembic_cfg = Config("alembic.ini")
-
-            # Convert async database URL to sync URL for Alembic if necessary
-            sync_url = settings.database_url.replace(
-                "postgresql+asyncpg://", "postgresql://"
-            )
-            alembic_cfg.set_main_option("sqlalchemy.url", sync_url)
-
-            command.upgrade(alembic_cfg, "head")
+            alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
+            await asyncio.to_thread(command.upgrade, alembic_cfg, "head")
             logger.info("Database migrations completed successfully.")
         except Exception as e:
             logger.error(f"Failed to run database migrations automatically: {e}")
-            raise e  # Prevent app from starting with an incompatible database schema
+            raise e
 
         yield
         await engine.dispose()
