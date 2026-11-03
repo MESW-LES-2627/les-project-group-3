@@ -1,6 +1,13 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import {
+  startTransition,
+  useActionState,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 
 import {
   ACTIVITY_OPTIONS,
@@ -17,13 +24,22 @@ import {
   TIME_ALONE_OPTIONS,
   TRAINING_OPTIONS,
 } from "@/lib/animal-profile";
+import {
+  formValues,
+  type AnimalDescription,
+  type AnimalFormState,
+} from "@/lib/animal-form";
 import type { Option } from "@/lib/matchmaker-profile";
 
 import { OptionCardGroup } from "@/components/matchmaker/option-card-group";
 
-import { publishAnimalAction, type PublishState } from "./actions";
+const initialState: AnimalFormState = { error: null };
 
-const initialState: PublishState = { error: null };
+function countDetails(values: Record<string, string>) {
+  return OPTIONAL_ANIMAL_FIELDS.filter(
+    (name) => (values[name] ?? "").trim() !== "",
+  ).length;
+}
 
 function FormSection({
   title,
@@ -51,6 +67,7 @@ function TextField({
   min,
   maxLength,
   multiline = false,
+  defaultValue,
 }: {
   label: string;
   name: string;
@@ -59,6 +76,7 @@ function TextField({
   min?: number;
   maxLength?: number;
   multiline?: boolean;
+  defaultValue?: string;
 }) {
   const className =
     "w-full rounded-xl border border-muted/75 bg-surface px-3 py-2.5 text-sm text-forest outline-none transition focus-visible:border-leaf focus-visible:ring-2 focus-visible:ring-leaf/30";
@@ -71,6 +89,7 @@ function TextField({
           rows={3}
           maxLength={maxLength}
           placeholder={placeholder}
+          defaultValue={defaultValue}
           className={className}
         />
       ) : (
@@ -80,6 +99,7 @@ function TextField({
           min={min}
           maxLength={maxLength}
           placeholder={placeholder}
+          defaultValue={defaultValue}
           required={name === "name"}
           className={className}
         />
@@ -88,16 +108,71 @@ function TextField({
   );
 }
 
-export function PublishForm() {
-  const [state, formAction, pending] = useActionState(
-    publishAnimalAction,
-    initialState,
-  );
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [answered, setAnswered] = useState(0);
+type AnimalFormProps = {
+  action: (
+    previous: AnimalFormState,
+    form: FormData,
+  ) => Promise<AnimalFormState>;
+  initial?: AnimalDescription;
+  submitLabel: string;
+  pendingLabel: string;
+};
+
+// Counts visits: Next keeps a visited page mounted but hidden, and hiding and
+// showing it again run this effect's cleanup and setup.
+function useVisit() {
+  const [visit, setVisit] = useState(0);
+  const hidden = useRef(false);
+  const hiding = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useLayoutEffect(() => {
+    // StrictMode and Fast Refresh re-run the effect at once; that is not a visit.
+    clearTimeout(hiding.current);
+    if (hidden.current) {
+      hidden.current = false;
+      setVisit((count) => count + 1);
+    }
+    return () => {
+      hiding.current = setTimeout(() => {
+        hidden.current = true;
+      });
+    };
+  }, []);
+  return visit;
+}
+
+export function AnimalForm(props: AnimalFormProps) {
+  // A new key per visit restarts the form from the saved description.
+  const visit = useVisit();
+  return <DescriptionForm key={visit} {...props} />;
+}
+
+function DescriptionForm({
+  action,
+  initial,
+  submitLabel,
+  pendingLabel,
+}: AnimalFormProps) {
+  const [state, formAction, pending] = useActionState(action, initialState);
+  const values = initial ? formValues(initial) : {};
+  const [answers, setAnswers] = useState<Record<string, string>>(values);
+  const [answered, setAnswered] = useState(() => countDetails(values));
+
+  // React resets a form after running its `action`, which would lose what was
+  // typed when a save is rejected; `action` is only the pre-hydration fallback.
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    startTransition(() => formAction(form));
+  }
 
   function recordAnswer(name: string, value: string) {
     setAnswers((current) => ({ ...current, [name]: value }));
+  }
+
+  function clearAnswer(name: string) {
+    // Not a form change event, so the count is updated here.
+    setAnswers((current) => ({ ...current, [name]: "" }));
+    setAnswered((count) => Math.max(0, count - 1));
   }
 
   function countAnswers(form: HTMLFormElement) {
@@ -120,8 +195,9 @@ export function PublishForm() {
         name={name}
         legend={legend}
         options={options}
-        value={(answers[name] as T | undefined) ?? null}
+        value={(answers[name] || null) as T | null}
         onChange={(value) => recordAnswer(name, value)}
+        onClear={() => clearAnswer(name)}
         optional
       />
     );
@@ -130,6 +206,7 @@ export function PublishForm() {
   return (
     <form
       action={formAction}
+      onSubmit={submit}
       onChange={(event) => countAnswers(event.currentTarget)}
       className="grid gap-x-10 lg:grid-cols-[minmax(0,1fr)_20rem]"
     >
@@ -172,12 +249,17 @@ export function PublishForm() {
           why="Start with the details needed to publish a listing."
         >
           <div className="grid gap-6 sm:grid-cols-2">
-            <TextField label="Name *" name="name" placeholder="e.g. Rex" />
+            <TextField
+              label="Name *"
+              name="name"
+              placeholder="e.g. Rex"
+              defaultValue={values.name}
+            />
             <label className="flex flex-col gap-2 text-sm font-medium text-forest">
               Species *
               <select
                 name="species"
-                defaultValue="dog"
+                defaultValue={values.species || "dog"}
                 className="w-full rounded-xl border border-muted/75 bg-surface px-3 py-2.5 text-sm text-forest outline-none focus-visible:border-leaf focus-visible:ring-2 focus-visible:ring-leaf/30"
               >
                 <option value="dog">Dog</option>
@@ -190,12 +272,14 @@ export function PublishForm() {
               name="age_in_months"
               type="number"
               min={0}
+              defaultValue={values.age_in_months}
             />
             <TextField
               label="Postal code"
               name="postal_code"
               placeholder="0000-000"
               maxLength={8}
+              defaultValue={values.postal_code}
             />
             {choice("sex", "Sex", ANIMAL_SEX_OPTIONS)}
             {choice("is_neutered", "Is the animal neutered?", NEUTERED_OPTIONS)}
@@ -265,12 +349,14 @@ export function PublishForm() {
               name="special_care_notes"
               multiline
               maxLength={2000}
+              defaultValue={values.special_care_notes}
             />
             <TextField
               label="Other details"
               name="other_details"
               multiline
               maxLength={2000}
+              defaultValue={values.other_details}
             />
           </div>
         </FormSection>
@@ -292,7 +378,7 @@ export function PublishForm() {
             disabled={pending}
             className="inline-flex min-h-11 items-center justify-center rounded-xl bg-forest px-5 text-sm font-semibold text-white transition-colors hover:bg-leaf focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest disabled:opacity-60"
           >
-            {pending ? "Publishing…" : "Publish animal"}
+            {pending ? pendingLabel : submitLabel}
           </button>
         </div>
       </div>

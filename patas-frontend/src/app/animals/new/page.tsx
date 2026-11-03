@@ -5,7 +5,9 @@ import { Suspense } from "react";
 
 import { auth } from "@/lib/auth";
 
-import { PublishForm } from "./publish-form";
+import { AnimalForm } from "@/components/animal/animal-form";
+
+import { publishAnimalAction } from "./actions";
 
 export const metadata: Metadata = {
   title: "Publish an animal | Patas",
@@ -34,7 +36,11 @@ export default function NewAnimalPage() {
       </header>
       <Suspense fallback={<p>Loading…</p>}>
         <RequireSession>
-          <PublishForm />
+          <AnimalForm
+            action={publishAnimalAction}
+            submitLabel="Publish animal"
+            pendingLabel="Publishing…"
+          />
         </RequireSession>
       </Suspense>
     </main>
