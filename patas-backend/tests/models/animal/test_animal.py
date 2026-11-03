@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from uuid import UUID, uuid4
 
 import pytest
@@ -128,3 +129,94 @@ def test_non_owner_cannot_unpublish_animal() -> None:
 
     assert animal.adoption_status is AdoptionStatus.AVAILABLE
     assert animal.is_published is True
+
+
+def _rex_before_edit() -> Animal:
+    return _publish(
+        size=AnimalSize.MEDIUM,
+        sex=AnimalSex.MALE,
+        postal_code="4000-001",
+        special_care_notes="Hip check every year",
+    )
+
+
+def test_owner_can_edit_the_description() -> None:
+    animal = _rex_before_edit()
+    id_before = animal.id
+
+    animal.edit(
+        OWNER_ID,
+        name="  Rex  ",
+        species=Species.DOG,
+        age_in_months=36,
+        sex=AnimalSex.MALE,
+        size=AnimalSize.LARGE,
+        postal_code="1000-001",
+        activity_level=EnergyLevel.HIGH,
+        other_details="  Loves the beach  ",
+    )
+
+    assert animal.size is AnimalSize.LARGE
+    assert animal.postal_code == "1000-001"
+    assert animal.age_in_months == 36
+    assert animal.activity_level is EnergyLevel.HIGH
+    # Cleaned by the same rules as publishing.
+    assert animal.name == "Rex"
+    assert animal.other_details == "Loves the beach"
+    # Left out of the edit, so cleared.
+    assert animal.special_care_notes is None
+    assert animal.id == id_before
+    assert animal.owner_id == OWNER_ID
+
+
+def test_an_edit_keeps_the_adoption_status() -> None:
+    animal = _rex_before_edit()
+    animal.unpublish(by_user_id=OWNER_ID)
+
+    animal.edit(OWNER_ID, name="Rex", species=Species.DOG)
+
+    assert animal.adoption_status is AdoptionStatus.UNAVAILABLE
+
+
+def test_non_owner_cannot_edit_and_the_animal_is_unchanged() -> None:
+    animal = _rex_before_edit()
+    before = asdict(animal)
+
+    with pytest.raises(AnimalUnauthorized):
+        animal.edit(uuid4(), name="Rex", species=Species.DOG, size=AnimalSize.LARGE)
+
+    assert asdict(animal) == before
+
+
+@pytest.mark.parametrize(
+    "invalid",
+    [
+        pytest.param({"name": "   "}, id="blank-name"),
+        pytest.param({"age_in_months": -1}, id="negative-age"),
+        pytest.param({"postal_code": "12345"}, id="invalid-postal-code"),
+    ],
+)
+def test_an_invalid_edit_changes_nothing(invalid: dict[str, object]) -> None:
+    # The valid size change must not stick either.
+    animal = _rex_before_edit()
+    before = asdict(animal)
+    edit: dict[str, object] = {
+        "name": "Rex",
+        "species": Species.DOG,
+        "size": AnimalSize.LARGE,
+        **invalid,
+    }
+
+    with pytest.raises(InvalidAnimal):
+        animal.edit(OWNER_ID, **edit)
+
+    assert asdict(animal) == before
+
+
+def test_the_match_profile_follows_an_edit() -> None:
+    animal = _rex_before_edit()
+    assert animal.match_profile().size is AnimalSize.MEDIUM
+
+    animal.edit(OWNER_ID, name="Rex", species=Species.DOG, size=AnimalSize.LARGE)
+
+    assert animal.match_profile().size is AnimalSize.LARGE

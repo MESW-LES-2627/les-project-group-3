@@ -1,4 +1,5 @@
-from dataclasses import fields
+import asyncio
+from dataclasses import fields, replace
 from uuid import UUID, uuid4
 
 import httpx
@@ -214,6 +215,10 @@ async def test_publishing_without_a_token_is_rejected_and_nothing_is_stored(
         pytest.param(
             {"name": "Rex", "species": "dog", "age_in_months": -1}, id="negative-age"
         ),
+        pytest.param(
+            {"name": "Rex", "species": "dog", "age_in_months": 2**31},
+            id="age-beyond-storage",
+        ),
         pytest.param({"name": "Rex", "species": "rabbit"}, id="unknown-species"),
         pytest.param(
             {"name": "Rex", "species": "dog", "postal_code": "12345"},
@@ -411,3 +416,356 @@ async def test_acceptance_test_at_09_changing_name_updates_animal_publisher_disp
     catalog = (await client.get("/animals")).json()
     rex_in_catalog = next(a for a in catalog if a["id"] == str(rex.id))
     assert rex_in_catalog["owner_name"] == "Ana Silva"
+
+
+async def _stored(engine: AsyncEngine, animal_id: UUID) -> Animal | None:
+    async with async_sessionmaker(engine)() as session:
+        return await AnimalRepository(session).get_by_id(animal_id)
+
+
+def _rex_edit(**changes: object) -> dict[str, object]:
+    """A PUT body for Rex: his seed description, with `changes` applied."""
+    return {
+        "name": "Rex",
+        "species": "dog",
+        "age_in_months": 36,
+        "sex": "male",
+        "size": "medium",
+        **changes,
+    }
+
+
+async def test_acceptance_test_ana_edits_rex_and_his_page_shows_it(
+    client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine
+) -> None:
+    # AT-03, edit half: when Ana changes Rex to large, his page shows large.
+    # Lisboa and the filters come with US-06.
+    rex, _, _ = await _seed_data(engine)
+
+    response = await client.put(
+        f"/animals/{rex.id}",
+        json=_rex_edit(size="large"),
+        headers=_bearer(issuer.token(**ANA)),
+    )
+
+    assert response.status_code == 200
+    edited = response.json()
+    assert edited["size"] == "large"
+    # Derived from the animal, so it follows the edit (ADR 0011).
+    assert edited["match_profile"]["size"] == "large"
+    assert (await client.get(f"/animals/{rex.id}")).json() == edited
+    catalog = (await client.get("/animals")).json()
+    assert next(a for a in catalog if a["id"] == str(rex.id)) == edited
+
+
+# Every description field, twice: each value differs between the two.
+DESCRIBED = {
+    "name": "Milo",
+    "species": "cat",
+    "age_in_months": 14,
+    "sex": "male",
+    "is_neutered": "yes",
+    "postal_code": "1234-567",
+    "size": "small",
+    "activity_level": "moderate",
+    "space_requirement": "small",
+    "shedding": "low",
+    "grooming_needs": "high",
+    "behaves_well_with_children": "with_supervision",
+    "behaves_well_with_dogs": "unknown",
+    "behaves_well_with_cats": "yes",
+    "behaves_well_with_other_animals": "no",
+    "training_needs": "low",
+    "tolerance_for_time_alone": "moderate",
+    "noise_level": "low",
+    "suitable_for_first_time_owners": "with_support",
+    "special_care_notes": "Needs daily medication",
+    "other_details": "Enjoys sunny spots",
+}
+REDESCRIBED = {
+    "name": "Milo II",
+    "species": "dog",
+    "age_in_months": 15,
+    "sex": "female",
+    "is_neutered": "no",
+    "postal_code": "4000-001",
+    "size": "large",
+    "activity_level": "high",
+    "space_requirement": "large",
+    "shedding": "high",
+    "grooming_needs": "low",
+    "behaves_well_with_children": "yes",
+    "behaves_well_with_dogs": "no",
+    "behaves_well_with_cats": "no",
+    "behaves_well_with_other_animals": "yes",
+    "training_needs": "high",
+    "tolerance_for_time_alone": "low",
+    "noise_level": "high",
+    "suitable_for_first_time_owners": "no",
+    "special_care_notes": "None any more",
+    "other_details": "Loves the beach",
+}
+
+
+async def test_an_edit_saves_every_field(
+    client: httpx.AsyncClient, issuer: TokenIssuer
+) -> None:
+    ana = _bearer(issuer.token(**ANA))
+    milo = (await client.post("/animals", json=DESCRIBED, headers=ana)).json()
+
+    response = await client.put(f"/animals/{milo['id']}", json=REDESCRIBED, headers=ana)
+
+    assert response.status_code == 200
+    edited = response.json()
+    assert {key: edited[key] for key in REDESCRIBED} == REDESCRIBED
+    assert (await client.get(f"/me/animals/{milo['id']}", headers=ana)).json() == edited
+
+
+async def test_an_edit_clears_the_fields_it_leaves_out(
+    client: httpx.AsyncClient, issuer: TokenIssuer
+) -> None:
+    ana = _bearer(issuer.token(**ANA))
+    milo = (await client.post("/animals", json=DESCRIBED, headers=ana)).json()
+
+    response = await client.put(
+        f"/animals/{milo['id']}", json={"name": "Milo", "species": "cat"}, headers=ana
+    )
+
+    assert response.status_code == 200
+    stored = (await client.get(f"/me/animals/{milo['id']}", headers=ana)).json()
+    assert all(
+        stored[key] is None for key in DESCRIBED if key not in {"name", "species"}
+    )
+
+
+@pytest.mark.parametrize(
+    "invalid",
+    [
+        pytest.param({"name": "   "}, id="blank-name"),
+        pytest.param({"age_in_months": -1}, id="negative-age"),
+        pytest.param({"age_in_months": 2**31}, id="age-beyond-storage"),
+        pytest.param({"species": "rabbit"}, id="unknown-species"),
+        pytest.param({"postal_code": "12345"}, id="invalid-postal-code"),
+        pytest.param({"activity_level": "extreme"}, id="invalid-activity-level"),
+    ],
+)
+async def test_acceptance_test_an_invalid_edit_is_rejected_and_rex_is_unchanged(
+    client: httpx.AsyncClient,
+    issuer: TokenIssuer,
+    engine: AsyncEngine,
+    invalid: dict[str, object],
+) -> None:
+    # AT-02 for editing. The valid size change must not be saved either.
+    rex, _, _ = await _seed_data(engine)
+
+    response = await client.put(
+        f"/animals/{rex.id}",
+        json=_rex_edit(size="large", **invalid),
+        headers=_bearer(issuer.token(**ANA)),
+    )
+
+    assert response.status_code == 422
+    assert await _stored(engine, rex.id) == replace(rex, owner_name="Ana")
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        pytest.param({"size": "large"}, id="valid-edit"),
+        # Ownership is checked before the rules: a broken rule is still a 403.
+        pytest.param({"name": "   "}, id="edit-breaking-a-rule"),
+    ],
+)
+async def test_acceptance_test_bruno_cannot_edit_rex(
+    client: httpx.AsyncClient,
+    issuer: TokenIssuer,
+    engine: AsyncEngine,
+    changes: dict[str, object],
+) -> None:
+    # AT-04: when Bruno tries to edit Rex, then it is refused and Rex is unchanged.
+    rex, _, _ = await _seed_data(engine)
+
+    response = await client.put(
+        f"/animals/{rex.id}",
+        json=_rex_edit(**changes),
+        headers=_bearer(issuer.token(**BRUNO)),
+    )
+
+    assert response.status_code == 403
+    assert await _stored(engine, rex.id) == replace(rex, owner_name="Ana")
+
+
+async def test_acceptance_test_visitor_cannot_edit_rex(
+    client: httpx.AsyncClient, engine: AsyncEngine
+) -> None:
+    # AT-04: a visitor who is not logged in is refused, and Rex is unchanged.
+    rex, _, _ = await _seed_data(engine)
+
+    response = await client.put(f"/animals/{rex.id}", json=_rex_edit(size="large"))
+
+    assert response.status_code == 401
+    assert await _stored(engine, rex.id) == replace(rex, owner_name="Ana")
+
+
+async def test_editing_an_animal_that_does_not_exist_is_not_found(
+    client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine
+) -> None:
+    await _seed_data(engine)
+
+    response = await client.put(
+        f"/animals/{uuid4()}", json=_rex_edit(), headers=_bearer(issuer.token(**ANA))
+    )
+
+    assert response.status_code == 404
+
+
+async def test_owner_can_edit_an_unpublished_animal_and_it_stays_unpublished(
+    client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine
+) -> None:
+    rex, _, _ = await _seed_data(engine)
+    ana = _bearer(issuer.token(**ANA))
+    await client.post(f"/animals/{rex.id}/unpublish", headers=ana)
+
+    response = await client.put(
+        f"/animals/{rex.id}", json=_rex_edit(size="large"), headers=ana
+    )
+
+    assert response.status_code == 200
+    assert response.json()["size"] == "large"
+    assert response.json()["adoption_status"] == "unavailable"
+    assert all(a["id"] != str(rex.id) for a in (await client.get("/animals")).json())
+
+
+@pytest.mark.parametrize(
+    "unknown",
+    [
+        pytest.param({"adoption_status": "available"}, id="status"),
+        pytest.param({"owner_id": BRUNO["sub"]}, id="owner"),
+        pytest.param({"behaves_well_with_kids": "yes"}, id="misspelt-field"),
+    ],
+)
+async def test_an_edit_with_a_field_outside_the_description_is_rejected(
+    client: httpx.AsyncClient,
+    issuer: TokenIssuer,
+    engine: AsyncEngine,
+    unknown: dict[str, object],
+) -> None:
+    rex, _, _ = await _seed_data(engine)
+
+    response = await client.put(
+        f"/animals/{rex.id}",
+        json=_rex_edit(size="large", **unknown),
+        headers=_bearer(issuer.token(**ANA)),
+    )
+
+    assert response.status_code == 422
+    assert await _stored(engine, rex.id) == replace(rex, owner_name="Ana")
+
+
+async def test_owner_loads_her_unpublished_animal_for_the_edit_form(
+    client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine
+) -> None:
+    _, mia, _ = await _seed_data(engine)
+    ana = _bearer(issuer.token(**ANA))
+    await client.post(f"/animals/{mia.id}/unpublish", headers=ana)
+
+    response = await client.get(f"/me/animals/{mia.id}", headers=ana)
+
+    assert response.status_code == 200
+    assert response.json()["name"] == "Mia"
+    assert response.json()["adoption_status"] == "unavailable"
+
+
+async def test_someone_elses_animal_is_not_in_my_animals(
+    client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine
+) -> None:
+    rex, _, _ = await _seed_data(engine)
+    bruno = _bearer(issuer.token(**BRUNO))
+
+    rexs_page = await client.get(f"/me/animals/{rex.id}", headers=bruno)
+    unknown_page = await client.get(f"/me/animals/{uuid4()}", headers=bruno)
+
+    assert rexs_page.status_code == 404
+    assert unknown_page.status_code == 404
+
+
+async def test_a_visitor_cannot_load_an_animal_for_editing(
+    client: httpx.AsyncClient, engine: AsyncEngine
+) -> None:
+    rex, _, _ = await _seed_data(engine)
+
+    assert (await client.get(f"/me/animals/{rex.id}")).status_code == 401
+
+
+async def _until_a_request_waits_for(engine: AsyncEngine, holder_pid: int) -> None:
+    """Wait until a connection is blocked by `holder_pid`: the two writes met."""
+    query = text(
+        "SELECT count(*) FROM pg_stat_activity"
+        " WHERE :holder = ANY(pg_blocking_pids(pid))"
+    )
+    # Autocommit, so each probe sees connections opened since the last one.
+    async with engine.connect() as conn:
+        conn = await conn.execution_options(isolation_level="AUTOCOMMIT")
+        for _ in range(100):
+            if await conn.scalar(query, {"holder": holder_pid}):
+                return
+            await asyncio.sleep(0.05)
+    pytest.fail("no request waited for the lock")
+
+
+async def test_an_edit_that_meets_an_unpublish_does_not_republish_rex(
+    client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine
+) -> None:
+    # The edit waits for the unpublish instead of writing the old status back.
+    rex, _, _ = await _seed_data(engine)
+
+    async with async_sessionmaker(engine).begin() as session:
+        repo = AnimalRepository(session)
+        being_unpublished = await repo.get_for_update(rex.id)
+        assert being_unpublished is not None
+        holder_pid = await session.scalar(text("SELECT pg_backend_pid()"))
+        edit = asyncio.create_task(
+            client.put(
+                f"/animals/{rex.id}",
+                json=_rex_edit(size="large"),
+                headers=_bearer(issuer.token(**ANA)),
+            )
+        )
+        await _until_a_request_waits_for(engine, holder_pid)
+        being_unpublished.unpublish(by_user_id=rex.owner_id)
+        await repo.update(being_unpublished)
+
+    assert (await edit).status_code == 200
+    stored = await _stored(engine, rex.id)
+    assert stored is not None
+    assert stored.size is AnimalSize.LARGE
+    assert stored.adoption_status is AdoptionStatus.UNAVAILABLE
+
+
+async def test_an_unpublish_that_meets_an_edit_keeps_the_edit(
+    client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine
+) -> None:
+    # The other order: the unpublish waits for the edit and keeps it.
+    rex, _, _ = await _seed_data(engine)
+
+    async with async_sessionmaker(engine).begin() as session:
+        repo = AnimalRepository(session)
+        being_edited = await repo.get_for_update(rex.id)
+        assert being_edited is not None
+        holder_pid = await session.scalar(text("SELECT pg_backend_pid()"))
+        unpublish = asyncio.create_task(
+            client.post(
+                f"/animals/{rex.id}/unpublish", headers=_bearer(issuer.token(**ANA))
+            )
+        )
+        await _until_a_request_waits_for(engine, holder_pid)
+        being_edited.edit(
+            rex.owner_id, name="Rex", species=Species.DOG, size=AnimalSize.LARGE
+        )
+        await repo.update(being_edited)
+
+    assert (await unpublish).status_code == 200
+    stored = await _stored(engine, rex.id)
+    assert stored is not None
+    assert stored.size is AnimalSize.LARGE
+    assert stored.adoption_status is AdoptionStatus.UNAVAILABLE
