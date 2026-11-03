@@ -305,7 +305,7 @@ class AnimalRepository:
         return _from_row(row) if row is not None else None
 
     async def get_for_update(self, animal_id: UUID) -> Animal | None:
-        """Like get_by_id, but locks the row until the transaction ends (ADR 0013)."""
+        """Like get_by_id, but locks the row until the transaction ends (ADR 0014)."""
         result = await self._session.execute(
             _SELECT_BY_ID_FOR_UPDATE, {"id": animal_id}
         )
