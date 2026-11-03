@@ -136,9 +136,18 @@ async function MyAnimalList({ token }: { token: string }) {
                 <span className="text-xs text-muted">
                   {isUnpublished ? "Not visible in catalog" : "Visible in catalog"}
                 </span>
-                {!isUnpublished && (
-                  <UnpublishButton animalId={animal.id} animalName={animal.name} />
-                )}
+                <div className="flex items-center gap-3">
+                  <Link
+                    href={`/animals/${animal.id}/edit`}
+                    aria-label={`Edit ${animal.name}`}
+                    className="text-sm font-semibold text-forest underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest"
+                  >
+                    Edit
+                  </Link>
+                  {!isUnpublished && (
+                    <UnpublishButton animalId={animal.id} animalName={animal.name} />
+                  )}
+                </div>
               </div>
             </li>
           );

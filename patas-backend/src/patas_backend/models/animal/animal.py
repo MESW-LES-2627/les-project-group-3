@@ -1,5 +1,5 @@
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from uuid import UUID, uuid4
 
 from patas_backend.models.animal.enums import (
@@ -147,9 +147,69 @@ class Animal:
         """An animal is published if its adoption status is not unavailable."""
         return self.adoption_status != AdoptionStatus.UNAVAILABLE
 
+    def is_owned_by(self, user_id: UUID) -> bool:
+        return self.owner_id == user_id
+
+    def edit(
+        self,
+        by_user_id: UUID,
+        *,
+        name: str,
+        species: Species,
+        age_in_months: int | None = None,
+        sex: AnimalSex | None = None,
+        is_neutered: NeuteredStatus | None = None,
+        postal_code: str | None = None,
+        size: AnimalSize | None = None,
+        activity_level: EnergyLevel | None = None,
+        space_requirement: AnimalSize | None = None,
+        shedding: EnergyLevel | None = None,
+        grooming_needs: EnergyLevel | None = None,
+        behaves_well_with_children: AnimalCompatibility | None = None,
+        behaves_well_with_dogs: AnimalCompatibility | None = None,
+        behaves_well_with_cats: AnimalCompatibility | None = None,
+        behaves_well_with_other_animals: AnimalCompatibility | None = None,
+        training_needs: EnergyLevel | None = None,
+        tolerance_for_time_alone: EnergyLevel | None = None,
+        noise_level: EnergyLevel | None = None,
+        suitable_for_first_time_owners: FirstTimeOwnerSuitability | None = None,
+        special_care_notes: str | None = None,
+        other_details: str | None = None,
+    ) -> None:
+        """Replace the description; a field left out is cleared. All or nothing."""
+        if not self.is_owned_by(by_user_id):
+            raise AnimalUnauthorized("Only the owner can edit this animal")
+        # replace() runs the constructor's checks on a copy, so a broken rule
+        # leaves this animal untouched.
+        edited = replace(
+            self,
+            name=name,
+            species=species,
+            age_in_months=age_in_months,
+            sex=sex,
+            is_neutered=is_neutered,
+            postal_code=postal_code,
+            size=size,
+            activity_level=activity_level,
+            space_requirement=space_requirement,
+            shedding=shedding,
+            grooming_needs=grooming_needs,
+            behaves_well_with_children=behaves_well_with_children,
+            behaves_well_with_dogs=behaves_well_with_dogs,
+            behaves_well_with_cats=behaves_well_with_cats,
+            behaves_well_with_other_animals=behaves_well_with_other_animals,
+            training_needs=training_needs,
+            tolerance_for_time_alone=tolerance_for_time_alone,
+            noise_level=noise_level,
+            suitable_for_first_time_owners=suitable_for_first_time_owners,
+            special_care_notes=special_care_notes,
+            other_details=other_details,
+        )
+        vars(self).update(vars(edited))
+
     def unpublish(self, by_user_id: UUID) -> None:
         """Unpublish the listing so it disappears from the catalog."""
-        if self.owner_id != by_user_id:
+        if not self.is_owned_by(by_user_id):
             raise AnimalUnauthorized("Only the owner can unpublish this animal")
         self.adoption_status = AdoptionStatus.UNAVAILABLE
 

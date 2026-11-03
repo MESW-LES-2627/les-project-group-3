@@ -2,7 +2,7 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 from patas_backend.auth.dependencies import get_current_user
 from patas_backend.models.animal import (
@@ -33,7 +33,8 @@ class PublishAnimalRequest(BaseModel):
     # Types only. The business rules (non-blank name, age >= 0) live in the domain.
     name: str
     species: Species
-    age_in_months: int | None = None
+    # The column's limit: a larger age would be a database error (500), not a 422.
+    age_in_months: Annotated[int, Field(le=2_147_483_647)] | None = None
     sex: AnimalSex | None = None
     is_neutered: NeuteredStatus | None = None
     postal_code: str | None = None
@@ -52,6 +53,12 @@ class PublishAnimalRequest(BaseModel):
     suitable_for_first_time_owners: FirstTimeOwnerSuitability | None = None
     special_care_notes: str | None = None
     other_details: str | None = None
+
+
+class EditAnimalRequest(PublishAnimalRequest):
+    # Unknown fields are a 422, not ignored: with full replacement a misspelt field
+    # would clear the real one, and owner_id or adoption_status must not be sent.
+    model_config = ConfigDict(extra="forbid")
 
 
 class AnimalMatchProfileResponse(BaseModel):
@@ -167,6 +174,19 @@ async def list_my_animals(
     return [AnimalResponse.from_domain(a) for a in await service.list_by_owner(owner)]
 
 
+@router.get("/me/animals/{animal_id}", response_model=AnimalResponse)
+async def get_my_animal(
+    animal_id: UUID,
+    owner: Annotated[User, Depends(get_current_user)],
+    service: Annotated[AnimalService, Depends(get_animal_service)],
+) -> AnimalResponse:
+    """One of the user's animals, unpublished included: 404 otherwise."""
+    animal = await service.get_owned(owner, animal_id)
+    if animal is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Animal not found")
+    return AnimalResponse.from_domain(animal)
+
+
 @router.get("/animals/{animal_id}", response_model=AnimalResponse)
 async def get_animal(
     animal_id: UUID,
@@ -189,6 +209,52 @@ async def unpublish_animal(
         animal = await service.unpublish(owner, animal_id)
     except AnimalUnauthorized as error:
         raise HTTPException(status.HTTP_403_FORBIDDEN, str(error)) from error
+
+    if animal is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Animal not found")
+    return AnimalResponse.from_domain(animal)
+
+
+@router.put("/animals/{animal_id}", response_model=AnimalResponse)
+async def edit_animal(
+    animal_id: UUID,
+    body: EditAnimalRequest,
+    owner: Annotated[User, Depends(get_current_user)],
+    service: Annotated[AnimalService, Depends(get_animal_service)],
+) -> AnimalResponse:
+    """The owner replaces the description: 403 if not the owner, 404 if not found."""
+    try:
+        animal = await service.edit(
+            owner,
+            animal_id,
+            name=body.name,
+            species=body.species,
+            age_in_months=body.age_in_months,
+            sex=body.sex,
+            is_neutered=body.is_neutered,
+            postal_code=body.postal_code,
+            size=body.size,
+            activity_level=body.activity_level,
+            space_requirement=body.space_requirement,
+            shedding=body.shedding,
+            grooming_needs=body.grooming_needs,
+            behaves_well_with_children=body.behaves_well_with_children,
+            behaves_well_with_dogs=body.behaves_well_with_dogs,
+            behaves_well_with_cats=body.behaves_well_with_cats,
+            behaves_well_with_other_animals=body.behaves_well_with_other_animals,
+            training_needs=body.training_needs,
+            tolerance_for_time_alone=body.tolerance_for_time_alone,
+            noise_level=body.noise_level,
+            suitable_for_first_time_owners=body.suitable_for_first_time_owners,
+            special_care_notes=body.special_care_notes,
+            other_details=body.other_details,
+        )
+    except AnimalUnauthorized as error:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, str(error)) from error
+    except InvalidAnimal as error:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT, str(error)
+        ) from error
 
     if animal is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Animal not found")

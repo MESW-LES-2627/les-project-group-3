@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, type LucideIcon } from "lucide-react";
-import { useId } from "react";
+import { useId, useRef } from "react";
 
 import type { Option } from "@/lib/matchmaker-profile";
 
@@ -13,6 +13,8 @@ type OptionCardGroupProps<T extends string> = {
   options: readonly Option<T>[];
   value: T | null;
   onChange: (value: T) => void;
+  // A picked radio cannot be unpicked; this shows a Clear button.
+  onClear?: () => void;
   icons?: Partial<Record<T, LucideIcon>>;
   error?: string | null;
   optional?: boolean;
@@ -27,21 +29,44 @@ export function OptionCardGroup<T extends string>({
   options,
   value,
   onChange,
+  onClear,
   icons,
   error,
   optional = false,
 }: OptionCardGroupProps<T>) {
   const errorId = useId();
   const invalid = Boolean(error) && value === null;
+  const fieldset = useRef<HTMLFieldSetElement>(null);
+
+  function clear() {
+    onClear?.();
+    // The button hides itself, so move focus to the question.
+    fieldset.current?.querySelector<HTMLInputElement>("input[type=radio]")?.focus();
+  }
 
   return (
     <fieldset
+      ref={fieldset}
       aria-describedby={error ? errorId : undefined}
       className="min-w-0"
     >
       <legend className="mb-3 text-base font-semibold text-forest">
         {legend}
       </legend>
+      {onClear && (
+        // Hidden rather than removed, so the cards don't shift.
+        <button
+          type="button"
+          onClick={clear}
+          disabled={value === null}
+          aria-label={`Clear ${legend.toLowerCase()}`}
+          className={`-mt-2 mb-3 text-sm font-medium text-leaf underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest ${
+            value === null ? "invisible" : ""
+          }`}
+        >
+          Clear
+        </button>
+      )}
       <div className="grid gap-3 sm:grid-cols-3">
         {options.map((option) => {
           // Annotated: TypeScript cannot use a lookup by a generic key as a component.
