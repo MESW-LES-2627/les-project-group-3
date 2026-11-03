@@ -13,6 +13,12 @@ export const MODE_LABEL: Record<Mode, string> = {
   strict: "Strict",
 };
 
+// Placeholder wording, like MODE_LABEL: the team still has to agree on it.
+export const MODE_HINT: Record<Mode, string> = {
+  loose: "Each weak spot costs a little.",
+  strict: "The weakest answer pulls the whole score down.",
+};
+
 export const REASON_KINDS = ["strength", "concern", "unknown"] as const;
 export type ReasonKind = (typeof REASON_KINDS)[number];
 
@@ -76,6 +82,13 @@ export const REASON_GROUPS: readonly { kind: ReasonKind; heading: string }[] = [
   { kind: "concern", heading: "Worth checking" },
   { kind: "unknown", heading: "The owner didn't say" },
 ];
+
+// Short labels for the one-line tally under the score ("5 fit · 2 to check").
+export const TALLY_LABEL: Record<ReasonKind, string> = {
+  strength: "fit",
+  concern: "to check",
+  unknown: "not said",
+};
 
 // Splits the reasons by kind and keeps the backend's order inside each group.
 // A group without reasons is left out.

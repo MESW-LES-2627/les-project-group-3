@@ -21,6 +21,23 @@
   --font-mono: var(--font-geist-mono);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --animate-phrase-flash: phrase-flash 700ms var(--ease-out-expo) 1;
+  --animate-ring-fill: ring-fill 900ms var(--ease-out-expo) 1;
+  --animate-rise-in: rise-in 400ms var(--ease-out-expo) backwards;
+
+  /* Starts the score ring empty; with no "to", it eases into the offset the circle
+     already has, so the score itself stays in the component. */
+  @keyframes ring-fill {
+    from {
+      stroke-dashoffset: var(--ring-empty);
+    }
+  }
+
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
 
   @keyframes phrase-flash {
     from {

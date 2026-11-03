@@ -12,8 +12,9 @@ type FitSectionProps = {
   ownerId: string;
 };
 
-// Decides who gets the fit card. The page stays public: a visitor is invited to log
-// in, and the owner sees nothing, since their own animal has no fit to calculate.
+// The last band of the animal card. Decides who gets the fit: the page stays public,
+// so a visitor is invited to log in, and the owner sees nothing (not even the
+// divider), since their own animal has no fit to calculate.
 export async function FitSection({
   animalId,
   animalName,
@@ -21,20 +22,25 @@ export async function FitSection({
 }: FitSectionProps) {
   const session = await auth.api.getSession({ headers: await headers() });
 
-  if (!session) {
-    return (
-      <p className="rounded-2xl border border-line bg-surface p-6 text-sm text-muted shadow-sm">
-        <Link href="/login" className="font-semibold text-forest underline">
-          Log in
-        </Link>{" "}
-        to see how well {animalName} fits your home.
-      </p>
-    );
-  }
-  if (session.user.id === ownerId) {
+  if (session?.user.id === ownerId) {
     return null;
   }
   return (
-    <FitCard animalId={animalId} animalName={animalName} action={fitAction} />
+    <div className="mt-6 border-t border-line pt-6">
+      {session ? (
+        <FitCard
+          animalId={animalId}
+          animalName={animalName}
+          action={fitAction}
+        />
+      ) : (
+        <p className="text-sm text-muted">
+          <Link href="/login" className="font-semibold text-forest underline">
+            Log in
+          </Link>{" "}
+          to see how well {animalName} fits your home.
+        </p>
+      )}
+    </div>
   );
 }

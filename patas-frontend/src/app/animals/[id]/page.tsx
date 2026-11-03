@@ -153,12 +153,13 @@ async function AnimalDetail({ params }: Props) {
             )}
           </div>
         )}
+
+        <FitSection
+          animalId={animal.id}
+          animalName={animal.name}
+          ownerId={animal.owner_id}
+        />
       </section>
-      <FitSection
-        animalId={animal.id}
-        animalName={animal.name}
-        ownerId={animal.owner_id}
-      />
     </div>
   );
 }
