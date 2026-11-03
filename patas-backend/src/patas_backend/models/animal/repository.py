@@ -109,6 +109,8 @@ _SELECT_BY_ID = text(
     WHERE a.id = :id
     """
 )
+# OF a: lock the animal's row, not its owner's.
+_SELECT_BY_ID_FOR_UPDATE = text(_SELECT_BY_ID.text + "FOR UPDATE OF a")
 
 
 _UPDATE = text(
@@ -299,6 +301,14 @@ class AnimalRepository:
     async def get_by_id(self, animal_id: UUID) -> Animal | None:
         """Fetch a single animal by id, or None if not found."""
         result = await self._session.execute(_SELECT_BY_ID, {"id": animal_id})
+        row = result.first()
+        return _from_row(row) if row is not None else None
+
+    async def get_for_update(self, animal_id: UUID) -> Animal | None:
+        """Like get_by_id, but locks the row until the transaction ends (ADR 0013)."""
+        result = await self._session.execute(
+            _SELECT_BY_ID_FOR_UPDATE, {"id": animal_id}
+        )
         row = result.first()
         return _from_row(row) if row is not None else None
 
