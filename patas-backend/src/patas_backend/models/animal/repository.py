@@ -10,6 +10,7 @@ from patas_backend.models.animal.enums import (
     AnimalCompatibility,
     AnimalSex,
     AnimalSize,
+    District,
     FirstTimeOwnerSuitability,
     NeuteredStatus,
     Species,
@@ -26,7 +27,7 @@ _INSERT = text(
             behaves_well_with_dogs, behaves_well_with_cats,
             behaves_well_with_other_animals, training_needs,
             tolerance_for_time_alone, noise_level, suitable_for_first_time_owners,
-            special_care_notes, other_details
+            special_care_notes, other_details, district
         )
     VALUES (
         :id, :owner_id, :name, CAST(:species AS patas.species), :age_in_months,
@@ -48,7 +49,8 @@ _INSERT = text(
         CAST(:noise_level AS patas.energy_level),
         CAST(:suitable_for_first_time_owners AS patas.first_time_owner_suitability),
         :special_care_notes,
-        :other_details
+        :other_details,
+        CAST(:district AS patas.district)
     )
     """
 )
@@ -65,7 +67,7 @@ _SELECT_ALL_PUBLISHED = text(
         a.behaves_well_with_other_animals, a.training_needs,
         a.tolerance_for_time_alone, a.noise_level,
         a.suitable_for_first_time_owners, a.special_care_notes,
-        a.other_details
+        a.other_details, a.district
     FROM patas.animals a
     JOIN patas.users u ON u.id = a.owner_id
     WHERE a.adoption_status != 'unavailable'
@@ -84,7 +86,7 @@ _SELECT_BY_OWNER = text(
         a.behaves_well_with_other_animals, a.training_needs,
         a.tolerance_for_time_alone, a.noise_level,
         a.suitable_for_first_time_owners, a.special_care_notes,
-        a.other_details
+        a.other_details, a.district
     FROM patas.animals a
     JOIN patas.users u ON u.id = a.owner_id
     WHERE a.owner_id = :owner_id
@@ -103,7 +105,7 @@ _SELECT_BY_ID = text(
         a.behaves_well_with_other_animals, a.training_needs,
         a.tolerance_for_time_alone, a.noise_level,
         a.suitable_for_first_time_owners, a.special_care_notes,
-        a.other_details
+        a.other_details, a.district
     FROM patas.animals a
     JOIN patas.users u ON u.id = a.owner_id
     WHERE a.id = :id
@@ -144,7 +146,8 @@ _UPDATE = text(
         suitable_for_first_time_owners =
             CAST(:suitable_for_first_time_owners AS patas.first_time_owner_suitability),
         special_care_notes = :special_care_notes,
-        other_details = :other_details
+        other_details = :other_details,
+        district = CAST(:district AS patas.district)
     WHERE id = :id
     """
 )
@@ -214,6 +217,7 @@ def _to_params(animal: Animal) -> dict[str, Any]:
         ),
         "special_care_notes": animal.special_care_notes,
         "other_details": animal.other_details,
+        "district": animal.district.value if animal.district is not None else None,
     }
 
 
@@ -282,6 +286,7 @@ def _from_row(row: Row[Any]) -> Animal:
         ),
         special_care_notes=row.special_care_notes,
         other_details=row.other_details,
+        district=District(row.district) if row.district is not None else None,
     )
 
 

@@ -6,6 +6,8 @@ from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from patas_backend.models.animal import District
+
 OWNER_ID = UUID("0b1f2a3c-4d5e-4f60-8a7b-9c0d1e2f3a4b")
 
 INSERT_USER = text(
@@ -105,7 +107,7 @@ async def test_animal_profile_columns_are_nullable(engine: AsyncEngine) -> None:
                         FROM information_schema.columns
                         WHERE table_schema = 'patas' AND table_name = 'animals'
                           AND column_name IN (
-                            'sex', 'is_neutered', 'postal_code', 'size',
+                            'sex', 'is_neutered', 'postal_code', 'district', 'size',
                             'activity_level', 'space_requirement', 'shedding',
                             'grooming_needs',
                             'behaves_well_with_children', 'behaves_well_with_dogs',
@@ -119,5 +121,26 @@ async def test_animal_profile_columns_are_nullable(engine: AsyncEngine) -> None:
             )
         ).all()
 
-    assert len(rows) == 18
+    assert len(rows) == 19
     assert all(row.is_nullable == "YES" for row in rows)
+
+
+async def test_rejects_an_unknown_district(engine: AsyncEngine, owner_id: UUID) -> None:
+    with pytest.raises(DBAPIError, match="invalid input value for enum"):
+        async with engine.begin() as conn:
+            await conn.execute(
+                text(
+                    "INSERT INTO patas.animals (id, owner_id, name, species, district) "
+                    "VALUES (:id, :owner_id, 'Rex', 'dog', 'atlantis')"
+                ),
+                {"id": uuid4(), "owner_id": owner_id},
+            )
+
+
+async def test_the_district_enum_matches_the_domain(engine: AsyncEngine) -> None:
+    # A value on one side only would break at runtime on the repository's CAST.
+    async with engine.connect() as conn:
+        values = await conn.scalar(
+            text("SELECT enum_range(NULL::patas.district)::text[]")
+        )
+    assert values == [district.value for district in District]

@@ -13,6 +13,8 @@ from patas_backend.models.animal import (
     AnimalSex,
     AnimalSize,
     AnimalUnauthorized,
+    CatalogFilter,
+    District,
     FirstTimeOwnerSuitability,
     InvalidAnimal,
     NeuteredStatus,
@@ -39,6 +41,7 @@ class PublishAnimalRequest(BaseModel):
     sex: AnimalSex | None = None
     is_neutered: NeuteredStatus | None = None
     postal_code: str | None = None
+    district: District | None = None
     size: AnimalSize | None = None
     activity_level: EnergyLevel | None = None
     space_requirement: AnimalSize | None = None
@@ -105,6 +108,7 @@ class AnimalResponse(BaseModel):
     sex: AnimalSex | None
     is_neutered: NeuteredStatus | None
     postal_code: str | None
+    district: District | None
     size: AnimalSize | None
     activity_level: EnergyLevel | None
     space_requirement: AnimalSize | None
@@ -135,6 +139,7 @@ class AnimalResponse(BaseModel):
             sex=animal.sex,
             is_neutered=animal.is_neutered,
             postal_code=animal.postal_code,
+            district=animal.district,
             size=animal.size,
             activity_level=animal.activity_level,
             space_requirement=animal.space_requirement,
@@ -164,11 +169,17 @@ def get_animal_service(request: Request) -> AnimalService:
 async def list_animals(
     service: Annotated[AnimalService, Depends(get_animal_service)],
     species: Species | None = None,
+    size: AnimalSize | None = None,
+    district: District | None = None,
+    age_group: LifeStage | None = None,
 ) -> list[AnimalResponse]:
-    """The public catalog: public, lists only published animals."""
+    """The public catalog: published animals only, narrowed by the given filters."""
+    catalog_filter = CatalogFilter(
+        species=species, size=size, district=district, age_group=age_group
+    )
     return [
         AnimalResponse.from_domain(a)
-        for a in await service.list_catalog(species=species)
+        for a in await service.list_catalog(catalog_filter)
     ]
 
 
@@ -240,6 +251,7 @@ async def edit_animal(
             sex=body.sex,
             is_neutered=body.is_neutered,
             postal_code=body.postal_code,
+            district=body.district,
             size=body.size,
             activity_level=body.activity_level,
             space_requirement=body.space_requirement,
@@ -285,6 +297,7 @@ async def publish_animal(
             sex=body.sex,
             is_neutered=body.is_neutered,
             postal_code=body.postal_code,
+            district=body.district,
             size=body.size,
             activity_level=body.activity_level,
             space_requirement=body.space_requirement,

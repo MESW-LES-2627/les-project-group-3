@@ -15,6 +15,7 @@ from patas_backend.models.animal import (
     AnimalRepository,
     AnimalSex,
     AnimalSize,
+    District,
     Species,
 )
 from patas_backend.models.user import User, UserRepository
@@ -57,6 +58,7 @@ async def test_catalog_is_public_and_lists_published_animals(
             "sex": None,
             "is_neutered": None,
             "postal_code": None,
+            "district": None,
             "size": None,
             "activity_level": None,
             "space_requirement": None,
@@ -122,6 +124,7 @@ async def test_animal_profile_fields_are_saved_and_listed(
             "sex": "male",
             "is_neutered": "yes",
             "postal_code": "1234-567",
+            "district": "porto",
             "size": "small",
             "activity_level": "moderate",
             "space_requirement": "small",
@@ -145,6 +148,7 @@ async def test_animal_profile_fields_are_saved_and_listed(
     published = response.json()
     assert published["sex"] == "male"
     assert published["is_neutered"] == "yes"
+    assert published["district"] == "porto"
     assert published["behaves_well_with_children"] == "with_supervision"
     assert published["suitable_for_first_time_owners"] == "with_support"
     assert published["special_care_notes"] == "Needs daily medication"
@@ -225,6 +229,10 @@ async def test_publishing_without_a_token_is_rejected_and_nothing_is_stored(
             id="invalid-postal-code",
         ),
         pytest.param(
+            {"name": "Rex", "species": "dog", "district": "atlantis"},
+            id="unknown-district",
+        ),
+        pytest.param(
             {"name": "Rex", "species": "dog", "activity_level": "extreme"},
             id="invalid-activity-level",
         ),
@@ -268,6 +276,7 @@ async def _seed_data(engine: AsyncEngine) -> tuple[Animal, Animal, Animal]:
         size=AnimalSize.MEDIUM,
         sex=AnimalSex.MALE,
         age_in_months=36,
+        district=District.PORTO,
     )
     mia = Animal.publish(
         owner_id=ana_user.id,
@@ -276,6 +285,7 @@ async def _seed_data(engine: AsyncEngine) -> tuple[Animal, Animal, Animal]:
         size=AnimalSize.SMALL,
         sex=AnimalSex.FEMALE,
         age_in_months=6,
+        district=District.PORTO,
     )
     bolt = Animal.publish(
         owner_id=bruno_user.id,
@@ -284,6 +294,7 @@ async def _seed_data(engine: AsyncEngine) -> tuple[Animal, Animal, Animal]:
         size=AnimalSize.LARGE,
         sex=AnimalSex.MALE,
         age_in_months=120,
+        district=District.LISBOA,
     )
     async with async_sessionmaker(engine).begin() as session:
         user_repo = UserRepository(session)
@@ -431,31 +442,84 @@ def _rex_edit(**changes: object) -> dict[str, object]:
         "age_in_months": 36,
         "sex": "male",
         "size": "medium",
+        "district": "porto",
         **changes,
     }
 
 
-async def test_acceptance_test_ana_edits_rex_and_his_page_shows_it(
+async def _names(client: httpx.AsyncClient, query: str) -> set[str]:
+    response = await client.get(f"/animals{query}")
+    assert response.status_code == 200
+    return {a["name"] for a in response.json()}
+
+
+async def test_acceptance_test_ana_edits_rex_and_his_page_and_the_filters_show_it(
     client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine
 ) -> None:
-    # AT-03, edit half: when Ana changes Rex to large, his page shows large.
-    # Lisboa and the filters come with US-06.
+    # AT-03: Rex is medium and in Porto; Ana changes him to large and Lisboa.
     rex, _, _ = await _seed_data(engine)
+    assert await _names(client, "?district=porto") == {"Rex", "Mia"}
 
     response = await client.put(
         f"/animals/{rex.id}",
-        json=_rex_edit(size="large"),
+        json=_rex_edit(size="large", district="lisboa"),
         headers=_bearer(issuer.token(**ANA)),
     )
 
     assert response.status_code == 200
     edited = response.json()
-    assert edited["size"] == "large"
+    assert (edited["size"], edited["district"]) == ("large", "lisboa")
     # Derived from the animal, so it follows the edit (ADR 0011).
     assert edited["match_profile"]["size"] == "large"
     assert (await client.get(f"/animals/{rex.id}")).json() == edited
-    catalog = (await client.get("/animals")).json()
-    assert next(a for a in catalog if a["id"] == str(rex.id)) == edited
+    large_in_lisboa = (await client.get("/animals?size=large&district=lisboa")).json()
+    assert {a["name"] for a in large_in_lisboa} == {"Rex", "Bolt"}
+    assert next(a for a in large_in_lisboa if a["id"] == str(rex.id)) == edited
+    assert await _names(client, "?district=porto") == {"Mia"}
+
+
+async def test_acceptance_test_catalog_filters_combine(
+    client: httpx.AsyncClient, engine: AsyncEngine
+) -> None:
+    # AT-06
+    await _seed_data(engine)
+    toby = Animal.publish(owner_id=UUID(ANA["sub"]), name="Toby", species=Species.DOG)
+    async with async_sessionmaker(engine).begin() as session:
+        await AnimalRepository(session).add(toby)
+
+    assert await _names(client, "?species=dog") == {"Rex", "Bolt", "Toby"}
+    assert await _names(client, "?species=dog&district=porto") == {"Rex"}
+    assert await _names(client, "?age_group=baby") == {"Mia"}
+    assert await _names(client, "?age_group=senior") == {"Bolt"}
+    # Toby has no age, so he is in no age group.
+    assert await _names(client, "?age_group=adult") == {"Rex"}
+    # The page shows "No animals match these filters" for an empty result.
+    assert await _names(client, "?species=dog&size=small") == set()
+
+
+@pytest.mark.parametrize(
+    ("query", "names"),
+    [
+        pytest.param("?species=cat", {"Mia"}, id="species"),
+        pytest.param("?size=medium", {"Rex"}, id="size"),
+        pytest.param("?district=lisboa", {"Bolt"}, id="district"),
+    ],
+)
+async def test_each_filter_narrows_the_catalog_on_its_own(
+    client: httpx.AsyncClient, engine: AsyncEngine, query: str, names: set[str]
+) -> None:
+    await _seed_data(engine)
+
+    assert await _names(client, query) == names
+
+
+@pytest.mark.parametrize(
+    "query", ["?size=huge", "?district=atlantis", "?age_group=puppy"]
+)
+async def test_an_unknown_filter_value_is_rejected(
+    client: httpx.AsyncClient, query: str
+) -> None:
+    assert (await client.get(f"/animals{query}")).status_code == 422
 
 
 # Every description field, twice: each value differs between the two.
@@ -466,6 +530,7 @@ DESCRIBED = {
     "sex": "male",
     "is_neutered": "yes",
     "postal_code": "1234-567",
+    "district": "porto",
     "size": "small",
     "activity_level": "moderate",
     "space_requirement": "small",
@@ -509,6 +574,7 @@ REDESCRIBED = {
     "sex": "female",
     "is_neutered": "no",
     "postal_code": "4000-001",
+    "district": "lisboa",
     "size": "large",
     "activity_level": "high",
     "space_requirement": "large",
@@ -539,6 +605,7 @@ async def test_an_edit_saves_every_field(
     edited = response.json()
     assert {key: edited[key] for key in REDESCRIBED} == REDESCRIBED
     assert (await client.get(f"/me/animals/{milo['id']}", headers=ana)).json() == edited
+    assert (await client.get("/me/animals", headers=ana)).json() == [edited]
 
 
 async def test_an_edit_clears_the_fields_it_leaves_out(
@@ -566,6 +633,7 @@ async def test_an_edit_clears_the_fields_it_leaves_out(
         pytest.param({"age_in_months": 2**31}, id="age-beyond-storage"),
         pytest.param({"species": "rabbit"}, id="unknown-species"),
         pytest.param({"postal_code": "12345"}, id="invalid-postal-code"),
+        pytest.param({"district": "atlantis"}, id="unknown-district"),
         pytest.param({"activity_level": "extreme"}, id="invalid-activity-level"),
     ],
 )

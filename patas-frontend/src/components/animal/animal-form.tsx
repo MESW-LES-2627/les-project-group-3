@@ -13,6 +13,7 @@ import {
   ACTIVITY_OPTIONS,
   ANIMAL_SEX_OPTIONS,
   COMPATIBILITY_OPTIONS,
+  DISTRICT_OPTIONS,
   FIRST_TIME_OWNER_OPTIONS,
   GROOMING_OPTIONS,
   NOISE_OPTIONS,
@@ -21,6 +22,7 @@ import {
   SHEDDING_OPTIONS,
   SIZE_OPTIONS,
   SPACE_OPTIONS,
+  SPECIES_OPTIONS,
   TIME_ALONE_OPTIONS,
   TRAINING_OPTIONS,
 } from "@/lib/animal-profile";
@@ -34,6 +36,9 @@ import type { Option } from "@/lib/matchmaker-profile";
 import { OptionCardGroup } from "@/components/matchmaker/option-card-group";
 
 const initialState: AnimalFormState = { error: null };
+
+const selectClassName =
+  "w-full rounded-xl border border-muted/75 bg-surface px-3 py-2.5 text-sm text-forest outline-none focus-visible:border-leaf focus-visible:ring-2 focus-visible:ring-leaf/30";
 
 function countDetails(values: Record<string, string>) {
   return OPTIONAL_ANIMAL_FIELDS.filter(
@@ -260,11 +265,13 @@ function DescriptionForm({
               <select
                 name="species"
                 defaultValue={values.species || "dog"}
-                className="w-full rounded-xl border border-muted/75 bg-surface px-3 py-2.5 text-sm text-forest outline-none focus-visible:border-leaf focus-visible:ring-2 focus-visible:ring-leaf/30"
+                className={selectClassName}
               >
-                <option value="dog">Dog</option>
-                <option value="cat">Cat</option>
-                <option value="other">Other</option>
+                {SPECIES_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </label>
             <TextField
@@ -281,6 +288,21 @@ function DescriptionForm({
               maxLength={8}
               defaultValue={values.postal_code}
             />
+            <label className="flex flex-col gap-2 text-sm font-medium text-forest">
+              District
+              <select
+                name="district"
+                defaultValue={values.district}
+                className={selectClassName}
+              >
+                <option value="">Not specified</option>
+                {DISTRICT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
             {choice("sex", "Sex", ANIMAL_SEX_OPTIONS)}
             {choice("is_neutered", "Is the animal neutered?", NEUTERED_OPTIONS)}
           </div>

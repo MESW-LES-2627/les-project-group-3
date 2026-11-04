@@ -3,11 +3,13 @@ from patas_backend.models.animal.animal import (
     AnimalUnauthorized,
     InvalidAnimal,
 )
+from patas_backend.models.animal.catalog_filter import CatalogFilter
 from patas_backend.models.animal.enums import (
     AdoptionStatus,
     AnimalCompatibility,
     AnimalSex,
     AnimalSize,
+    District,
     FirstTimeOwnerSuitability,
     NeuteredStatus,
     Species,
@@ -24,6 +26,8 @@ __all__ = [
     "AnimalSex",
     "AnimalSize",
     "AnimalUnauthorized",
+    "CatalogFilter",
+    "District",
     "FirstTimeOwnerSuitability",
     "InvalidAnimal",
     "NeuteredStatus",

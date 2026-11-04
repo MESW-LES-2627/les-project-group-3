@@ -12,6 +12,9 @@
 > `life_stage`, which have no adopter counterpart (so decisions 6 and 7 now leave
 > four values unpaired, not one), and the animal response exposes them.
 
+> **Amended by [0016-catalog-filters](0016-catalog-filters.md):** the catalog's
+> age-group filter reads the match profile's `life_stage`.
+
 ## Context
 
 The Matchmaker profile (ADR 0008) holds an adopter's answers on shared scales.
