@@ -77,7 +77,13 @@ function DetailGroup({
         {items.map(({ label, value }) => (
           <div key={label}>
             <dt className="text-xs font-medium text-muted">{label}</dt>
-            <dd className="mt-1 text-sm font-semibold text-forest">
+            <dd
+              className={
+                value === null
+                  ? "mt-1 text-sm text-muted"
+                  : "mt-1 text-sm font-semibold text-forest"
+              }
+            >
               {value === null
                 ? "Not provided"
                 : typeof value === "number"

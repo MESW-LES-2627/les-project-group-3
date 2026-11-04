@@ -26,7 +26,7 @@ export async function FitSection({
     return null;
   }
   return (
-    <div className="mt-6 border-t border-line pt-6">
+    <div className="mt-6 border-t border-line pt-5">
       {session ? (
         <FitCard
           animalId={animalId}
