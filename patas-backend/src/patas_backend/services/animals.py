@@ -8,6 +8,8 @@ from patas_backend.models.animal import (
     AnimalRepository,
     AnimalSex,
     AnimalSize,
+    CatalogFilter,
+    District,
     FirstTimeOwnerSuitability,
     NeuteredStatus,
     Species,
@@ -32,6 +34,7 @@ class AnimalService:
         sex: AnimalSex | None = None,
         is_neutered: NeuteredStatus | None = None,
         postal_code: str | None = None,
+        district: District | None = None,
         size: AnimalSize | None = None,
         activity_level: EnergyLevel | None = None,
         space_requirement: AnimalSize | None = None,
@@ -60,6 +63,7 @@ class AnimalService:
             sex=sex,
             is_neutered=is_neutered,
             postal_code=postal_code,
+            district=district,
             size=size,
             activity_level=activity_level,
             space_requirement=space_requirement,
@@ -81,14 +85,12 @@ class AnimalService:
             await AnimalRepository(session).add(animal)
         return animal
 
-    async def list_catalog(self, species: Species | None = None) -> list[Animal]:
-        """A2 (list): every published animal, newest first. Public."""
+    async def list_catalog(self, catalog_filter: CatalogFilter) -> list[Animal]:
+        """A2 (list): the published animals that match, newest first. Public."""
         # Read-only: a plain session, no transaction to commit.
         async with self._session_factory() as session:
             animals = await AnimalRepository(session).list_all()
-            if species is not None:
-                animals = [a for a in animals if a.species == species]
-            return animals
+            return [a for a in animals if catalog_filter.matches(a)]
 
     async def list_by_owner(self, owner: User) -> list[Animal]:
         """List all animals owned by the user, published and unpublished."""
@@ -111,6 +113,7 @@ class AnimalService:
         sex: AnimalSex | None = None,
         is_neutered: NeuteredStatus | None = None,
         postal_code: str | None = None,
+        district: District | None = None,
         size: AnimalSize | None = None,
         activity_level: EnergyLevel | None = None,
         space_requirement: AnimalSize | None = None,
@@ -141,6 +144,7 @@ class AnimalService:
                 sex=sex,
                 is_neutered=is_neutered,
                 postal_code=postal_code,
+                district=district,
                 size=size,
                 activity_level=activity_level,
                 space_requirement=space_requirement,

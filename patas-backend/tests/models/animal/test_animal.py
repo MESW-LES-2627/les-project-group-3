@@ -10,6 +10,7 @@ from patas_backend.models.animal import (
     AnimalSex,
     AnimalSize,
     AnimalUnauthorized,
+    District,
     FirstTimeOwnerSuitability,
     InvalidAnimal,
     NeuteredStatus,
@@ -136,6 +137,7 @@ def _rex_before_edit() -> Animal:
         size=AnimalSize.MEDIUM,
         sex=AnimalSex.MALE,
         postal_code="4000-001",
+        district=District.PORTO,
         special_care_notes="Hip check every year",
     )
 
@@ -152,12 +154,14 @@ def test_owner_can_edit_the_description() -> None:
         sex=AnimalSex.MALE,
         size=AnimalSize.LARGE,
         postal_code="1000-001",
+        district=District.LISBOA,
         activity_level=EnergyLevel.HIGH,
         other_details="  Loves the beach  ",
     )
 
     assert animal.size is AnimalSize.LARGE
     assert animal.postal_code == "1000-001"
+    assert animal.district is District.LISBOA
     assert animal.age_in_months == 36
     assert animal.activity_level is EnergyLevel.HIGH
     # Cleaned by the same rules as publishing.

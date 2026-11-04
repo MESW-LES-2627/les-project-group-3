@@ -7,6 +7,7 @@ from patas_backend.models.animal.enums import (
     AnimalCompatibility,
     AnimalSex,
     AnimalSize,
+    District,
     FirstTimeOwnerSuitability,
     NeuteredStatus,
     Species,
@@ -62,6 +63,7 @@ class Animal:
     sex: AnimalSex | None = None
     is_neutered: NeuteredStatus | None = None
     postal_code: str | None = None
+    district: District | None = None
     size: AnimalSize | None = None
     activity_level: EnergyLevel | None = None
     space_requirement: AnimalSize | None = None
@@ -98,6 +100,7 @@ class Animal:
         sex: AnimalSex | None = None,
         is_neutered: NeuteredStatus | None = None,
         postal_code: str | None = None,
+        district: District | None = None,
         size: AnimalSize | None = None,
         activity_level: EnergyLevel | None = None,
         space_requirement: AnimalSize | None = None,
@@ -125,6 +128,7 @@ class Animal:
             sex=sex,
             is_neutered=is_neutered,
             postal_code=postal_code,
+            district=district,
             size=size,
             activity_level=activity_level,
             space_requirement=space_requirement,
@@ -160,6 +164,7 @@ class Animal:
         sex: AnimalSex | None = None,
         is_neutered: NeuteredStatus | None = None,
         postal_code: str | None = None,
+        district: District | None = None,
         size: AnimalSize | None = None,
         activity_level: EnergyLevel | None = None,
         space_requirement: AnimalSize | None = None,
@@ -189,6 +194,7 @@ class Animal:
             sex=sex,
             is_neutered=is_neutered,
             postal_code=postal_code,
+            district=district,
             size=size,
             activity_level=activity_level,
             space_requirement=space_requirement,
