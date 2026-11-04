@@ -481,7 +481,7 @@ async def test_acceptance_test_ana_edits_rex_and_his_page_and_the_filters_show_i
 async def test_acceptance_test_catalog_filters_combine(
     client: httpx.AsyncClient, engine: AsyncEngine
 ) -> None:
-    # AT-06, without the age groups: they need the life stage from PR #51.
+    # AT-06
     await _seed_data(engine)
     toby = Animal.publish(owner_id=UUID(ANA["sub"]), name="Toby", species=Species.DOG)
     async with async_sessionmaker(engine).begin() as session:
@@ -489,6 +489,10 @@ async def test_acceptance_test_catalog_filters_combine(
 
     assert await _names(client, "?species=dog") == {"Rex", "Bolt", "Toby"}
     assert await _names(client, "?species=dog&district=porto") == {"Rex"}
+    assert await _names(client, "?age_group=baby") == {"Mia"}
+    assert await _names(client, "?age_group=senior") == {"Bolt"}
+    # Toby has no age, so he is in no age group.
+    assert await _names(client, "?age_group=adult") == {"Rex"}
     # The page shows "No animals match these filters" for an empty result.
     assert await _names(client, "?species=dog&size=small") == set()
 
@@ -509,7 +513,9 @@ async def test_each_filter_narrows_the_catalog_on_its_own(
     assert await _names(client, query) == names
 
 
-@pytest.mark.parametrize("query", ["?size=huge", "?district=atlantis"])
+@pytest.mark.parametrize(
+    "query", ["?size=huge", "?district=atlantis", "?age_group=puppy"]
+)
 async def test_an_unknown_filter_value_is_rejected(
     client: httpx.AsyncClient, query: str
 ) -> None:

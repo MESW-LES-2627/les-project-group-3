@@ -171,9 +171,12 @@ async def list_animals(
     species: Species | None = None,
     size: AnimalSize | None = None,
     district: District | None = None,
+    age_group: LifeStage | None = None,
 ) -> list[AnimalResponse]:
     """The public catalog: published animals only, narrowed by the given filters."""
-    catalog_filter = CatalogFilter(species=species, size=size, district=district)
+    catalog_filter = CatalogFilter(
+        species=species, size=size, district=district, age_group=age_group
+    )
     return [
         AnimalResponse.from_domain(a)
         for a in await service.list_catalog(catalog_filter)

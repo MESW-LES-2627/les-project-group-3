@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from patas_backend.models.animal.animal import Animal
 from patas_backend.models.animal.enums import AnimalSize, District, Species
+from patas_backend.models.matching.scales import LifeStage
 
 
 @dataclass(frozen=True)
@@ -12,6 +13,7 @@ class CatalogFilter:
     species: Species | None = None
     size: AnimalSize | None = None
     district: District | None = None
+    age_group: LifeStage | None = None
 
     def matches(self, animal: Animal) -> bool:
         return all(
@@ -20,5 +22,6 @@ class CatalogFilter:
                 (self.species, animal.species),
                 (self.size, animal.size),
                 (self.district, animal.district),
+                (self.age_group, animal.match_profile().life_stage),
             )
         )

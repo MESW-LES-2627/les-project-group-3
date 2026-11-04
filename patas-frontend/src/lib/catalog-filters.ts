@@ -1,4 +1,5 @@
 import {
+  AGE_GROUP_OPTIONS,
   ANIMAL_SIZE,
   DISTRICT_OPTIONS,
   SPECIES_OPTIONS,
@@ -8,12 +9,14 @@ const ALLOWED: Record<string, readonly string[]> = {
   species: SPECIES_OPTIONS.map((option) => option.value),
   size: ANIMAL_SIZE,
   district: DISTRICT_OPTIONS.map((option) => option.value),
+  age_group: AGE_GROUP_OPTIONS.map((option) => option.value),
 };
 
 export type CatalogFilters = {
   species?: string;
   size?: string;
   district?: string;
+  age_group?: string;
 };
 
 // A value GET /animals would reject is dropped, so an edited URL still shows

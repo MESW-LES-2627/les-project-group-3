@@ -4,8 +4,8 @@
 | :-- | :-- |
 | **Status** | Proposed |
 | **Date** | 2026-11-03 |
-| **Scope** | US-06 (filter the catalog): AT-06 without the age groups, the filters half of AT-03, AT-05's "dog" results; the district US-01 asks for |
-| **Related** | [0004-animal-aggregate](0004-animal-aggregate.md), [0010-animal-profile-fields](0010-animal-profile-fields.md), [0012-owner-animals-and-unpublishing](0012-owner-animals-and-unpublishing.md), [0014-editing-an-animal](0014-editing-an-animal.md) |
+| **Scope** | US-06 (filter the catalog): AT-06, the filters half of AT-03, AT-05's "dog" results; the district US-01 asks for |
+| **Related** | [0004-animal-aggregate](0004-animal-aggregate.md), [0010-animal-profile-fields](0010-animal-profile-fields.md), [0011-animal-match-profile](0011-animal-match-profile.md), [0012-owner-animals-and-unpublishing](0012-owner-animals-and-unpublishing.md), [0014-editing-an-animal](0014-editing-an-animal.md) |
 
 ## Context
 
@@ -21,13 +21,13 @@ service already narrowed the catalog by species.
 2. **`CatalogFilter` decides what matches.** It is a domain value object with one
    optional criterion per filter. All criteria must hold, and an animal without
    the asked-for value never matches: an unknown size is not "large".
-3. **One value per filter**, as the `species`, `size` and `district` query
-   parameters of `GET /animals`. An unknown value is a 422.
+3. **One value per filter**, as the `species`, `size`, `district` and `age_group`
+   query parameters of `GET /animals`. An unknown value is a 422.
 4. **The service filters the published animals in memory**, not in SQL. The
    catalog is small and the rule stays in one tested place. If it grows,
    `list_all` can take the filter and turn it into a `WHERE`.
-5. **The age group waits for PR #51.** It will reuse that PR's life stage (baby
-   under 12 months, senior from 96, for every species) as a fourth criterion.
+5. **The age group is the match profile's life stage** (PR #51): baby under 12
+   months, senior from 96, for every species.
 6. **The catalog page keeps the filters in its URL** through a GET form, so a
    filtered list can be shared and the back button restores it. A value the
    backend would reject is dropped from the URL's filters.

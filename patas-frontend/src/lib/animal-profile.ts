@@ -47,6 +47,13 @@ export const DISTRICT_OPTIONS = [
   { value: "madeira", label: "Madeira" },
 ] as const;
 
+// The match profile's life stages; the labels repeat the backend's thresholds.
+export const AGE_GROUP_OPTIONS = [
+  { value: "baby", label: "Baby (< 1 year)" },
+  { value: "adult", label: "Adult (1–7 years)" },
+  { value: "senior", label: "Senior (8+ years)" },
+] as const;
+
 export function districtLabel(district: string): string {
   return DISTRICT_OPTIONS.find((d) => d.value === district)?.label ?? district;
 }

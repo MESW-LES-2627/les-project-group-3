@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Fragment } from "react";
 
 import {
+  AGE_GROUP_OPTIONS,
   DISTRICT_OPTIONS,
   SIZE_OPTIONS,
   SPECIES_OPTIONS,
@@ -45,7 +46,7 @@ export function CatalogFilterForm({ filters }: { filters: CatalogFilters }) {
       action="/animals"
       scroll={false}
       aria-label="Filter animals"
-      className="grid gap-4 rounded-2xl border border-line bg-surface p-5 shadow-sm sm:grid-cols-3 lg:grid-cols-[repeat(3,minmax(0,1fr))_auto] lg:items-end"
+      className="grid gap-4 rounded-2xl border border-line bg-surface p-5 shadow-sm sm:grid-cols-2 lg:grid-cols-[repeat(4,minmax(0,1fr))_auto] lg:items-end"
     >
       {/* A new key when the URL changes, so the selects show the applied
           filters after Clear or the back button too. */}
@@ -63,13 +64,19 @@ export function CatalogFilterForm({ filters }: { filters: CatalogFilters }) {
           options={SIZE_OPTIONS}
         />
         <FilterSelect
+          label="Age group"
+          name="age_group"
+          value={filters.age_group}
+          options={AGE_GROUP_OPTIONS}
+        />
+        <FilterSelect
           label="District"
           name="district"
           value={filters.district}
           options={DISTRICT_OPTIONS}
         />
       </Fragment>
-      <div className="flex items-center gap-4 sm:col-span-3 lg:col-span-1">
+      <div className="flex items-center gap-4 sm:col-span-2 lg:col-span-1">
         <button
           type="submit"
           className="inline-flex min-h-11 items-center justify-center rounded-xl bg-forest px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-leaf focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest"

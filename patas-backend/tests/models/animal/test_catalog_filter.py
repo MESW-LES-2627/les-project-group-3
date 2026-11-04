@@ -9,6 +9,7 @@ from patas_backend.models.animal import (
     District,
     Species,
 )
+from patas_backend.models.matching.scales import LifeStage
 
 OWNER_ID = UUID("0b1f2a3c-4d5e-4f60-8a7b-9c0d1e2f3a4b")
 
@@ -16,6 +17,7 @@ REX = Animal.publish(
     owner_id=OWNER_ID,
     name="Rex",
     species=Species.DOG,
+    age_in_months=36,
     size=AnimalSize.MEDIUM,
     district=District.PORTO,
 )
@@ -45,6 +47,11 @@ def test_no_criteria_allow_any_animal() -> None:
             CatalogFilter(district=District.LISBOA),
             id="district",
         ),
+        pytest.param(
+            CatalogFilter(age_group=LifeStage.ADULT),
+            CatalogFilter(age_group=LifeStage.SENIOR),
+            id="age-group",
+        ),
     ],
 )
 def test_a_criterion_matches_only_its_value(
@@ -56,8 +63,12 @@ def test_a_criterion_matches_only_its_value(
 
 @pytest.mark.parametrize(
     "catalog_filter",
-    [CatalogFilter(size=AnimalSize.MEDIUM), CatalogFilter(district=District.PORTO)],
-    ids=["size", "district"],
+    [
+        CatalogFilter(size=AnimalSize.MEDIUM),
+        CatalogFilter(district=District.PORTO),
+        CatalogFilter(age_group=LifeStage.ADULT),
+    ],
+    ids=["size", "district", "age-group"],
 )
 def test_an_animal_without_the_value_never_matches(
     catalog_filter: CatalogFilter,
