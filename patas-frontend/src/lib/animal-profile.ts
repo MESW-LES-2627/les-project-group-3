@@ -17,6 +17,40 @@ export const FIRST_TIME_OWNER_SUITABILITY = [
   "unknown",
 ] as const;
 
+export const SPECIES_OPTIONS = [
+  { value: "dog", label: "Dog" },
+  { value: "cat", label: "Cat" },
+  { value: "other", label: "Other" },
+] as const;
+
+// Portugal's 18 mainland districts and its two autonomous regions.
+export const DISTRICT_OPTIONS = [
+  { value: "aveiro", label: "Aveiro" },
+  { value: "beja", label: "Beja" },
+  { value: "braga", label: "Braga" },
+  { value: "braganca", label: "Bragança" },
+  { value: "castelo_branco", label: "Castelo Branco" },
+  { value: "coimbra", label: "Coimbra" },
+  { value: "evora", label: "Évora" },
+  { value: "faro", label: "Faro" },
+  { value: "guarda", label: "Guarda" },
+  { value: "leiria", label: "Leiria" },
+  { value: "lisboa", label: "Lisboa" },
+  { value: "portalegre", label: "Portalegre" },
+  { value: "porto", label: "Porto" },
+  { value: "santarem", label: "Santarém" },
+  { value: "setubal", label: "Setúbal" },
+  { value: "viana_do_castelo", label: "Viana do Castelo" },
+  { value: "vila_real", label: "Vila Real" },
+  { value: "viseu", label: "Viseu" },
+  { value: "acores", label: "Açores" },
+  { value: "madeira", label: "Madeira" },
+] as const;
+
+export function districtLabel(district: string): string {
+  return DISTRICT_OPTIONS.find((d) => d.value === district)?.label ?? district;
+}
+
 export const ANIMAL_SEX_OPTIONS: readonly Option<(typeof ANIMAL_SEX)[number]>[] =
   [
     { value: "male", label: "Male", phrase: "male" },
@@ -255,6 +289,7 @@ export const OPTIONAL_ANIMAL_FIELDS = [
   "sex",
   "is_neutered",
   "postal_code",
+  "district",
   "size",
   "activity_level",
   "space_requirement",

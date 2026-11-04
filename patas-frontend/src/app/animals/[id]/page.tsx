@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { FitSection } from "@/components/compatibility/fit-section";
+import { districtLabel } from "@/lib/animal-profile";
 import { backendUrl } from "@/lib/backend";
 
 type Props = {
@@ -21,6 +22,7 @@ type Animal = {
   sex: string | null;
   is_neutered: string | null;
   postal_code: string | null;
+  district: string | null;
   size: string | null;
   activity_level: string | null;
   space_requirement: string | null;
@@ -160,6 +162,10 @@ async function AnimalDetail({ params }: Props) {
             { label: "Sex", value: animal.sex },
             { label: "Neutered status", value: animal.is_neutered },
             { label: "Size", value: animal.size },
+            {
+              label: "District",
+              value: animal.district && districtLabel(animal.district),
+            },
             { label: "Postal code", value: animal.postal_code },
           ]}
         />

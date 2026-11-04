@@ -3,8 +3,16 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { districtLabel } from "@/lib/animal-profile";
 import { auth } from "@/lib/auth";
 import { backendUrl } from "@/lib/backend";
+import {
+  catalogFilters,
+  catalogQuery,
+  type CatalogFilters,
+} from "@/lib/catalog-filters";
+
+import { CatalogFilterForm } from "@/components/animal/catalog-filters";
 
 export const metadata: Metadata = {
   title: "Animals | Patas",
@@ -18,6 +26,12 @@ type Animal = {
   owner_name: string;
   age_in_months: number | null;
   adoption_status: string;
+  size: string | null;
+  district: string | null;
+};
+
+type Props = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 function isAnimal(value: unknown): value is Animal {
@@ -33,13 +47,17 @@ function isAnimal(value: unknown): value is Animal {
     typeof animal.owner_id === "string" &&
     typeof animal.owner_name === "string" &&
     (animal.age_in_months === null || typeof animal.age_in_months === "number") &&
-    typeof animal.adoption_status === "string"
+    typeof animal.adoption_status === "string" &&
+    (animal.size === null || typeof animal.size === "string") &&
+    (animal.district === null || typeof animal.district === "string")
   );
 }
 
-
-async function getAnimals(): Promise<Animal[]> {
-  const response = await fetch(`${backendUrl()}/animals`, { cache: "no-store" });
+async function getAnimals(filters: CatalogFilters): Promise<Animal[]> {
+  const response = await fetch(
+    `${backendUrl()}/animals${catalogQuery(filters)}`,
+    { cache: "no-store" },
+  );
 
   if (!response.ok) {
     throw new Error(`Unable to load animals: backend returned ${response.status}`);
@@ -53,8 +71,43 @@ async function getAnimals(): Promise<Animal[]> {
   return payload;
 }
 
-async function AnimalList() {
-  const animals = await getAnimals();
+async function Catalog({ searchParams }: Props) {
+  const filters = catalogFilters(await searchParams);
+  const animals = await getAnimals(filters);
+  return (
+    <>
+      <CatalogFilterForm filters={filters} />
+      <AnimalList
+        animals={animals}
+        filtered={Object.keys(filters).length > 0}
+      />
+    </>
+  );
+}
+
+function AnimalList({
+  animals,
+  filtered,
+}: {
+  animals: Animal[];
+  filtered: boolean;
+}) {
+  if (animals.length === 0 && filtered) {
+    return (
+      <div className="rounded-2xl border border-dashed border-line bg-surface px-6 py-12 text-center">
+        <p className="text-lg font-semibold text-forest">
+          No animals match these filters
+        </p>
+        <p className="mt-2 text-sm text-muted">
+          Try fewer filters, or{" "}
+          <Link href="/animals" className="underline hover:text-forest">
+            see every animal
+          </Link>
+          .
+        </p>
+      </div>
+    );
+  }
 
   if (animals.length === 0) {
     return (
@@ -112,6 +165,20 @@ async function AnimalList() {
               ) : (
                 <p className="text-sm text-muted">Age not listed</p>
               )}
+              {animal.size !== null && (
+                <p className="mt-1 text-sm capitalize text-muted">
+                  <span className="font-medium text-forest">Size</span>
+                  <span aria-hidden="true"> · </span>
+                  {animal.size}
+                </p>
+              )}
+              {animal.district !== null && (
+                <p className="mt-1 text-sm text-muted">
+                  <span className="font-medium text-forest">District</span>
+                  <span aria-hidden="true"> · </span>
+                  {districtLabel(animal.district)}
+                </p>
+              )}
             </div>
           </li>
         ))}
@@ -144,7 +211,7 @@ async function PublishLink() {
   );
 }
 
-export default function AnimalsPage() {
+export default function AnimalsPage({ searchParams }: Props) {
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6 sm:py-14">
       <section className="flex flex-col justify-between gap-6 border-b border-line pb-8 sm:flex-row sm:items-end">
@@ -166,7 +233,7 @@ export default function AnimalsPage() {
         </Suspense>
       </section>
       <Suspense fallback={<p>Loading animals…</p>}>
-        <AnimalList />
+        <Catalog searchParams={searchParams} />
       </Suspense>
     </main>
   );
