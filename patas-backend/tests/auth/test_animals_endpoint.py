@@ -476,6 +476,26 @@ DESCRIBED = {
     "special_care_notes": "Needs daily medication",
     "other_details": "Enjoys sunny spots",
 }
+
+
+async def test_public_animal_detail_returns_full_profile_and_owner_name(
+    client: httpx.AsyncClient, issuer: TokenIssuer
+) -> None:
+    published_response = await client.post(
+        "/animals", json=DESCRIBED, headers=_bearer(issuer.token())
+    )
+    assert published_response.status_code == 201
+    published = published_response.json()
+
+    detail_response = await client.get(f"/animals/{published['id']}")
+
+    assert detail_response.status_code == 200
+    detail = detail_response.json()
+    assert detail == published
+    assert detail["owner_name"] == "Ana"
+    assert {key: detail[key] for key in DESCRIBED} == DESCRIBED
+
+
 REDESCRIBED = {
     "name": "Milo II",
     "species": "dog",
