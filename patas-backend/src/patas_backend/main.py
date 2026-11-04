@@ -12,7 +12,7 @@ from patas_backend.auth.api import router as auth_router
 from patas_backend.auth.keys import JwksKeyProvider, RemoteJwksKeyProvider
 from patas_backend.auth.verifier import JwtVerifier
 from patas_backend.config import Settings
-from patas_backend.routers import animals, health, matchmaker_profile
+from patas_backend.routers import animals, compatibility, health, matchmaker_profile
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +52,7 @@ def create_app(
     app.include_router(auth_router)
     app.include_router(animals.router)
     app.include_router(matchmaker_profile.router)
+    app.include_router(compatibility.router)
     app.include_router(health.router)
 
     return app

@@ -16,6 +16,13 @@ class ExperienceLevel(StrEnum):
     EXPERIENCED = "experienced"
 
 
+class LifeStage(StrEnum):
+    # An animal's age on a scale: young animals need more company and training.
+    BABY = "baby"
+    ADULT = "adult"
+    SENIOR = "senior"
+
+
 class TimeAway(StrEnum):
     # An adopter's time away from home, and the longest an animal can be left alone
     # (scoring reads the animal side as a ceiling).

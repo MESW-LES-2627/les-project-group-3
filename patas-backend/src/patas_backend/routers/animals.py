@@ -21,6 +21,7 @@ from patas_backend.models.animal import (
 from patas_backend.models.matching.scales import (
     EnergyLevel,
     ExperienceLevel,
+    LifeStage,
     TimeAway,
 )
 from patas_backend.models.user import User
@@ -72,6 +73,9 @@ class AnimalMatchProfileResponse(BaseModel):
     safe_with_dogs: bool | None
     safe_with_cats: bool | None
     size: AnimalSize | None
+    training_needs: EnergyLevel | None
+    noise_level: EnergyLevel | None
+    life_stage: LifeStage | None
 
     @classmethod
     def from_domain(cls, profile: AnimalMatchProfile) -> "AnimalMatchProfileResponse":
@@ -84,6 +88,9 @@ class AnimalMatchProfileResponse(BaseModel):
             safe_with_dogs=profile.safe_with_dogs,
             safe_with_cats=profile.safe_with_cats,
             size=profile.size,
+            training_needs=profile.training_needs,
+            noise_level=profile.noise_level,
+            life_stage=profile.life_stage,
         )
 
 

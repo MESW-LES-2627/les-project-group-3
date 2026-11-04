@@ -81,6 +81,9 @@ async def test_catalog_is_public_and_lists_published_animals(
                 "safe_with_dogs": None,
                 "safe_with_cats": None,
                 "size": None,
+                "training_needs": None,
+                "noise_level": None,
+                "life_stage": "adult",  # 14 months
             },
         }
     ]
@@ -154,6 +157,9 @@ async def test_animal_profile_fields_are_saved_and_listed(
         "safe_with_dogs": None,  # unknown
         "safe_with_cats": True,
         "size": "small",
+        "training_needs": "low",
+        "noise_level": "low",
+        "life_stage": None,  # no age given
     }
     assert (await client.get("/animals")).json() == [published]
 

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
+import { FitSection } from "@/components/compatibility/fit-section";
 import { backendUrl } from "@/lib/backend";
 
 type Props = {
@@ -76,7 +77,13 @@ function DetailGroup({
         {items.map(({ label, value }) => (
           <div key={label}>
             <dt className="text-xs font-medium text-muted">{label}</dt>
-            <dd className="mt-1 text-sm font-semibold text-forest">
+            <dd
+              className={
+                value === null
+                  ? "mt-1 text-sm text-muted"
+                  : "mt-1 text-sm font-semibold text-forest"
+              }
+            >
               {value === null
                 ? "Not provided"
                 : typeof value === "number"
@@ -195,6 +202,12 @@ async function AnimalDetail({ params }: Props) {
           <TextDetail title="Other details" value={animal.other_details} />
         </section>
       </div>
+
+      <FitSection
+        animalId={animal.id}
+        animalName={animal.name}
+        ownerId={animal.owner_id}
+      />
     </section>
   );
 }

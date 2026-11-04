@@ -21,7 +21,7 @@ const UNAVAILABLE = "The service is unavailable, please try again.";
 
 // Checked on every call, not only on the page: a Server Action is a public endpoint.
 // redirect() throws, so this must stay outside any try/catch.
-async function bearerToken(): Promise<string> {
+export async function bearerToken(): Promise<string> {
   const requestHeaders = await headers();
   const session = await auth.api.getSession({ headers: requestHeaders });
   if (!session) {
