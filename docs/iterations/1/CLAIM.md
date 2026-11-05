@@ -74,7 +74,7 @@ features:
 
 ## AI log
 
-Failures of the AI agent that needed human intervention (AGENTS.md §1).
+Failures of the AI agent that needed human intervention.
 
 | Date | Who | Model | What the AI got wrong | How it was caught | Fix |
 | :-- | :-- | :-- | :-- | :-- | :-- |
