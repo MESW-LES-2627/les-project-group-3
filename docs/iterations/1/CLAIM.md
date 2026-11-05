@@ -1,19 +1,25 @@
-# CLAIM: Iteration 1
+# CLAIM — Iteration 1
 
-Group 3, Patas. Iteration 1.  
+Team: Group 3, Patas
+
+Tag: `iter-1`
+
+Previous tag: `iter-0`
+
 Every repository link below points at the tag `iter-1`, so nothing needs hunting.
 
 ## Links
 
 | Item | Link |
 | :-- | :-- |
-| Tag | [iter-1](https://github.com/MESW-LES-2627/les-project-group-3/tree/iter-1) |
+| This tag (`iter-1`) | [iter-1](https://github.com/MESW-LES-2627/les-project-group-3/tree/iter-1) |
 | Compare with the last tag | [`iter-0...iter-1`](https://github.com/MESW-LES-2627/les-project-group-3/compare/iter-0...iter-1) |
 | Production | [les-project-group-3-deploy.vercel.app](https://les-project-group-3-deploy.vercel.app) |
-| Staging | None |
-| Pipeline | [CI status of the tagged commit](https://github.com/MESW-LES-2627/les-project-group-3/commit/iter-1). Workflow: [ci.yml](https://github.com/MESW-LES-2627/les-project-group-3/blob/iter-1/.github/workflows/ci.yml) |
+| Staging | none yet |
+| CI/CD Pipeline | [CI status of the tagged commit](https://github.com/MESW-LES-2627/les-project-group-3/commit/iter-1). Workflow: [ci.yml](https://github.com/MESW-LES-2627/les-project-group-3/blob/iter-1/.github/workflows/ci.yml) |
 | MVP | [MVP](https://github.com/MESW-LES-2627/les-project-group-3/blob/iter-1/docs/product/MVP.md) |
 | Vision | [Product vision](https://github.com/MESW-LES-2627/les-project-group-3/blob/iter-1/docs/archive/Vision.md) |
+| Definition of Done | [DEFINITION_OF_DONE.md](https://github.com/MESW-LES-2627/les-project-group-3/blob/iter-1/docs/process/DEFINITION_OF_DONE.md) |
 | Stories in this increment | [Iteration 1 milestone](https://github.com/MESW-LES-2627/les-project-group-3/milestone/2) |
 | How to run the tests | [Running tests and checks](https://github.com/MESW-LES-2627/les-project-group-3/blob/iter-1/README.md#running-tests-and-checks) |
 | Board snapshots | [Start](../../screenshots/Iteration-1-Board-Start.png) · [End](../../screenshots/Iteration-1-Board-End.png) |
