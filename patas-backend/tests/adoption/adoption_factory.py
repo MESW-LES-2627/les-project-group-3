@@ -180,9 +180,8 @@ async def transition(
     change: Callable[[AdoptionApplication], None],
 ) -> None:
     async with factory.begin() as session:
-        locked = await lock_animal_and_application(session, application_id)
-        assert locked is not None
-        _, application = locked
+        application = await lock_animal_and_application(session, application_id)
+        assert application is not None
         change(application)
         events = await dispatcher.dispatch(application.pull_events(), session)
         await AdoptionApplicationRepository(session).update(application)
