@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { animalStatusLabel } from "@/lib/adoption-status";
 import { districtLabel } from "@/lib/animal-profile";
 import { auth } from "@/lib/auth";
 import { backendUrl } from "@/lib/backend";
@@ -143,8 +144,8 @@ function AnimalList({
               <span className="rounded-full bg-leaf/10 px-3 py-1 text-xs font-semibold capitalize text-leaf">
                 {animal.species}
               </span>
-              <span className="rounded-full bg-sunlight/20 px-3 py-1 text-xs font-medium capitalize text-forest">
-                {animal.adoption_status.replaceAll("_", " ")}
+              <span className="rounded-full bg-sunlight/20 px-3 py-1 text-xs font-medium text-forest">
+                {animalStatusLabel(animal.adoption_status)}
               </span>
             </div>
             <h3 className="mt-5 text-2xl font-semibold text-forest">

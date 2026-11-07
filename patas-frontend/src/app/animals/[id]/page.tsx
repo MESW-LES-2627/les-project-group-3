@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { FitSection } from "@/components/compatibility/fit-section";
+import { animalStatusLabel } from "@/lib/adoption-status";
 import { districtLabel } from "@/lib/animal-profile";
 import { backendUrl } from "@/lib/backend";
 
@@ -138,8 +139,8 @@ async function AnimalDetail({ params }: Props) {
         <span className="rounded-full bg-leaf/10 px-3 py-1 text-xs font-semibold capitalize text-leaf">
           {formatValue(animal.species)}
         </span>
-        <span className="rounded-full bg-sunlight/20 px-3 py-1 text-xs font-medium capitalize text-forest">
-          {formatValue(animal.adoption_status)}
+        <span className="rounded-full bg-sunlight/20 px-3 py-1 text-xs font-medium text-forest">
+          {animalStatusLabel(animal.adoption_status)}
         </span>
       </div>
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
+import { animalStatusLabel } from "@/lib/adoption-status";
 import { auth } from "@/lib/auth";
 import { backendUrl } from "@/lib/backend";
 import { UnpublishButton } from "./unpublish-button";
@@ -105,13 +106,13 @@ async function MyAnimalList({ token }: { token: string }) {
                   {animal.species}
                 </span>
                 <span
-                  className={`rounded-full px-3 py-1 text-xs font-medium capitalize ${
+                  className={`rounded-full px-3 py-1 text-xs font-medium ${
                     isUnpublished
                       ? "bg-muted/15 text-muted"
                       : "bg-sunlight/20 text-forest"
                   }`}
                 >
-                  {isUnpublished ? "Unpublished" : animal.adoption_status.replaceAll("_", " ")}
+                  {animalStatusLabel(animal.adoption_status)}
                 </span>
               </div>
               <h3 className="mt-5 text-2xl font-semibold text-forest">
