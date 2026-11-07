@@ -35,6 +35,9 @@ animal change together, and demo data in every state.
    as `jsonb` (`ProfileSnapshot`), so the owner sees what was declared when asking,
    even if the applicant later edits or deletes their profile. Deleting the applicant
    deletes their requests (`CASCADE`); the animal and the owner are `RESTRICT`.
+   Deleting an account is therefore its own use case: it must first withdraw the
+   user's active requests, so that an accepted one releases its animal through the
+   normal handler. Otherwise the animal would stay reserved with no request.
 5. **The database enforces the rules too.** One active (open or accepted) request per
    applicant and animal; at most one accepted request per animal; the applicant is not
    the owner; adopted needs both confirmations. `update` writes only the status, the
@@ -56,7 +59,10 @@ animal change together, and demo data in every state.
    and clients refetch.
 8. **Lock order: the animal first, then its applications, always.**
    `lock_animal_and_application` is the one way to lock an application, and unpublish
-   locks in the same order, so the two cannot deadlock. A use case that creates a
+   locks in the same order, so the two cannot deadlock. It locks the animal but
+   returns only the application: a handler loads and saves its own copy of the animal,
+   so an animal kept by the use case and saved afterwards would silently revert the
+   handler's change. A use case that creates a
    request (US-14) **must lock the animal before checking that it is available**, or a
    request could slip in beside an unpublish and stay open on an unpublished animal.
 9. **Status labels.** Values are backend enums; labels live in one frontend module
@@ -83,6 +89,8 @@ D2 and D8 to D11 in [AdoptionPipeline](../../domain/AdoptionPipeline.md) section
 * **An accepted request cannot be closed by the system**, a consequence of the
   unpublish rule above.
 * **The trial is deferred** for iteration 2.
+* **Is the applicant's note required?** The aggregate does not validate it today, so it
+  can be blank. US-14 owns the rule and should put it in the domain, not the router.
 
 ## Consequences
 
