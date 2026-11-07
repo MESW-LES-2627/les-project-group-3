@@ -37,7 +37,6 @@ can find the one that fits their home. The whole adoption happens inside the pla
   - Request cards from the owner: home photos, other pets' photos, propose a meeting
   - Guidelines panel with suggested questions and safety tips
 - Owner accepts one applicant; the animal becomes reserved
-- Optional Foster-to-Adopt trial, approved by the owner
 - Handover checklist; the adoption is completed when both sides confirm
 - Adoption Tracker: timeline of each request
 - Owner's list of requests received, grouped by status
