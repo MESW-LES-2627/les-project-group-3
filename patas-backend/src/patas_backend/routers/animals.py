@@ -17,6 +17,7 @@ from patas_backend.models.animal import (
     District,
     FirstTimeOwnerSuitability,
     InvalidAnimal,
+    InvalidAnimalTransition,
     NeuteredStatus,
     Species,
 )
@@ -162,7 +163,9 @@ class AnimalResponse(BaseModel):
 
 
 def get_animal_service(request: Request) -> AnimalService:
-    return AnimalService(request.app.state.session_factory)
+    return AnimalService(
+        request.app.state.session_factory, request.app.state.dispatcher
+    )
 
 
 @router.get("/animals", response_model=list[AnimalResponse])
@@ -227,6 +230,8 @@ async def unpublish_animal(
         animal = await service.unpublish(owner, animal_id)
     except AnimalUnauthorized as error:
         raise HTTPException(status.HTTP_403_FORBIDDEN, str(error)) from error
+    except InvalidAnimalTransition as error:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(error)) from error
 
     if animal is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Animal not found")

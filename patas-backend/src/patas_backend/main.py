@@ -13,6 +13,8 @@ from patas_backend.auth.keys import JwksKeyProvider, RemoteJwksKeyProvider
 from patas_backend.auth.verifier import JwtVerifier
 from patas_backend.config import Settings
 from patas_backend.routers import animals, compatibility, health, matchmaker_profile
+from patas_backend.services.adoption_handlers import register_adoption_handlers
+from patas_backend.services.events import EventDispatcher
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +45,11 @@ def create_app(
     app = FastAPI(title="Patas", lifespan=lifespan)
     app.state.engine = engine
     app.state.session_factory = async_sessionmaker(engine, expire_on_commit=False)
+    # The one place that decides who reacts to which domain event. A new feature
+    # (chat, notifications) registers its handlers here, not in the adoption code.
+    dispatcher = EventDispatcher()
+    register_adoption_handlers(dispatcher)
+    app.state.dispatcher = dispatcher
     app.state.verifier = JwtVerifier(
         key_provider or RemoteJwksKeyProvider(settings.jwks_url),
         issuer=settings.jwt_issuer,

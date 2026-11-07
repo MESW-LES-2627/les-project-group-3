@@ -16,13 +16,19 @@ from patas_backend.models.animal import (
 )
 from patas_backend.models.matching.scales import EnergyLevel
 from patas_backend.models.user import User
+from patas_backend.services.events import EventDispatcher
 
 
 class AnimalService:
     """Animal use cases. Each one owns its transaction."""
 
-    def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
+    def __init__(
+        self,
+        session_factory: async_sessionmaker[AsyncSession],
+        dispatcher: EventDispatcher,
+    ) -> None:
         self._session_factory = session_factory
+        self._dispatcher = dispatcher
 
     async def publish(
         self,
@@ -173,7 +179,11 @@ class AnimalService:
             return animal
 
     async def unpublish(self, owner: User, animal_id: UUID) -> Animal | None:
-        """Unpublish an animal. Raises AnimalUnauthorized if caller is not the owner."""
+        """Unpublish an animal and close its open applications.
+
+        Raises AnimalUnauthorized if the caller is not the owner, and
+        InvalidAnimalTransition while the animal is reserved or adopted.
+        """
         async with self._session_factory.begin() as session:
             repo = AnimalRepository(session)
             animal = await repo.get_for_update(animal_id)
@@ -181,4 +191,6 @@ class AnimalService:
                 return None
             animal.unpublish(by_user_id=owner.id)
             await repo.update(animal)
-            return animal
+            events = await self._dispatcher.dispatch(animal.pull_events(), session)
+        await self._dispatcher.publish(events)
+        return animal
