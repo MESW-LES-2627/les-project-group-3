@@ -103,6 +103,42 @@ def new_application(
     )
 
 
+# The animal's status that goes with an application: an accepted one reserves it, an
+# adopted one means the animal went home. Every other status leaves it available.
+_ANIMAL_STATUS_FOR = {
+    ApplicationStatus.ACCEPTED: AdoptionStatus.RESERVED,
+    ApplicationStatus.ADOPTED: AdoptionStatus.ADOPTED,
+}
+
+
+async def persist_application(
+    factory: Factory,
+    world: World,
+    *,
+    applicant: UUID,
+    animal: UUID | None = None,
+    status: ApplicationStatus = ApplicationStatus.OPEN,
+    **fields: object,
+) -> AdoptionApplication:
+    """Save an application in any status, with its animal in the matching status.
+
+    An adopted one gets both handover confirmations unless given, which the
+    database requires. This is where a story's tests start from a known state.
+    """
+    if status is ApplicationStatus.ADOPTED:
+        fields.setdefault("owner_confirmed_at", NOW)
+        fields.setdefault("applicant_confirmed_at", NOW)
+    application = new_application(
+        world, applicant=applicant, animal=animal, status=status, **fields
+    )
+    await save(factory, application)
+    if status in _ANIMAL_STATUS_FOR:
+        await set_animal_status(
+            factory, application.animal_id, _ANIMAL_STATUS_FOR[status]
+        )
+    return application
+
+
 async def save(factory: Factory, *applications: AdoptionApplication) -> None:
     async with factory.begin() as session:
         for application in applications:
