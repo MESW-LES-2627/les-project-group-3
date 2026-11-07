@@ -10,9 +10,11 @@ from patas_backend.models.animal import (
     AnimalSex,
     AnimalSize,
     AnimalUnauthorized,
+    AnimalUnpublished,
     District,
     FirstTimeOwnerSuitability,
     InvalidAnimal,
+    InvalidAnimalTransition,
     NeuteredStatus,
     Species,
 )
@@ -224,3 +226,94 @@ def test_the_match_profile_follows_an_edit() -> None:
     animal.edit(OWNER_ID, name="Rex", species=Species.DOG, size=AnimalSize.LARGE)
 
     assert animal.match_profile().size is AnimalSize.LARGE
+
+
+def _animal_in(status: AdoptionStatus) -> Animal:
+    animal = _publish()
+    animal.adoption_status = status
+    return animal
+
+
+# action -> (the only status it starts from, the status it ends in)
+TRANSITIONS = {
+    "reserve": (AdoptionStatus.AVAILABLE, AdoptionStatus.RESERVED),
+    "release": (AdoptionStatus.RESERVED, AdoptionStatus.AVAILABLE),
+    "mark_adopted": (AdoptionStatus.RESERVED, AdoptionStatus.ADOPTED),
+}
+REFUSED = [
+    (action, status)
+    for action, (source, _) in TRANSITIONS.items()
+    for status in AdoptionStatus
+    if status is not source
+]
+
+
+@pytest.mark.parametrize("action", TRANSITIONS)
+def test_a_transition_moves_the_animal_from_its_required_status(action: str) -> None:
+    source, target = TRANSITIONS[action]
+    animal = _animal_in(source)
+
+    getattr(animal, action)()
+
+    assert animal.adoption_status is target
+
+
+@pytest.mark.parametrize(("action", "status"), REFUSED)
+def test_a_transition_is_refused_from_any_other_status(
+    action: str, status: AdoptionStatus
+) -> None:
+    animal = _animal_in(status)
+
+    with pytest.raises(InvalidAnimalTransition):
+        getattr(animal, action)()
+
+    assert animal.adoption_status is status
+
+
+def test_unpublishing_records_one_event_that_can_be_pulled_once() -> None:
+    animal = _publish()
+
+    animal.unpublish(by_user_id=OWNER_ID)
+
+    assert animal.pull_events() == [AnimalUnpublished(animal_id=animal.id)]
+    assert animal.pull_events() == []
+
+
+@pytest.mark.parametrize("status", [AdoptionStatus.RESERVED, AdoptionStatus.ADOPTED])
+def test_unpublish_is_refused_while_reserved_or_adopted(
+    status: AdoptionStatus,
+) -> None:
+    animal = _animal_in(status)
+
+    with pytest.raises(InvalidAnimalTransition):
+        animal.unpublish(by_user_id=OWNER_ID)
+
+    assert animal.adoption_status is status
+    assert animal.pull_events() == []
+
+
+def test_unpublishing_twice_changes_nothing_the_second_time() -> None:
+    animal = _publish()
+    animal.unpublish(by_user_id=OWNER_ID)
+    animal.pull_events()
+
+    animal.unpublish(by_user_id=OWNER_ID)
+
+    assert animal.adoption_status is AdoptionStatus.UNAVAILABLE
+    assert animal.pull_events() == []
+
+
+def test_a_non_owner_is_refused_before_the_status_is_checked() -> None:
+    animal = _animal_in(AdoptionStatus.RESERVED)
+
+    with pytest.raises(AnimalUnauthorized):
+        animal.unpublish(by_user_id=uuid4())
+
+
+def test_an_edit_keeps_the_recorded_events() -> None:
+    animal = _publish()
+    animal.unpublish(by_user_id=OWNER_ID)
+
+    animal.edit(OWNER_ID, name="Rex", species=Species.DOG)
+
+    assert animal.pull_events() == [AnimalUnpublished(animal_id=animal.id)]
