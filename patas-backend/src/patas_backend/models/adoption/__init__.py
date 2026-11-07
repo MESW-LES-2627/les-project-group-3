@@ -13,10 +13,12 @@ from patas_backend.models.adoption.events import (
     ApplicationWithdrawn,
 )
 from patas_backend.models.adoption.profile_snapshot import ProfileSnapshot
+from patas_backend.models.adoption.repository import AdoptionApplicationRepository
 from patas_backend.models.adoption.status import ApplicationStatus
 
 __all__ = [
     "AdoptionApplication",
+    "AdoptionApplicationRepository",
     "ApplicationAccepted",
     "ApplicationAdopted",
     "ApplicationClosed",
