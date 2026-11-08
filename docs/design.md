@@ -52,3 +52,4 @@ For the scope of the curricular unit, making shelters a separate entity will not
 but if the product was to continue development, it would be a useful feature,
 as it would also pave the way for the implementation of verified and trustworthy
 institutions, not just regular users. 
+If implemented, shelters would be separate entities with a many to many association to users as employees. Animal ownership would identify the shelter, while recording which employee acted on its behalf. We would assume that a employee account cannot adopt pets for themselves, for that they would need to create a different, personal account.
