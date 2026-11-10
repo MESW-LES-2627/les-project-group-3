@@ -14,7 +14,6 @@ from token_issuer import AUDIENCE, ISSUER, TokenIssuer
 from alembic import command
 from patas_backend.auth.keys import JwksKeyProvider, StaticJwksKeyProvider
 from patas_backend.config import Settings
-from patas_backend.main import create_app
 
 TEST_DATABASE = "patas_test"
 ALEMBIC_INI = Path(__file__).resolve().parents[1] / "alembic.ini"
@@ -75,6 +74,10 @@ async def make_client(
     engine: AsyncEngine, migrated_database_url: str
 ) -> AsyncIterator[ClientFactory]:
     """Builds clients for the real FastAPI app, wired to the test database."""
+    # Imported here, not at the top: building the app needs TLS, which crashes on some
+    # Windows hosts, and every test would pay for it, unit tests included.
+    from patas_backend.main import create_app
+
     settings = Settings(
         database_url=migrated_database_url, jwt_issuer=ISSUER, jwt_audience=AUDIENCE
     )
