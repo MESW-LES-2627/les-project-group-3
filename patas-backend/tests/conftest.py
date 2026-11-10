@@ -111,3 +111,22 @@ def issuer() -> TokenIssuer:
 def other_issuer() -> TokenIssuer:
     """A different keypair that reuses the same key id."""
     return TokenIssuer()
+
+
+KINDS = ("unit", "integration", "acceptance")
+TESTS_DIRECTORY = Path(__file__).parent
+
+
+def pytest_collection_modifyitems(
+    config: pytest.Config, items: list[pytest.Item]
+) -> None:
+    """Mark every test with its kind, which is the folder it lives in."""
+    for item in items:
+        relative = item.path.relative_to(TESTS_DIRECTORY)
+        kind = relative.parts[0]
+        if kind not in KINDS:
+            raise pytest.UsageError(
+                f"{relative}: tests must live in tests/unit, tests/integration "
+                "or tests/acceptance"
+            )
+        item.add_marker(getattr(pytest.mark, kind))
