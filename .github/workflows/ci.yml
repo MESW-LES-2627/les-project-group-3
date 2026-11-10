@@ -57,13 +57,29 @@ jobs:
         working-directory: ./patas-backend
         run: uv run ruff check .
 
-      - name: Run Pytest Suite
+      - name: Unit Tests
         working-directory: ./patas-backend
         env:
           PATAS_DATABASE_URL: postgresql+asyncpg://patas_admin:securepassword@localhost:5432/patas_db
           DATABASE_URL: postgresql+asyncpg://patas_admin:securepassword@localhost:5432/patas_db
           JWT_SECRET: dev-insecure-secret-key-change-in-prod
-        run: uv run pytest -v
+        run: uv run pytest -v tests/unit
+
+      - name: Integration Tests
+        working-directory: ./patas-backend
+        env:
+          PATAS_DATABASE_URL: postgresql+asyncpg://patas_admin:securepassword@localhost:5432/patas_db
+          DATABASE_URL: postgresql+asyncpg://patas_admin:securepassword@localhost:5432/patas_db
+          JWT_SECRET: dev-insecure-secret-key-change-in-prod
+        run: uv run pytest -v tests/integration
+
+      - name: Acceptance Tests
+        working-directory: ./patas-backend
+        env:
+          PATAS_DATABASE_URL: postgresql+asyncpg://patas_admin:securepassword@localhost:5432/patas_db
+          DATABASE_URL: postgresql+asyncpg://patas_admin:securepassword@localhost:5432/patas_db
+          JWT_SECRET: dev-insecure-secret-key-change-in-prod
+        run: uv run pytest -v tests/acceptance
 
   frontend-qa:
     name: Frontend Quality Gate
