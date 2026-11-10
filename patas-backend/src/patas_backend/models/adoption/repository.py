@@ -47,6 +47,14 @@ _SELECT_BY_ID_FOR_UPDATE = text(_SELECT_BY_ID.text + " FOR UPDATE")
 _SELECT_ANIMAL_ID = text(
     "SELECT animal_id FROM patas.adoption_applications WHERE id = :id"
 )
+_SELECT_ACTIVE_FOR_APPLICANT = text(
+    f"""
+    SELECT {_COLUMNS}
+    FROM patas.adoption_applications
+    WHERE animal_id = :animal_id AND applicant_id = :applicant_id
+      AND status IN ('open', 'accepted')
+    """
+)
 # created_at ties inside one transaction (now() is fixed per transaction), so id
 # keeps the order deterministic there.
 _SELECT_OPEN_FOR_ANIMAL_FOR_UPDATE = text(
@@ -120,6 +128,20 @@ class AdoptionApplicationRepository:
         """Like get_by_id, but locks the row until the transaction ends."""
         result = await self._session.execute(
             _SELECT_BY_ID_FOR_UPDATE, {"id": application_id}
+        )
+        row = result.first()
+        return _from_row(row) if row is not None else None
+
+    async def get_active(
+        self, animal_id: UUID, applicant_id: UUID
+    ) -> AdoptionApplication | None:
+        """The applicant's open or accepted request for this animal, if any.
+
+        The database allows at most one such request per applicant and animal.
+        """
+        result = await self._session.execute(
+            _SELECT_ACTIVE_FOR_APPLICANT,
+            {"animal_id": animal_id, "applicant_id": applicant_id},
         )
         row = result.first()
         return _from_row(row) if row is not None else None

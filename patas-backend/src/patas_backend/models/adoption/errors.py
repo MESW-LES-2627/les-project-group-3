@@ -7,6 +7,14 @@ class OwnerCannotApply(InvalidApplication):
     403 here and 422 for a bad note."""
 
 
+class AlreadyRequested(Exception):
+    """The applicant already has an open or accepted request for this animal."""
+
+
+class MatchmakerProfileRequired(Exception):
+    """A request carries the applicant's Matchmaker profile, so they need one."""
+
+
 class ApplicationUnauthorized(PermissionError):
     """The caller may not do this to the application."""
 

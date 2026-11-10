@@ -15,7 +15,6 @@ from adoption_factory import (
     adoption_dispatcher,
     until_blocked,
 )
-from patas_backend.services.adoption import AdoptionService
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -36,6 +35,7 @@ from patas_backend.models.matchmaker_profile import (
     MatchmakerProfileRepository,
 )
 from patas_backend.models.user import User
+from patas_backend.services.adoption import AdoptionService
 
 NOTE = "I have a garden and work from home."
 
