@@ -24,6 +24,8 @@ patas-backend = "patas_backend:main"
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+# Helpers shared by every kind of test (token issuer, adoption factory).
+pythonpath = ["tests/support"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]

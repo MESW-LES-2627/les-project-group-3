@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from alembic import command
 from patas_backend.config import Settings
 
-ALEMBIC_INI = Path(__file__).resolve().parents[1] / "alembic.ini"
+ALEMBIC_INI = Path(__file__).resolve().parents[3] / "alembic.ini"
 SCRATCH_DATABASE = "patas_migration_scratch"
 NOW = datetime.now(UTC)
 

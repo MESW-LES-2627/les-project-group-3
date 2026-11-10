@@ -10,7 +10,7 @@ from patas_backend.auth.keys import StaticJwksKeyProvider
 from patas_backend.config import Settings
 from patas_backend.main import create_app
 
-ALEMBIC_INI = Path(__file__).resolve().parents[2] / "alembic.ini"
+ALEMBIC_INI = Path(__file__).resolve().parents[3] / "alembic.ini"
 
 
 async def test_startup_migrates_the_database_inside_the_servers_event_loop(
