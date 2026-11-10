@@ -3,6 +3,7 @@ from patas_backend.models.adoption.errors import (
     ApplicationUnauthorized,
     InvalidApplication,
     InvalidTransition,
+    OwnerCannotApply,
 )
 from patas_backend.models.adoption.events import (
     ApplicationAccepted,
@@ -29,5 +30,6 @@ __all__ = [
     "ApplicationWithdrawn",
     "InvalidApplication",
     "InvalidTransition",
+    "OwnerCannotApply",
     "ProfileSnapshot",
 ]

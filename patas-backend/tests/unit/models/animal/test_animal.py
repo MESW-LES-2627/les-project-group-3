@@ -7,6 +7,7 @@ from patas_backend.models.animal import (
     AdoptionStatus,
     Animal,
     AnimalCompatibility,
+    AnimalNotAvailable,
     AnimalSex,
     AnimalSize,
     AnimalUnauthorized,
@@ -317,3 +318,36 @@ def test_an_edit_keeps_the_recorded_events() -> None:
     animal.edit(OWNER_ID, name="Rex", species=Species.DOG)
 
     assert animal.pull_events() == [AnimalUnpublished(animal_id=animal.id)]
+
+
+def test_an_available_animal_is_open_to_requests() -> None:
+    animal = _publish()
+
+    animal.ensure_open_to_requests()
+
+    assert animal.adoption_status is AdoptionStatus.AVAILABLE
+
+
+@pytest.mark.parametrize(
+    "status",
+    [AdoptionStatus.RESERVED, AdoptionStatus.ADOPTED, AdoptionStatus.UNAVAILABLE],
+)
+def test_an_animal_that_is_not_available_is_not_open_to_requests(
+    status: AdoptionStatus,
+) -> None:
+    animal = _animal_in(status)
+
+    with pytest.raises(AnimalNotAvailable):
+        animal.ensure_open_to_requests()
+
+    assert animal.adoption_status is status
+    assert animal.pull_events() == []
+
+
+def test_an_unpublished_animal_is_not_open_to_requests() -> None:
+    # The real way to reach UNAVAILABLE, not a status set by hand.
+    animal = _publish()
+    animal.unpublish(by_user_id=OWNER_ID)
+
+    with pytest.raises(AnimalNotAvailable):
+        animal.ensure_open_to_requests()

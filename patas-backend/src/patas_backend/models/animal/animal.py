@@ -30,6 +30,10 @@ class InvalidAnimalTransition(Exception):
     """The animal's adoption status does not allow this change."""
 
 
+class AnimalNotAvailable(Exception):
+    """The animal is not open to adoption requests."""
+
+
 def validate_name(name: str) -> str:
     cleaned = name.strip()
     if not cleaned:
@@ -245,6 +249,17 @@ class Animal:
     def mark_adopted(self) -> None:
         """Owner and applicant both confirmed the handover."""
         self._move(AdoptionStatus.RESERVED, AdoptionStatus.ADOPTED, "adopted")
+
+    def ensure_open_to_requests(self) -> None:
+        """Raise unless a new adoption request can be made for this animal.
+
+        Only an available animal takes requests: a reserved or adopted one is already
+        part of an adoption, and an unavailable one is unpublished.
+        """
+        if self.adoption_status is not AdoptionStatus.AVAILABLE:
+            raise AnimalNotAvailable(
+                f"an animal that is {self.adoption_status.value} cannot be requested"
+            )
 
     def pull_events(self) -> list[DomainEvent]:
         """The events recorded since the last call; each is returned once."""

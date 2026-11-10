@@ -14,6 +14,7 @@ from patas_backend.models.adoption import (
     ApplicationWithdrawn,
     InvalidApplication,
     InvalidTransition,
+    OwnerCannotApply,
     ProfileSnapshot,
 )
 from patas_backend.models.adoption.state import STATES
@@ -114,6 +115,55 @@ def test_the_applicant_cannot_be_the_owner() -> None:
             applicant_note="Hello",
             applicant_profile=SNAPSHOT,
         )
+
+
+def test_an_owner_applying_for_their_own_animal_is_a_distinct_error() -> None:
+    # The router tells this apart from a bad note: 403 against 422.
+    with pytest.raises(OwnerCannotApply):
+        _request(applicant_id=OWNER)
+
+
+@pytest.mark.parametrize("note", ["", "   ", "\n\t "])
+def test_a_request_needs_a_note_that_is_not_blank(note: str) -> None:
+    with pytest.raises(InvalidApplication, match="note"):
+        _request(applicant_note=note)
+
+
+def test_a_note_of_exactly_1000_characters_is_accepted() -> None:
+    assert len(_request(applicant_note="a" * 1000).applicant_note) == 1000
+
+
+def test_a_note_of_1001_characters_is_refused() -> None:
+    with pytest.raises(InvalidApplication, match="1000"):
+        _request(applicant_note="a" * 1001)
+
+
+def test_the_limit_counts_the_trimmed_note_and_the_trimmed_note_is_stored() -> None:
+    application = _request(applicant_note="  " + "a" * 1000 + "\n")
+
+    assert application.applicant_note == "a" * 1000
+
+
+def test_a_blank_note_is_a_bad_note_and_not_an_owner_error() -> None:
+    with pytest.raises(InvalidApplication) as raised:
+        _request(applicant_note="  ")
+
+    assert not isinstance(raised.value, OwnerCannotApply)
+
+
+def test_loading_a_stored_request_does_not_apply_the_note_rule() -> None:
+    # Rows are loaded through the constructor. A request saved before the rule
+    # existed must still load, so the rule belongs to request() alone.
+    application = AdoptionApplication(
+        id=uuid4(),
+        animal_id=ANIMAL,
+        owner_id=OWNER,
+        applicant_id=APPLICANT,
+        applicant_note="",
+        applicant_profile=SNAPSHOT,
+    )
+
+    assert application.applicant_note == ""
 
 
 def test_every_status_has_exactly_one_state() -> None:
