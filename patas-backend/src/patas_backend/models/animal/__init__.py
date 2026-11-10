@@ -2,6 +2,7 @@ from patas_backend.models.animal.animal import (
     Animal,
     AnimalUnauthorized,
     InvalidAnimal,
+    InvalidAnimalTransition,
 )
 from patas_backend.models.animal.catalog_filter import CatalogFilter
 from patas_backend.models.animal.enums import (
@@ -14,6 +15,7 @@ from patas_backend.models.animal.enums import (
     NeuteredStatus,
     Species,
 )
+from patas_backend.models.animal.events import AnimalUnpublished
 from patas_backend.models.animal.match_profile import AnimalMatchProfile
 from patas_backend.models.animal.repository import AnimalRepository
 
@@ -26,10 +28,12 @@ __all__ = [
     "AnimalSex",
     "AnimalSize",
     "AnimalUnauthorized",
+    "AnimalUnpublished",
     "CatalogFilter",
     "District",
     "FirstTimeOwnerSuitability",
     "InvalidAnimal",
+    "InvalidAnimalTransition",
     "NeuteredStatus",
     "Species",
 ]

@@ -33,6 +33,10 @@ export async function unpublishAnimalAction(animalId: string): Promise<{ error?:
       return { error: "You are not authorized to unpublish this animal." };
     }
 
+    if (response.status === 409) {
+      return { error: "This animal is reserved or adopted, so it cannot be unpublished." };
+    }
+
     if (!response.ok) {
       return { error: `Failed to unpublish animal (backend returned ${response.status}).` };
     }

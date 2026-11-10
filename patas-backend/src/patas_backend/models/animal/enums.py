@@ -10,7 +10,6 @@ class Species(StrEnum):
 class AdoptionStatus(StrEnum):
     AVAILABLE = "available"
     RESERVED = "reserved"
-    IN_TRIAL = "in_trial"
     ADOPTED = "adopted"
     UNAVAILABLE = "unavailable"
 

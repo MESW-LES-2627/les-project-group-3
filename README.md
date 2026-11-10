@@ -169,6 +169,10 @@ Optional: `pnpm seed:demo` (in `patas-frontend`, with the stack running) fills t
 catalog with sample animals published by three demo users through the application.
 Their password is printed by the script and is for local use only.
 
+Then `docker compose exec backend python scripts/seed_applications.py` adds sample
+adoption requests in every state (open, accepted, declined, withdrawn, closed,
+adopted) on top of those animals. It is safe to run again.
+
 `pnpm smoke:auth` (in `patas-frontend`, with the stack running) checks the same
 handoff automatically.
 

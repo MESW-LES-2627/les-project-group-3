@@ -17,7 +17,7 @@ the adoption flow is in [AdoptionPipeline](AdoptionPipeline.md).
   needs (energy, space). Feeds the catalog filters and the Matchmaker.
 - **Catalog:** the public list of published animals, with filters.
 - **Unpublish:** the owner removes the animal from the catalog; its data is kept.
-- **Adoption Status:** Available, Reserved, In Trial, Adopted, Unavailable.
+- **Adoption Status:** Available, Reserved, Adopted, Unavailable (unpublished).
 
 ## Matchmaker
 - **Matchmaker:** suggests animals from a lifestyle quiz.
@@ -27,14 +27,15 @@ the adoption flow is in [AdoptionPipeline](AdoptionPipeline.md).
 
 ## Adoption
 - **Adoption Application:** an applicant's request to adopt one animal ("request" in the UI).
-  Starts with the applicant's first message.
-- **Application Status:** Open, Accepted, In Trial, Adopted, Declined, Withdrawn, Closed.
+  Starts when the applicant sends it with a note.
+- **Application Status:** Open, Accepted, Declined, Withdrawn, Closed, Adopted.
+- **Profile Snapshot:** a copy of the applicant's Matchmaker answers, kept with the request
+  so the owner sees what was declared when asking.
 - **Conversation:** the chat of one application. Only the applicant and the owner take part.
+  It opens when the application is accepted.
 - **Request Card:** a one-tap request from the owner in the conversation (home photos,
   other pets' photos, propose a meeting).
 - **Guidelines Panel:** suggested questions and safety tips next to the conversation. Advisory only.
-- **Foster-to-Adopt Trial:** optional period where the applicant takes the animal home before
-  the adoption is final. The owner approves it.
 - **Handover:** the moment the animal goes to the applicant. The adoption is complete when
   both sides confirm it.
 - **Handover Checklist:** vaccination booklet, SIAC microchip transfer, food and habits notes,

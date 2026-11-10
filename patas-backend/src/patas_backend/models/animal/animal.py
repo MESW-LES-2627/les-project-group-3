@@ -1,5 +1,5 @@
 import re
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, fields, replace
 from uuid import UUID, uuid4
 
 from patas_backend.models.animal.enums import (
@@ -12,7 +12,9 @@ from patas_backend.models.animal.enums import (
     NeuteredStatus,
     Species,
 )
+from patas_backend.models.animal.events import AnimalUnpublished
 from patas_backend.models.animal.match_profile import AnimalMatchProfile
+from patas_backend.models.events import DomainEvent
 from patas_backend.models.matching.scales import EnergyLevel
 
 
@@ -22,6 +24,10 @@ class InvalidAnimal(ValueError):
 
 class AnimalUnauthorized(PermissionError):
     """The caller is not the owner of the animal."""
+
+
+class InvalidAnimalTransition(Exception):
+    """The animal's adoption status does not allow this change."""
 
 
 def validate_name(name: str) -> str:
@@ -87,6 +93,9 @@ class Animal:
         self.postal_code = validate_postal_code(self.postal_code)
         self.special_care_notes = validate_optional_text(self.special_care_notes)
         self.other_details = validate_optional_text(self.other_details)
+        # Not a dataclass field: it is not part of the animal's data, so asdict()
+        # and replace() never see it.
+        self._events: list[DomainEvent] = []
 
     @classmethod
     def publish(
@@ -211,13 +220,49 @@ class Animal:
             special_care_notes=special_care_notes,
             other_details=other_details,
         )
-        vars(self).update(vars(edited))
+        # Only the declared fields: vars() would also copy the edited copy's empty
+        # event list over the events this animal has recorded.
+        for field in fields(edited):
+            setattr(self, field.name, getattr(edited, field.name))
+
+    def _move(
+        self, source: AdoptionStatus, target: AdoptionStatus, action: str
+    ) -> None:
+        if self.adoption_status is not source:
+            raise InvalidAnimalTransition(
+                f"an animal that is {self.adoption_status.value} cannot be {action}"
+            )
+        self.adoption_status = target
+
+    def reserve(self) -> None:
+        """An application was accepted for this animal."""
+        self._move(AdoptionStatus.AVAILABLE, AdoptionStatus.RESERVED, "reserved")
+
+    def release(self) -> None:
+        """The accepted application ended without an adoption."""
+        self._move(AdoptionStatus.RESERVED, AdoptionStatus.AVAILABLE, "released")
+
+    def mark_adopted(self) -> None:
+        """Owner and applicant both confirmed the handover."""
+        self._move(AdoptionStatus.RESERVED, AdoptionStatus.ADOPTED, "adopted")
+
+    def pull_events(self) -> list[DomainEvent]:
+        """The events recorded since the last call; each is returned once."""
+        events, self._events = self._events, []
+        return events
 
     def unpublish(self, by_user_id: UUID) -> None:
-        """Unpublish the listing so it disappears from the catalog."""
+        """Unpublish the listing so it disappears from the catalog.
+
+        Only an available animal can be unpublished: a reserved or adopted one is
+        part of an adoption. Unpublishing twice changes nothing.
+        """
         if not self.is_owned_by(by_user_id):
             raise AnimalUnauthorized("Only the owner can unpublish this animal")
-        self.adoption_status = AdoptionStatus.UNAVAILABLE
+        if self.adoption_status is AdoptionStatus.UNAVAILABLE:
+            return
+        self._move(AdoptionStatus.AVAILABLE, AdoptionStatus.UNAVAILABLE, "unpublished")
+        self._events.append(AnimalUnpublished(animal_id=self.id))
 
     def match_profile(self) -> AnimalMatchProfile:
         """This animal on the Matchmaker scales. Built on each call, so it follows
