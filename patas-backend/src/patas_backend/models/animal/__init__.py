@@ -1,5 +1,6 @@
 from patas_backend.models.animal.animal import (
     Animal,
+    AnimalNotAvailable,
     AnimalUnauthorized,
     InvalidAnimal,
     InvalidAnimalTransition,
@@ -27,6 +28,7 @@ __all__ = [
     "AnimalRepository",
     "AnimalSex",
     "AnimalSize",
+    "AnimalNotAvailable",
     "AnimalUnauthorized",
     "AnimalUnpublished",
     "CatalogFilter",

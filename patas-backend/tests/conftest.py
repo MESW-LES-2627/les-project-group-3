@@ -1,15 +1,18 @@
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from pathlib import Path
 
+import httpx
 import pytest
 import pytest_asyncio
 from alembic.config import Config
 from sqlalchemy import text
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from token_issuer import AUDIENCE, ISSUER, TokenIssuer
 
 from alembic import command
+from patas_backend.auth.keys import JwksKeyProvider, StaticJwksKeyProvider
 from patas_backend.config import Settings
 
 TEST_DATABASE = "patas_test"
@@ -61,3 +64,72 @@ async def engine(migrated_database_url: str) -> AsyncIterator[AsyncEngine]:
         await conn.execute(text("TRUNCATE patas.users CASCADE"))
     yield engine
     await engine.dispose()
+
+
+ClientFactory = Callable[[JwksKeyProvider], httpx.AsyncClient]
+
+
+@pytest_asyncio.fixture
+async def make_client(
+    engine: AsyncEngine, migrated_database_url: str
+) -> AsyncIterator[ClientFactory]:
+    """Builds clients for the real FastAPI app, wired to the test database."""
+    # Imported here, not at the top: building the app needs TLS, which crashes on some
+    # Windows hosts, and every test would pay for it, unit tests included.
+    from patas_backend.main import create_app
+
+    settings = Settings(
+        database_url=migrated_database_url, jwt_issuer=ISSUER, jwt_audience=AUDIENCE
+    )
+    clients: list[httpx.AsyncClient] = []
+    apps = []
+
+    def build(key_provider: JwksKeyProvider) -> httpx.AsyncClient:
+        app = create_app(settings, key_provider)
+        client = httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app), base_url="http://testserver"
+        )
+        apps.append(app)
+        clients.append(client)
+        return client
+
+    yield build
+    for client in clients:
+        await client.aclose()
+    for app in apps:
+        await app.state.engine.dispose()
+
+
+@pytest.fixture
+def client(make_client: ClientFactory, issuer: TokenIssuer) -> httpx.AsyncClient:
+    return make_client(StaticJwksKeyProvider(issuer.jwks()))
+
+
+@pytest.fixture
+def issuer() -> TokenIssuer:
+    return TokenIssuer()
+
+
+@pytest.fixture
+def other_issuer() -> TokenIssuer:
+    """A different keypair that reuses the same key id."""
+    return TokenIssuer()
+
+
+KINDS = ("unit", "integration", "acceptance")
+TESTS_DIRECTORY = Path(__file__).parent
+
+
+def pytest_collection_modifyitems(
+    config: pytest.Config, items: list[pytest.Item]
+) -> None:
+    """Mark every test with its kind, which is the folder it lives in."""
+    for item in items:
+        relative = item.path.relative_to(TESTS_DIRECTORY)
+        kind = relative.parts[0]
+        if kind not in KINDS:
+            raise pytest.UsageError(
+                f"{relative}: tests must live in tests/unit, tests/integration "
+                "or tests/acceptance"
+            )
+        item.add_marker(getattr(pytest.mark, kind))

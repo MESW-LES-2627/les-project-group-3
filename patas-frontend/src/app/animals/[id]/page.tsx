@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
+import { AdoptionSection } from "@/components/adoption/adoption-section";
 import { FitSection } from "@/components/compatibility/fit-section";
 import { animalStatusLabel } from "@/lib/adoption-status";
 import { districtLabel } from "@/lib/animal-profile";
@@ -214,6 +215,13 @@ async function AnimalDetail({ params }: Props) {
         animalId={animal.id}
         animalName={animal.name}
         ownerId={animal.owner_id}
+      />
+
+      <AdoptionSection
+        animalId={animal.id}
+        animalName={animal.name}
+        ownerId={animal.owner_id}
+        animalStatus={animal.adoption_status}
       />
     </section>
   );

@@ -203,7 +203,24 @@ uv run pytest
 ```
 
 The tests create and reset a separate `patas_test` database, so the configured database
-user must be allowed to create databases. To run the backend linter as well:
+user must be allowed to create databases.
+
+Tests are grouped by what they check, and the folder a test lives in is its kind:
+
+| Folder | What it covers | Needs the database |
+| :-- | :-- | :-- |
+| `tests/unit` | Domain rules and pure logic | No |
+| `tests/integration` | Repositories, use cases, migrations and endpoints | Yes |
+| `tests/acceptance` | One file per acceptance test (AT) of the board, through HTTP | Yes |
+
+```sh
+uv run pytest tests/unit                    # fast, no database
+uv run pytest -m acceptance                 # every AT
+uv run pytest tests/acceptance -k at_16     # one AT
+```
+
+Helpers shared by several kinds of test live in `tests/support`. To run the backend
+linter as well:
 
 ```sh
 uv run ruff check .

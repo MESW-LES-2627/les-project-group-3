@@ -24,6 +24,15 @@ patas-backend = "patas_backend:main"
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+# Helpers shared by every kind of test (token issuer, adoption factory).
+pythonpath = ["tests/support"]
+addopts = "--strict-markers"
+# Applied by tests/conftest.py from the folder a test lives in.
+markers = [
+    "unit: no database, network or app",
+    "integration: uses a real database, a socket or the app",
+    "acceptance: one acceptance test (AT) of the product, through HTTP",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]

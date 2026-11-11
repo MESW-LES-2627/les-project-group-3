@@ -5,11 +5,26 @@ from uuid import UUID, uuid4
 from patas_backend.models.adoption.errors import (
     ApplicationUnauthorized,
     InvalidApplication,
+    OwnerCannotApply,
 )
 from patas_backend.models.adoption.profile_snapshot import ProfileSnapshot
 from patas_backend.models.adoption.state import STATES, ApplicationState
 from patas_backend.models.adoption.status import ApplicationStatus
 from patas_backend.models.events import DomainEvent
+
+MAX_NOTE_LENGTH = 1000
+
+
+def _validated_note(note: str) -> str:
+    """The applicant's note: required, trimmed, and at most MAX_NOTE_LENGTH long."""
+    cleaned = note.strip()
+    if not cleaned:
+        raise InvalidApplication("the note must not be blank")
+    if len(cleaned) > MAX_NOTE_LENGTH:
+        raise InvalidApplication(
+            f"the note must have at most {MAX_NOTE_LENGTH} characters"
+        )
+    return cleaned
 
 
 def _clean_note(note: str | None) -> str | None:
@@ -42,7 +57,7 @@ class AdoptionApplication:
 
     def __post_init__(self) -> None:
         if self.applicant_id == self.owner_id:
-            raise InvalidApplication("an owner cannot apply for their own animal")
+            raise OwnerCannotApply("an owner cannot apply for their own animal")
         self._events: list[DomainEvent] = []
 
     @classmethod
@@ -61,7 +76,7 @@ class AdoptionApplication:
             animal_id=animal_id,
             owner_id=owner_id,
             applicant_id=applicant_id,
-            applicant_note=applicant_note,
+            applicant_note=_validated_note(applicant_note),
             applicant_profile=applicant_profile,
         )
 

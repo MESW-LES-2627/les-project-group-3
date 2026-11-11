@@ -89,8 +89,9 @@ D2 and D8 to D11 in [AdoptionPipeline](../../domain/AdoptionPipeline.md) section
 * **An accepted request cannot be closed by the system**, a consequence of the
   unpublish rule above.
 * **The trial is deferred** for iteration 2.
-* **Is the applicant's note required?** The aggregate does not validate it today, so it
-  can be blank. US-14 owns the rule and should put it in the domain, not the router.
+* **Is the applicant's note required?** Yes, up to 1000 characters, checked in
+  `request()` and not in the constructor. Decided in
+  [0019-requesting-to-adopt](0019-requesting-to-adopt.md), and still pending the team.
 
 ## Consequences
 
