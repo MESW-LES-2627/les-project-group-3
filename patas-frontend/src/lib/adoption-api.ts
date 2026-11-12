@@ -6,10 +6,15 @@
 import { backendUrl } from "@/lib/backend";
 import {
   REQUEST_MESSAGES,
+  WITHDRAW_MESSAGES,
   isMyApplication,
+  isSentRequest,
   type MyApplicationResult,
+  type MyRequestsResult,
   type RequestOutcome,
   type RequestProblem,
+  type WithdrawOutcome,
+  type WithdrawProblem,
 } from "@/lib/adoption";
 import { bearerToken } from "@/lib/matchmaker-api";
 
@@ -119,4 +124,64 @@ export async function getMyApplication(
   } catch {
     return { kind: "unavailable" };
   }
+}
+
+// Never throws on a backend failure, like getMyApplication.
+export async function getMyRequests(): Promise<MyRequestsResult> {
+  const token = await bearerToken();
+
+  try {
+    const response = await fetch(`${backendUrl()}/me/applications`, {
+      cache: "no-store",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) {
+      return { kind: "unavailable" };
+    }
+    const payload: unknown = await response.json();
+    return Array.isArray(payload) && payload.every(isSentRequest)
+      ? { kind: "ok", requests: payload }
+      : { kind: "unavailable" };
+  } catch {
+    return { kind: "unavailable" };
+  }
+}
+
+function withdrawProblem(kind: WithdrawProblem): WithdrawOutcome {
+  return { ok: false, problem: kind, message: WITHDRAW_MESSAGES[kind] };
+}
+
+export async function withdrawRequest(
+  applicationId: string,
+): Promise<WithdrawOutcome> {
+  if (!UUID_PATTERN.test(applicationId)) {
+    return withdrawProblem("not-found");
+  }
+  // redirect() throws, so this stays outside the try/catch below.
+  const token = await bearerToken();
+
+  let response: Response;
+  try {
+    response = await fetch(
+      `${backendUrl()}/applications/${encodeURIComponent(applicationId)}/withdraw`,
+      {
+        method: "POST",
+        cache: "no-store",
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+  } catch {
+    return withdrawProblem("unavailable");
+  }
+
+  if (response.ok) {
+    return { ok: true };
+  }
+  if (response.status === 404) {
+    return withdrawProblem("not-found");
+  }
+  if (response.status === 409) {
+    return withdrawProblem("not-active");
+  }
+  return withdrawProblem("unavailable");
 }
