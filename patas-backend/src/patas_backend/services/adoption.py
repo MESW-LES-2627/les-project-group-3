@@ -9,11 +9,13 @@ from patas_backend.models.adoption import (
     MatchmakerProfileRequired,
     OwnerCannotApply,
     ProfileSnapshot,
+    SentRequest,
 )
 from patas_backend.models.animal import AnimalRepository
 from patas_backend.models.matchmaker_profile import MatchmakerProfileRepository
 from patas_backend.models.user import User
 from patas_backend.services.events import EventDispatcher
+from patas_backend.services.locking import lock_animal_and_application
 
 
 class AdoptionService:
@@ -75,3 +77,31 @@ class AdoptionService:
             return await AdoptionApplicationRepository(session).get_active(
                 animal_id, applicant.id
             )
+
+    async def list_my_requests(self, applicant: User) -> list[SentRequest]:
+        """US-17: every request the caller sent, in any status, newest first."""
+        async with self._session_factory() as session:
+            return await AdoptionApplicationRepository(session).list_sent_by(
+                applicant.id
+            )
+
+    async def withdraw(
+        self, applicant: User, application_id: UUID
+    ) -> AdoptionApplication | None:
+        """US-17: the applicant withdraws an open or accepted request.
+
+        None if there is no such request or it is not the caller's: to anyone else
+        it does not exist. Raises InvalidTransition if it already ended.
+        """
+        async with self._session_factory.begin() as session:
+            # The animal first (ADR 0017, decision 8). Whether the request was
+            # accepted, and so whether the animal must be freed, is read under the
+            # lock: a withdrawal queued behind an accept sees it accepted.
+            application = await lock_animal_and_application(session, application_id)
+            if application is None or application.applicant_id != applicant.id:
+                return None
+            application.withdraw(applicant.id)
+            events = await self._dispatcher.dispatch(application.pull_events(), session)
+            await AdoptionApplicationRepository(session).update(application)
+        await self._dispatcher.publish(events)
+        return application
