@@ -48,9 +48,9 @@ def _bearer(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
-async def _seed_rex(engine: AsyncEngine, *moves: str) -> Animal:
-    """Rex, Ana's, with Ana, Bruno and Carla registered. `moves` are Animal methods
-    applied in order to put him in the status the test needs."""
+async def _seed_animal(engine: AsyncEngine, name: str, *moves: str) -> Animal:
+    """An animal of Ana's, with Ana, Bruno and Carla registered. `moves` are Animal
+    methods applied in order to put it in the status the test needs."""
     async with async_sessionmaker(engine).begin() as session:
         users = UserRepository(session)
         for who in (ANA, BRUNO, CARLA):
@@ -59,11 +59,17 @@ async def _seed_rex(engine: AsyncEngine, *moves: str) -> Animal:
                     id=UUID(who["sub"]), name=who["name"], email=who["email"]
                 )
             )
-        rex = Animal.publish(owner_id=UUID(ANA["sub"]), name="Rex", species=Species.DOG)
+        animal = Animal.publish(
+            owner_id=UUID(ANA["sub"]), name=name, species=Species.DOG
+        )
         for move in moves:
-            getattr(rex, move)()
-        await AnimalRepository(session).add(rex)
-    return rex
+            getattr(animal, move)()
+        await AnimalRepository(session).add(animal)
+    return animal
+
+
+async def _seed_rex(engine: AsyncEngine, *moves: str) -> Animal:
+    return await _seed_animal(engine, "Rex", *moves)
 
 
 def _request(
