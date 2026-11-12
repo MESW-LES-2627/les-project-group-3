@@ -17,6 +17,7 @@ from patas_backend.models.adoption.events import (
 )
 from patas_backend.models.adoption.profile_snapshot import ProfileSnapshot
 from patas_backend.models.adoption.repository import AdoptionApplicationRepository
+from patas_backend.models.adoption.sent_request import SentRequest
 from patas_backend.models.adoption.status import ApplicationStatus
 
 __all__ = [
@@ -36,4 +37,5 @@ __all__ = [
     "MatchmakerProfileRequired",
     "OwnerCannotApply",
     "ProfileSnapshot",
+    "SentRequest",
 ]
