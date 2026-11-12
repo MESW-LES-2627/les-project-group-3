@@ -48,3 +48,5 @@ async def test_withdrawing_an_unknown_request_answers_404(
     )
 
     assert response.status_code == 404
+    # The detail proves the 404 came from the endpoint, not from a missing route.
+    assert response.json()["detail"] == "Request not found"

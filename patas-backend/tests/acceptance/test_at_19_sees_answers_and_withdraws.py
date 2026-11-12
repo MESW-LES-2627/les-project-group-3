@@ -104,4 +104,5 @@ async def test_at_19_other_users_cannot_see_or_withdraw_brunos_requests(
     assert her_list.json() == []
     # To Carla the request does not exist: 404, not 403 (decision 2).
     assert her_withdraw.status_code == 404
+    assert her_withdraw.json()["detail"] == "Request not found"
     assert await _status(engine, request) is S.OPEN
