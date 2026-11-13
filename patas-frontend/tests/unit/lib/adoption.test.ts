@@ -6,6 +6,7 @@ import {
   isMyApplication,
   isSentRequest,
   noteProblem,
+  noteProblemMessage,
   statusFilterOf,
   withdrawConfirmation,
   type SentRequest,
@@ -39,6 +40,15 @@ describe("noteProblem", () => {
 
   it("counts the length after trimming, as the backend does", () => {
     expect(noteProblem(`  ${"a".repeat(NOTE_MAX)}  `)).toBeNull();
+  });
+});
+
+describe("noteProblemMessage", () => {
+  it("tells the person what to do for each problem", () => {
+    expect(noteProblemMessage("blank")).toBe(
+      "Tell the owner a little about you and your home.",
+    );
+    expect(noteProblemMessage("too-long")).toContain(String(NOTE_MAX));
   });
 });
 

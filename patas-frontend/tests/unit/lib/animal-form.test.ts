@@ -62,6 +62,13 @@ describe("parseAnimalForm: other fields", () => {
     expect(description.district).toBeNull();
   });
 
+  it("reads a form that left out the name and the species as empty text", () => {
+    const description = parsed({});
+
+    expect(description.name).toBe("");
+    expect(description.species).toBe("");
+  });
+
   it("refuses a file where text is expected", () => {
     const result = parseAnimalForm(
       form({

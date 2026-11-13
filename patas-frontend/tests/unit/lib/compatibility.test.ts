@@ -62,6 +62,11 @@ describe("isFit", () => {
     );
   });
 
+  it("rejects a list where a reason is not an object", () => {
+    expect(isFit({ ...fit, reasons: ["Quiet"] })).toBe(false);
+    expect(isFit({ ...fit, reasons: [null] })).toBe(false);
+  });
+
   it("rejects a mistyped score or missing reasons", () => {
     expect(isFit({ ...fit, score: "72" })).toBe(false);
     expect(isFit({ ...fit, reasons: undefined })).toBe(false);
