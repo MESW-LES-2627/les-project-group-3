@@ -2,7 +2,7 @@ import path from "node:path";
 import { defineConfig } from "vitest/config";
 
 // Frontend logic only: API helpers, form checks and mappers in src/lib.
-// Screens and components stay checked by hand (see docs/TESTING.md).
+// Screens and components stay checked by hand (see docs/process/TESTING.md).
 export default defineConfig({
   resolve: { alias: { "@": path.resolve(import.meta.dirname, "src") } },
   test: {
