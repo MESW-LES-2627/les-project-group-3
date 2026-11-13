@@ -63,7 +63,7 @@ jobs:
           PATAS_DATABASE_URL: postgresql+asyncpg://patas_admin:securepassword@localhost:5432/patas_db
           DATABASE_URL: postgresql+asyncpg://patas_admin:securepassword@localhost:5432/patas_db
           JWT_SECRET: dev-insecure-secret-key-change-in-prod
-        run: uv run pytest -v tests/unit --cov
+        run: uv run pytest -v tests/unit --cov --junitxml=junit-unit.xml
 
       - name: Integration Tests
         working-directory: ./patas-backend
@@ -71,7 +71,7 @@ jobs:
           PATAS_DATABASE_URL: postgresql+asyncpg://patas_admin:securepassword@localhost:5432/patas_db
           DATABASE_URL: postgresql+asyncpg://patas_admin:securepassword@localhost:5432/patas_db
           JWT_SECRET: dev-insecure-secret-key-change-in-prod
-        run: uv run pytest -v tests/integration --cov --cov-append
+        run: uv run pytest -v tests/integration --cov --cov-append --junitxml=junit-integration.xml
 
       - name: Acceptance Tests
         working-directory: ./patas-backend
@@ -79,7 +79,7 @@ jobs:
           PATAS_DATABASE_URL: postgresql+asyncpg://patas_admin:securepassword@localhost:5432/patas_db
           DATABASE_URL: postgresql+asyncpg://patas_admin:securepassword@localhost:5432/patas_db
           JWT_SECRET: dev-insecure-secret-key-change-in-prod
-        run: uv run pytest -v tests/acceptance --cov --cov-append
+        run: uv run pytest -v tests/acceptance --cov --cov-append --junitxml=junit-acceptance.xml
 
       - name: Coverage Reports
         working-directory: ./patas-backend
@@ -94,6 +94,7 @@ jobs:
           path: |
             patas-backend/coverage.json
             patas-backend/coverage.xml
+            patas-backend/junit-*.xml
 
   frontend-qa:
     name: Frontend Quality Gate
@@ -137,6 +138,7 @@ jobs:
           path: |
             patas-frontend/coverage/coverage-summary.json
             patas-frontend/coverage/cobertura-coverage.xml
+            patas-frontend/coverage/test-results.json
 
       - name: Standalone Production Build
         working-directory: ./patas-frontend
@@ -164,6 +166,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: coverage
+
+      - name: Lint the Quality Scripts
+        run: |
+          uvx ruff==0.17.1 format --check scripts
+          uvx ruff==0.17.1 check scripts
 
       - name: Gate Tests
         run: python3 -m unittest discover -s scripts/quality/tests
@@ -273,3 +280,81 @@ jobs:
         run: |
           git remote add deploy https://ammp102:$DEPLOY_PAT@github.com/ammp102/les-project-group-3-deploy.git
           git push deploy HEAD:main --force
+
+  # One row per merge on the page served from the gh-pages branch. Nothing waits for it,
+  # and a mutation run that failed only leaves that number as n/d.
+  report:
+    name: Metrics Report
+    needs: [quality-gate, mutation]
+    if: ${{ !cancelled() && github.event_name == 'push' && needs.quality-gate.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: metrics-report
+      cancel-in-progress: false
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Download Reports
+        uses: actions/download-artifact@v4
+        with:
+          path: reports
+
+      # The lines this merge changed: the commit against its first parent.
+      - name: Coverage of the Changed Lines
+        run: |
+          uvx --from diff-cover==11.0.1 diff-cover reports/coverage-backend/coverage.xml \
+            --compare-branch=HEAD^1 --json-report reports/diff-backend.json
+          uvx --from diff-cover==11.0.1 diff-cover reports/coverage-frontend/cobertura-coverage.xml \
+            --compare-branch=HEAD^1 --json-report reports/diff-frontend.json
+
+      - name: Open the gh-pages Branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null; then
+            git fetch origin gh-pages
+            git worktree add pages -B gh-pages origin/gh-pages
+          else
+            git worktree add --detach pages
+            git -C pages checkout --orphan gh-pages
+            git -C pages rm -rf --quiet .
+          fi
+          touch pages/.nojekyll
+
+      - name: Add the Row of This Merge
+        env:
+          BRANCH: ${{ github.ref_name }}
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+        run: |
+          python3 scripts/quality/report.py \
+            --metrics pages/metrics.json --html pages/index.html \
+            --branch "$BRANCH" --commit "${GITHUB_SHA::7}" \
+            --date "$(git show -s --format=%cI "$GITHUB_SHA")" \
+            --title "$(git show -s --format=%s "$GITHUB_SHA")" \
+            --repo-url "$REPO_URL" \
+            --backend-junit reports/coverage-backend/junit-*.xml \
+            --backend-coverage reports/coverage-backend/coverage.json \
+            --backend-diff reports/diff-backend.json \
+            --frontend-tests reports/coverage-frontend/test-results.json \
+            --frontend-coverage reports/coverage-frontend/coverage-summary.json \
+            --frontend-diff reports/diff-frontend.json \
+            --mutation reports/mutation-stats/mutmut-cicd-stats.json
+
+      - name: Publish
+        working-directory: pages
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          git add .nojekyll metrics.json index.html
+          git commit -m "metrics: ${GITHUB_SHA::7} ($BRANCH)"
+          git push origin HEAD:gh-pages

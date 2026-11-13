@@ -8,6 +8,9 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],
+    // The count of tests goes to the metrics report, next to the coverage reports.
+    reporters: ["default", "json"],
+    outputFile: { json: "coverage/test-results.json" },
     coverage: {
       provider: "v8",
       include: ["src/lib/**/*.ts"],
