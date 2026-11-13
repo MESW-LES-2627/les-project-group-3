@@ -77,6 +77,16 @@ this page all use it, so they cannot drift apart.
   be seen arriving with the changes. Backend and frontend sit side by side: number of
   tests, branch coverage, coverage of the changed lines and mutation score.
 
+## Dependencies and deploy
+
+- The production dependencies of both sides are checked for known vulnerabilities on
+  every run. The backend fails on any known one; the frontend fails on high severity and
+  above, and lists the rest **(proposed)**.
+- The deploy is a job of the same pipeline and waits for the tests, the coverage gates and
+  the audit on the same commit. If any of them fails, the deploy does not run.
+- A new advisory can turn a build red without a code change. That is a red build like any
+  other: see below.
+
 ## When the build is red
 
 - Nobody merges, and the deploy does not run.

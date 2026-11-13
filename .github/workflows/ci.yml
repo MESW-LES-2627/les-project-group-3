@@ -182,3 +182,56 @@ jobs:
             --compare-branch="$BASE" --fail-under="$MIN"
           uvx --from diff-cover==11.0.1 diff-cover coverage/coverage-frontend/cobertura-coverage.xml \
             --compare-branch="$BASE" --fail-under="$MIN"
+
+  dependency-audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Production dependencies only: the development ones never reach the deploy.
+      - name: Backend Vulnerabilities (pip-audit)
+        working-directory: ./patas-backend
+        run: |
+          uv export --frozen --no-dev --no-hashes --no-emit-project -o requirements.txt
+          uvx pip-audit==2.10.1 -r requirements.txt --disable-pip --no-deps
+
+      - name: Frontend Vulnerabilities (pnpm audit)
+        working-directory: ./patas-frontend
+        run: pnpm audit --prod --audit-level=high
+
+  # Runs only when everything above is green, on the commit that was tested.
+  deploy:
+    name: Deploy
+    needs: [quality-gate, dependency-audit]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Push to deployment repository
+        env:
+          DEPLOY_PAT: ${{ secrets.DEPLOY_TOKEN }}
+        run: |
+          git remote add deploy https://ammp102:$DEPLOY_PAT@github.com/ammp102/les-project-group-3-deploy.git
+          git push deploy HEAD:main --force
