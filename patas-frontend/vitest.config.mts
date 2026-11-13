@@ -13,7 +13,7 @@ export default defineConfig({
       include: ["src/lib/**/*.ts"],
       // Wiring to better-auth and the environment: no rules of our own to break.
       exclude: ["src/lib/auth.ts", "src/lib/auth-client.ts", "src/lib/backend.ts"],
-      reporter: ["text", "json-summary", "lcov"],
+      reporter: ["text", "json-summary", "cobertura"],
     },
   },
 });

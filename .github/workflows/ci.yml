@@ -2,9 +2,9 @@ name: CI Quality Gate
 
 on:
   push:
-    branches: [main]
+    branches: [main, staging]
   pull_request:
-    branches: [main]
+    branches: [main, staging]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -63,7 +63,7 @@ jobs:
           PATAS_DATABASE_URL: postgresql+asyncpg://patas_admin:securepassword@localhost:5432/patas_db
           DATABASE_URL: postgresql+asyncpg://patas_admin:securepassword@localhost:5432/patas_db
           JWT_SECRET: dev-insecure-secret-key-change-in-prod
-        run: uv run pytest -v tests/unit
+        run: uv run pytest -v tests/unit --cov
 
       - name: Integration Tests
         working-directory: ./patas-backend
@@ -71,7 +71,7 @@ jobs:
           PATAS_DATABASE_URL: postgresql+asyncpg://patas_admin:securepassword@localhost:5432/patas_db
           DATABASE_URL: postgresql+asyncpg://patas_admin:securepassword@localhost:5432/patas_db
           JWT_SECRET: dev-insecure-secret-key-change-in-prod
-        run: uv run pytest -v tests/integration
+        run: uv run pytest -v tests/integration --cov --cov-append
 
       - name: Acceptance Tests
         working-directory: ./patas-backend
@@ -79,7 +79,21 @@ jobs:
           PATAS_DATABASE_URL: postgresql+asyncpg://patas_admin:securepassword@localhost:5432/patas_db
           DATABASE_URL: postgresql+asyncpg://patas_admin:securepassword@localhost:5432/patas_db
           JWT_SECRET: dev-insecure-secret-key-change-in-prod
-        run: uv run pytest -v tests/acceptance
+        run: uv run pytest -v tests/acceptance --cov --cov-append
+
+      - name: Coverage Reports
+        working-directory: ./patas-backend
+        run: |
+          uv run coverage json -o coverage.json
+          uv run coverage xml -o coverage.xml
+
+      - name: Keep Coverage Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-backend
+          path: |
+            patas-backend/coverage.json
+            patas-backend/coverage.xml
 
   frontend-qa:
     name: Frontend Quality Gate
@@ -116,9 +130,55 @@ jobs:
         working-directory: ./patas-frontend
         run: pnpm run test:coverage
 
+      - name: Keep Coverage Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-frontend
+          path: |
+            patas-frontend/coverage/coverage-summary.json
+            patas-frontend/coverage/cobertura-coverage.xml
+
       - name: Standalone Production Build
         working-directory: ./patas-frontend
         run: pnpm run build
         env:
           NEXT_TELEMETRY_DISABLED: 1
           NEXT_PUBLIC_API_URL: http://localhost:8000
+
+  quality-gate:
+    name: Quality Gate
+    needs: [backend-qa, frontend-qa]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Download Coverage Reports
+        uses: actions/download-artifact@v4
+        with:
+          path: coverage
+
+      - name: Gate Tests
+        run: python3 -m unittest discover -s scripts/quality/tests
+
+      - name: Branch Coverage Floor
+        run: |
+          python3 scripts/quality/gate.py backend coverage/coverage-backend/coverage.json
+          python3 scripts/quality/gate.py frontend coverage/coverage-frontend/coverage-summary.json
+
+      - name: Coverage of the Changed Lines
+        if: github.event_name == 'pull_request'
+        run: |
+          MIN=$(jq -r .diff_coverage_min quality.json)
+          BASE=origin/${{ github.base_ref }}
+          uvx --from diff-cover==11.0.1 diff-cover coverage/coverage-backend/coverage.xml \
+            --compare-branch="$BASE" --fail-under="$MIN"
+          uvx --from diff-cover==11.0.1 diff-cover coverage/coverage-frontend/cobertura-coverage.xml \
+            --compare-branch="$BASE" --fail-under="$MIN"
