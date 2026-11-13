@@ -226,6 +226,18 @@ linter as well:
 uv run ruff check .
 ```
 
+The frontend tests cover its logic (API helpers, form checks, data mapping) and need no
+browser or database. They live in `patas-frontend/tests/unit/lib`, one file per file of
+`src/lib`. Screens and components are checked by hand.
+
+```sh
+cd patas-frontend
+pnpm install
+pnpm test                # run the tests
+pnpm test:coverage       # the same, with the coverage report in coverage/
+pnpm lint && pnpm typecheck
+```
+
 ### Logs and stopping the application
 
 ```sh

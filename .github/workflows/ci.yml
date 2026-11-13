@@ -112,6 +112,10 @@ jobs:
         working-directory: ./patas-frontend
         run: pnpm run typecheck
 
+      - name: Frontend Tests (Vitest)
+        working-directory: ./patas-frontend
+        run: pnpm run test:coverage
+
       - name: Standalone Production Build
         working-directory: ./patas-frontend
         run: pnpm run build
