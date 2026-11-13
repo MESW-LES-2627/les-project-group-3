@@ -11,8 +11,10 @@ from patas_backend.models.adoption import (
     AlreadyRequested,
     ApplicationStatus,
     InvalidApplication,
+    InvalidTransition,
     MatchmakerProfileRequired,
     OwnerCannotApply,
+    SentRequest,
 )
 from patas_backend.models.animal import AnimalNotAvailable
 from patas_backend.models.user import User
@@ -46,6 +48,30 @@ class ApplicationResponse(BaseModel):
             status=application.status,
             note=application.applicant_note,
             created_at=application.created_at,
+        )
+
+
+class SentRequestResponse(BaseModel):
+    # One row of the applicant's list. The owner's reply is shown; the copy of the
+    # applicant's own profile is not.
+    id: UUID
+    animal_id: UUID
+    animal_name: str
+    status: ApplicationStatus
+    note: str
+    owner_note: str | None
+    created_at: datetime
+
+    @classmethod
+    def from_read_model(cls, request: SentRequest) -> "SentRequestResponse":
+        return cls(
+            id=request.id,
+            animal_id=request.animal_id,
+            animal_name=request.animal_name,
+            status=request.status,
+            note=request.applicant_note,
+            owner_note=request.owner_note,
+            created_at=request.created_at,
         )
 
 
@@ -104,4 +130,32 @@ async def get_my_application(
     application = await service.get_active_request(applicant, animal_id)
     if application is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No active request")
+    return ApplicationResponse.from_domain(application)
+
+
+@router.get("/me/applications", response_model=list[SentRequestResponse])
+async def list_my_applications(
+    applicant: Annotated[User, Depends(get_current_user)],
+    service: Annotated[AdoptionService, Depends(get_adoption_service)],
+) -> list[SentRequestResponse]:
+    """Every request the caller sent, newest first. Never anyone else's."""
+    requests = await service.list_my_requests(applicant)
+    return [SentRequestResponse.from_read_model(request) for request in requests]
+
+
+@router.post(
+    "/applications/{application_id}/withdraw", response_model=ApplicationResponse
+)
+async def withdraw_application(
+    application_id: UUID,
+    applicant: Annotated[User, Depends(get_current_user)],
+    service: Annotated[AdoptionService, Depends(get_adoption_service)],
+) -> ApplicationResponse:
+    try:
+        application = await service.withdraw(applicant, application_id)
+    except InvalidTransition as error:
+        raise _conflict("invalid_transition", error) from error
+    if application is None:
+        # Also for someone else's request: to them it does not exist.
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Request not found")
     return ApplicationResponse.from_domain(application)

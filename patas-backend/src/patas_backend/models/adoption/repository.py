@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from patas_backend.models.adoption.application import AdoptionApplication
 from patas_backend.models.adoption.profile_snapshot import ProfileSnapshot
+from patas_backend.models.adoption.sent_request import SentRequest
 from patas_backend.models.adoption.status import ApplicationStatus
 
 _COLUMNS = """
@@ -64,6 +65,19 @@ _SELECT_OPEN_FOR_ANIMAL_FOR_UPDATE = text(
     WHERE animal_id = :animal_id AND status = 'open'
     ORDER BY created_at, id
     FOR UPDATE
+    """
+)
+# The applicant's list (US-17). It joins the animal for its name and leaves out the
+# profile snapshot, which is for the owner. The foreign key restricts deleting an
+# animal with applications, so the inner join never drops a row.
+_SELECT_SENT_BY_APPLICANT = text(
+    """
+    SELECT a.id, a.animal_id, an.name AS animal_name, a.status,
+           a.applicant_note, a.owner_note, a.created_at
+    FROM patas.adoption_applications a
+    JOIN patas.animals an ON an.id = a.animal_id
+    WHERE a.applicant_id = :applicant_id
+    ORDER BY a.created_at DESC, a.id
     """
 )
 
@@ -164,3 +178,21 @@ class AdoptionApplicationRepository:
             _SELECT_OPEN_FOR_ANIMAL_FOR_UPDATE, {"animal_id": animal_id}
         )
         return [_from_row(row) for row in result]
+
+    async def list_sent_by(self, applicant_id: UUID) -> list[SentRequest]:
+        """Every request the applicant sent, in any status, newest first."""
+        result = await self._session.execute(
+            _SELECT_SENT_BY_APPLICANT, {"applicant_id": applicant_id}
+        )
+        return [
+            SentRequest(
+                id=row.id,
+                animal_id=row.animal_id,
+                animal_name=row.animal_name,
+                status=ApplicationStatus(row.status),
+                applicant_note=row.applicant_note,
+                owner_note=row.owner_note,
+                created_at=row.created_at,
+            )
+            for row in result
+        ]

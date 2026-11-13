@@ -2,11 +2,13 @@ import { headers } from "next/headers";
 import Link from "next/link";
 
 import { requestToAdoptAction } from "@/app/animals/[id]/actions";
+import { withdrawRequestAction } from "@/app/requests/actions";
 import { getMyApplication } from "@/lib/adoption-api";
 import { applicationStatusLabel } from "@/lib/adoption-status";
 import { auth } from "@/lib/auth";
 
 import { RequestForm } from "./request-form";
+import { WithdrawButton } from "./withdraw-button";
 
 type AdoptionSectionProps = {
   animalId: string;
@@ -85,6 +87,21 @@ async function SignedInAdoption({
         <p className="mt-2 whitespace-pre-wrap text-sm text-muted">
           {mine.application.note}
         </p>
+        <div className="mt-4 flex flex-wrap items-start gap-4">
+          <WithdrawButton
+            applicationId={mine.application.id}
+            animalId={animalId}
+            animalName={animalName}
+            status={mine.application.status}
+            action={withdrawRequestAction}
+          />
+          <Link
+            href="/requests"
+            className="py-1.5 text-xs font-semibold text-forest underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest"
+          >
+            See all your requests
+          </Link>
+        </div>
       </div>
     );
   }

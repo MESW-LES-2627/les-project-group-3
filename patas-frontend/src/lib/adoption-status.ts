@@ -36,6 +36,13 @@ export const APPLICATION_STATUS_LABEL: Record<ApplicationStatus, string> = {
   adopted: "Adopted",
 };
 
+export function isApplicationStatus(value: unknown): value is ApplicationStatus {
+  return (
+    typeof value === "string" &&
+    (APPLICATION_STATUS as readonly string[]).includes(value)
+  );
+}
+
 // A status the frontend does not know yet (a stale or newer backend) still shows
 // as readable text instead of a blank badge.
 function labelOf(labels: Record<string, string>, status: string): string {

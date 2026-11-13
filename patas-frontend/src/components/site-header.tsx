@@ -38,6 +38,12 @@ export async function SiteHeader() {
                 My animals
               </Link>
               <Link
+                href="/requests"
+                className="text-sm font-medium text-muted transition hover:text-forest"
+              >
+                Requests
+              </Link>
+              <Link
                 href="/profile"
                 className="text-sm font-medium text-muted transition hover:text-forest"
               >

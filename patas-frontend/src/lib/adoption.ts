@@ -1,5 +1,9 @@
 // What the page knows about requesting to adopt. No network here: the backend
 // decides every rule, and noteProblem only saves a round trip for the obvious cases.
+import {
+  isApplicationStatus,
+  type ApplicationStatus,
+} from "@/lib/adoption-status";
 
 // The backend's limit (models/adoption/application.py, MAX_NOTE_LENGTH).
 export const NOTE_MAX = 1000;
@@ -69,4 +73,78 @@ export function isMyApplication(value: unknown): value is MyApplication {
     typeof status === "string" &&
     typeof note === "string"
   );
+}
+
+// US-17: the requests the signed-in person sent, and withdrawing one.
+
+export type SentRequest = {
+  id: string;
+  animal_id: string;
+  animal_name: string;
+  status: string;
+  note: string;
+  owner_note: string | null;
+  created_at: string;
+};
+
+export function isSentRequest(value: unknown): value is SentRequest {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const r = value as Record<string, unknown>;
+  return (
+    typeof r.id === "string" &&
+    typeof r.animal_id === "string" &&
+    typeof r.animal_name === "string" &&
+    typeof r.status === "string" &&
+    typeof r.note === "string" &&
+    (r.owner_note === null || typeof r.owner_note === "string") &&
+    typeof r.created_at === "string"
+  );
+}
+
+export type MyRequestsResult =
+  | { kind: "ok"; requests: SentRequest[] }
+  | { kind: "unavailable" };
+
+export type WithdrawProblem = "not-found" | "not-active" | "unavailable";
+
+export type WithdrawOutcome =
+  | { ok: true }
+  | { ok: false; problem: WithdrawProblem; message: string };
+
+export type WithdrawAction = (
+  applicationId: string,
+  animalId: string,
+) => Promise<WithdrawOutcome>;
+
+export const WITHDRAW_MESSAGES: Record<WithdrawProblem, string> = {
+  "not-found": "This request no longer exists.",
+  "not-active": "This request has already ended, so it cannot be withdrawn.",
+  unavailable: "The service is unavailable, please try again.",
+};
+
+// Presentation only: the backend decides what can be withdrawn.
+export function canWithdraw(status: string): boolean {
+  return status === "open" || status === "accepted";
+}
+
+export function withdrawConfirmation(animalName: string, status: string): string {
+  return status === "accepted"
+    ? `Withdraw your accepted request for ${animalName}? ${animalName} will be available to others again.`
+    : `Withdraw your request for ${animalName}?`;
+}
+
+// The ?status= of the requests page. Anything that is not a known status means All.
+export function statusFilterOf(value: string | null): ApplicationStatus | null {
+  return isApplicationStatus(value) ? value : null;
+}
+
+export function filterByStatus(
+  requests: SentRequest[],
+  status: ApplicationStatus | null,
+): SentRequest[] {
+  return status === null
+    ? requests
+    : requests.filter((request) => request.status === status);
 }
