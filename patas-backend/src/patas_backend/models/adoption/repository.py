@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from patas_backend.models.adoption.application import AdoptionApplication
 from patas_backend.models.adoption.profile_snapshot import ProfileSnapshot
+from patas_backend.models.adoption.received_request import ReceivedRequest
 from patas_backend.models.adoption.sent_request import SentRequest
 from patas_backend.models.adoption.status import ApplicationStatus
 
@@ -77,6 +78,16 @@ _SELECT_SENT_BY_APPLICANT = text(
     FROM patas.adoption_applications a
     JOIN patas.animals an ON an.id = a.animal_id
     WHERE a.applicant_id = :applicant_id
+    ORDER BY a.created_at DESC, a.id
+    """
+)
+_SELECT_RECEIVED_BY_OWNER = text(
+    """
+    SELECT a.id, a.animal_id, an.name AS animal_name, a.applicant_id,
+           a.status, a.applicant_note, a.applicant_profile, a.created_at
+    FROM patas.adoption_applications a
+    JOIN patas.animals an ON an.id = a.animal_id
+    WHERE a.owner_id = :owner_id
     ORDER BY a.created_at DESC, a.id
     """
 )
@@ -192,6 +203,25 @@ class AdoptionApplicationRepository:
                 status=ApplicationStatus(row.status),
                 applicant_note=row.applicant_note,
                 owner_note=row.owner_note,
+                created_at=row.created_at,
+            )
+            for row in result
+        ]
+
+    async def list_received_by(self, owner_id: UUID) -> list[ReceivedRequest]:
+        """Every request for one of the owner's animals, in any status."""
+        result = await self._session.execute(
+            _SELECT_RECEIVED_BY_OWNER, {"owner_id": owner_id}
+        )
+        return [
+            ReceivedRequest(
+                id=row.id,
+                animal_id=row.animal_id,
+                animal_name=row.animal_name,
+                applicant_id=row.applicant_id,
+                status=ApplicationStatus(row.status),
+                applicant_note=row.applicant_note,
+                applicant_profile=ProfileSnapshot.from_json(row.applicant_profile),
                 created_at=row.created_at,
             )
             for row in result

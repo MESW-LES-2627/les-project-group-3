@@ -14,6 +14,8 @@ from patas_backend.models.adoption import (
     InvalidTransition,
     MatchmakerProfileRequired,
     OwnerCannotApply,
+    ProfileSnapshot,
+    ReceivedRequest,
     SentRequest,
 )
 from patas_backend.models.animal import AnimalNotAvailable
@@ -71,6 +73,46 @@ class SentRequestResponse(BaseModel):
             status=request.status,
             note=request.applicant_note,
             owner_note=request.owner_note,
+            created_at=request.created_at,
+        )
+
+
+class MatchmakerProfileResponse(BaseModel):
+    housing: str
+    activity: str
+    time_away: str
+    experience: str
+    has_children: bool
+    has_dogs: bool
+    has_cats: bool
+
+    @classmethod
+    def from_snapshot(cls, profile: ProfileSnapshot) -> "MatchmakerProfileResponse":
+        return cls(**profile.to_json())
+
+
+class ReceivedRequestResponse(BaseModel):
+    id: UUID
+    animal_id: UUID
+    animal_name: str
+    status: ApplicationStatus
+    note: str
+    applicant_profile: MatchmakerProfileResponse
+    compatibility_concerns: list[str]
+    created_at: datetime
+
+    @classmethod
+    def from_read_model(cls, request: ReceivedRequest) -> "ReceivedRequestResponse":
+        return cls(
+            id=request.id,
+            animal_id=request.animal_id,
+            animal_name=request.animal_name,
+            status=request.status,
+            note=request.applicant_note,
+            applicant_profile=MatchmakerProfileResponse.from_snapshot(
+                request.applicant_profile
+            ),
+            compatibility_concerns=list(request.compatibility_concerns),
             created_at=request.created_at,
         )
 
@@ -141,6 +183,16 @@ async def list_my_applications(
     """Every request the caller sent, newest first. Never anyone else's."""
     requests = await service.list_my_requests(applicant)
     return [SentRequestResponse.from_read_model(request) for request in requests]
+
+
+@router.get("/me/received-applications", response_model=list[ReceivedRequestResponse])
+async def list_received_applications(
+    owner: Annotated[User, Depends(get_current_user)],
+    service: Annotated[AdoptionService, Depends(get_adoption_service)],
+) -> list[ReceivedRequestResponse]:
+    """Every request for the caller's animals, newest first."""
+    requests = await service.list_received_requests(owner)
+    return [ReceivedRequestResponse.from_read_model(request) for request in requests]
 
 
 @router.post(
