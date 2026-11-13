@@ -51,8 +51,10 @@ table of options adds lines and no branches, so branches say less about filler a
 about decisions that are actually taken.
 
 Coverage says what ran, not what was checked. For that, **mutation testing** runs on the
-domain (`models/`): it changes the code on purpose and counts how many changes the tests
-notice.
+domain (`models/`, except `repository.py`): it changes the code on purpose and counts how
+many changes the unit tests notice. Repositories are persistence, covered by the
+integration tests, which mutation testing does not run. A change no test reaches counts
+as not noticed.
 
 ## Levels
 

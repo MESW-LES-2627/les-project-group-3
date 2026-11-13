@@ -183,6 +183,44 @@ jobs:
           uvx --from diff-cover==11.0.1 diff-cover coverage/coverage-frontend/cobertura-coverage.xml \
             --compare-branch="$BASE" --fail-under="$MIN"
 
+  # Reported, never blocking: nothing else waits for it (see docs/process/TESTING.md).
+  mutation:
+    name: Mutation Testing (domain)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          version: "latest"
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Install Backend Dependencies
+        working-directory: ./patas-backend
+        run: uv sync --frozen --all-groups
+
+      # mutmut does not run on Windows, so it is not a project dependency.
+      - name: Mutate the Domain
+        working-directory: ./patas-backend
+        run: uv run --no-sync --with mutmut==3.8.1 mutmut run --max-children 4
+
+      - name: Mutation Score
+        working-directory: ./patas-backend
+        run: |
+          uv run --no-sync --with mutmut==3.8.1 mutmut export-cicd-stats
+          python3 ../scripts/quality/mutation.py mutants/mutmut-cicd-stats.json | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep Mutation Stats
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-stats
+          path: patas-backend/mutants/mutmut-cicd-stats.json
+
   dependency-audit:
     name: Dependency Audit
     runs-on: ubuntu-latest
