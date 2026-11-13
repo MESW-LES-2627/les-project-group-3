@@ -50,6 +50,25 @@ omit = [
 [tool.coverage.report]
 exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError"]
 
+# Mutation testing of the domain (docs/process/TESTING.md): the unit tests run against
+# changed copies of the code. Repositories are persistence, covered by integration tests.
+# The whole package is copied because the tests import it; do_not_mutate narrows it.
+[tool.mutmut]
+source_paths = ["src/patas_backend/"]
+do_not_mutate = [
+    "src/patas_backend/auth/*",
+    "src/patas_backend/routers/*",
+    "src/patas_backend/services/*",
+    "src/patas_backend/config.py",
+    "src/patas_backend/database.py",
+    "src/patas_backend/main.py",
+    "src/patas_backend/demo_applications.py",
+    "*/__init__.py",
+    "*/repository.py",
+]
+pytest_add_cli_args_test_selection = ["tests/unit/"]
+also_copy = ["tests", "alembic.ini", "alembic"]
+
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
 
