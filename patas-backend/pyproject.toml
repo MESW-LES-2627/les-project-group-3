@@ -34,6 +34,22 @@ markers = [
     "acceptance: one acceptance test (AT) of the product, through HTTP",
 ]
 
+# What is measured is code with logic (docs/process/TESTING.md): wiring and start-up
+# have no rules of their own to break.
+[tool.coverage.run]
+branch = true
+source = ["src/patas_backend"]
+omit = [
+    "*/__init__.py",
+    "*/main.py",
+    "*/database.py",
+    "*/config.py",
+    "*/routers/health.py",
+]
+
+[tool.coverage.report]
+exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError"]
+
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
 
@@ -43,8 +59,10 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "diff-cover>=9.2.0",
     "httpx>=0.28.1",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
+    "pytest-cov>=6.0.0",
     "ruff>=0.17.1",
 ]
