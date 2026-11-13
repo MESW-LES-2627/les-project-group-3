@@ -8,9 +8,11 @@ import {
   REQUEST_MESSAGES,
   WITHDRAW_MESSAGES,
   isMyApplication,
+  isReceivedRequest,
   isSentRequest,
   type MyApplicationResult,
   type MyRequestsResult,
+  type ReceivedRequestsResult,
   type RequestOutcome,
   type RequestProblem,
   type WithdrawOutcome,
@@ -140,6 +142,29 @@ export async function getMyRequests(): Promise<MyRequestsResult> {
     }
     const payload: unknown = await response.json();
     return Array.isArray(payload) && payload.every(isSentRequest)
+      ? { kind: "ok", requests: payload }
+      : { kind: "unavailable" };
+  } catch {
+    return { kind: "unavailable" };
+  }
+}
+
+export async function getReceivedRequests(): Promise<ReceivedRequestsResult> {
+  const token = await bearerToken();
+
+  try {
+    const response = await fetch(
+      `${backendUrl()}/me/received-applications`,
+      {
+        cache: "no-store",
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+    if (!response.ok) {
+      return { kind: "unavailable" };
+    }
+    const payload: unknown = await response.json();
+    return Array.isArray(payload) && payload.every(isReceivedRequest)
       ? { kind: "ok", requests: payload }
       : { kind: "unavailable" };
   } catch {
