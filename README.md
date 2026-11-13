@@ -47,6 +47,7 @@ Full feature list: [MVP](docs/product/MVP.md).
 | :-- | :-- |
 | [Architecture Decision Records](docs/architecture/adr/) | One record per structural decision (authentication, deployment, aggregates, API, services) |
 | [OOD deliverables](docs/design/) | Class diagram, component diagram and event storming |
+| [Testing policy](docs/process/TESTING.md) | What each kind of test covers, what is measured, the levels, and what to do when the build is red |
 
 ### Research
 
@@ -64,7 +65,7 @@ Full feature list: [MVP](docs/product/MVP.md).
 | [AGENTS.md](AGENTS.md) | Engineering rules and AI usage guidelines |
 | [Vertical prototype spec](docs/iterations/0/VerticalPrototypeSpec.md) | Iteration 0 slice: publish an animal, see it in the catalog |
 | [Demo steps](#demo-publish-an-animal-and-see-it-in-the-catalog) | How to run the Iteration 0 demo |
-| [CI workflow](.github/workflows/ci.yml) | Linters and tests on every PR |
+| [CI workflow](.github/workflows/ci.yml) | Linters, tests, coverage gates, mutation, dependency audit and deploy ([ADR 0021](docs/architecture/adr/0021-quality-pipeline.md)) |
 
 ### Archive
 
@@ -236,6 +237,13 @@ pnpm install
 pnpm test                # run the tests
 pnpm test:coverage       # the same, with the coverage report in coverage/
 pnpm lint && pnpm typecheck
+```
+
+The scripts of the quality pipeline (the coverage gate, the mutation score and the metrics
+report) have their own tests, which need nothing but Python:
+
+```sh
+python -m unittest discover -s scripts/quality/tests
 ```
 
 ### Logs and stopping the application
