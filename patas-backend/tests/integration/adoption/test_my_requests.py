@@ -54,6 +54,39 @@ async def test_the_list_has_only_the_applicants_requests_newest_first(
     ]
 
 
+async def test_the_owner_sees_requests_for_all_her_animals_in_any_status(
+    session_factory: Factory, world: World
+) -> None:
+    # Each persist_application is its own transaction, so created_at increases.
+    older = await persist_application(
+        session_factory, world, applicant=world.bruno, status=S.DECLINED
+    )
+    newer = await persist_application(
+        session_factory, world, applicant=world.carla, animal=world.luna
+    )
+
+    listed = await _service(session_factory).list_received_requests(
+        _person(world.ana, "Ana")
+    )
+
+    assert [(r.id, r.animal_name, r.applicant_id, r.status) for r in listed] == [
+        (newer.id, "Luna", world.carla, S.OPEN),
+        (older.id, "Rex", world.bruno, S.DECLINED),
+    ]
+
+
+async def test_a_person_who_owns_no_animal_receives_nothing(
+    session_factory: Factory, world: World
+) -> None:
+    await persist_application(session_factory, world, applicant=world.bruno)
+
+    listed = await _service(session_factory).list_received_requests(
+        _person(world.carla, "Carla")
+    )
+
+    assert listed == []
+
+
 async def test_the_list_keeps_requests_that_ended(
     session_factory: Factory, world: World
 ) -> None:
