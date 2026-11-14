@@ -1,1 +1,19 @@
-[]
+[
+  {
+    "date": "2026-11-14T09:43:33Z",
+    "branch": "main",
+    "commit": "684cf78",
+    "title": "Merge pull request #87 from MESW-LES-2627/feat/quality-gate",
+    "backend": {
+      "tests": 658,
+      "branch_pct": 90.0,
+      "diff_pct": null
+    },
+    "frontend": {
+      "tests": 128,
+      "branch_pct": 100.0,
+      "diff_pct": null
+    },
+    "mutation_pct": 76.3
+  }
+]
