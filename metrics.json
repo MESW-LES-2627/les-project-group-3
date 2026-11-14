@@ -66,5 +66,22 @@
       "diff_pct": null
     },
     "mutation_pct": 76.3
+  },
+  {
+    "date": "2026-11-14T16:10:08Z",
+    "branch": "staging",
+    "commit": "ee3db60",
+    "title": "Merge pull request #90 from MESW-LES-2627/fix-health-check-exhausts-db",
+    "backend": {
+      "tests": 662,
+      "branch_pct": 90.1,
+      "diff_pct": null
+    },
+    "frontend": {
+      "tests": 133,
+      "branch_pct": 100.0,
+      "diff_pct": null
+    },
+    "mutation_pct": 76.3
   }
 ]
