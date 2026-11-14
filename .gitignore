@@ -1,6 +1,7 @@
 .idea/
 **/node_modules/
 /.env
+*.DS_Store
 
 # Python bytecode
 __pycache__/
