@@ -12,6 +12,7 @@ Full definition: [`docs/process/DEFINITION_OF_DONE.md`](../docs/process/DEFINITI
 Tick an item only when its evidence is linked or written below it. If an item does not apply, say which one and why.
 
 ### Before
+- [ ] **0. Target branch:** This PR targets `staging` (not `main`), unless it is a release PR promoting staging to production.
 - [ ] **1. Acceptance criteria** are testable and listed here:
   <!-- list them -->
 - [ ] **2. Business logic was agreed with the team beforehand:**
