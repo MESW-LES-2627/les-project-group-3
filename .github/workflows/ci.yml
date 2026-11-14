@@ -2,9 +2,9 @@ name: CI Quality Gate
 
 on:
   push:
-    branches: [main]
+    branches: [main, staging]
   pull_request:
-    branches: [main]
+    branches: [main, staging]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -63,7 +63,7 @@ jobs:
           PATAS_DATABASE_URL: postgresql+asyncpg://patas_admin:securepassword@localhost:5432/patas_db
           DATABASE_URL: postgresql+asyncpg://patas_admin:securepassword@localhost:5432/patas_db
           JWT_SECRET: dev-insecure-secret-key-change-in-prod
-        run: uv run pytest -v tests/unit
+        run: uv run pytest -v tests/unit --cov --junitxml=junit-unit.xml
 
       - name: Integration Tests
         working-directory: ./patas-backend
@@ -71,7 +71,7 @@ jobs:
           PATAS_DATABASE_URL: postgresql+asyncpg://patas_admin:securepassword@localhost:5432/patas_db
           DATABASE_URL: postgresql+asyncpg://patas_admin:securepassword@localhost:5432/patas_db
           JWT_SECRET: dev-insecure-secret-key-change-in-prod
-        run: uv run pytest -v tests/integration
+        run: uv run pytest -v tests/integration --cov --cov-append --junitxml=junit-integration.xml
 
       - name: Acceptance Tests
         working-directory: ./patas-backend
@@ -79,7 +79,22 @@ jobs:
           PATAS_DATABASE_URL: postgresql+asyncpg://patas_admin:securepassword@localhost:5432/patas_db
           DATABASE_URL: postgresql+asyncpg://patas_admin:securepassword@localhost:5432/patas_db
           JWT_SECRET: dev-insecure-secret-key-change-in-prod
-        run: uv run pytest -v tests/acceptance
+        run: uv run pytest -v tests/acceptance --cov --cov-append --junitxml=junit-acceptance.xml
+
+      - name: Coverage Reports
+        working-directory: ./patas-backend
+        run: |
+          uv run coverage json -o coverage.json
+          uv run coverage xml -o coverage.xml
+
+      - name: Keep Coverage Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-backend
+          path: |
+            patas-backend/coverage.json
+            patas-backend/coverage.xml
+            patas-backend/junit-*.xml
 
   frontend-qa:
     name: Frontend Quality Gate
@@ -112,9 +127,234 @@ jobs:
         working-directory: ./patas-frontend
         run: pnpm run typecheck
 
+      - name: Frontend Tests (Vitest)
+        working-directory: ./patas-frontend
+        run: pnpm run test:coverage
+
+      - name: Keep Coverage Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-frontend
+          path: |
+            patas-frontend/coverage/coverage-summary.json
+            patas-frontend/coverage/cobertura-coverage.xml
+            patas-frontend/coverage/test-results.json
+
       - name: Standalone Production Build
         working-directory: ./patas-frontend
         run: pnpm run build
         env:
           NEXT_TELEMETRY_DISABLED: 1
           NEXT_PUBLIC_API_URL: http://localhost:8000
+
+  quality-gate:
+    name: Quality Gate
+    needs: [backend-qa, frontend-qa]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Download Coverage Reports
+        uses: actions/download-artifact@v4
+        with:
+          path: coverage
+
+      - name: Lint the Quality Scripts
+        run: |
+          uvx ruff==0.17.1 format --check scripts
+          uvx ruff==0.17.1 check scripts
+
+      - name: Gate Tests
+        run: python3 -m unittest discover -s scripts/quality/tests
+
+      - name: Branch Coverage Floor
+        run: |
+          python3 scripts/quality/gate.py backend coverage/coverage-backend/coverage.json
+          python3 scripts/quality/gate.py frontend coverage/coverage-frontend/coverage-summary.json
+
+      - name: Coverage of the Changed Lines
+        if: github.event_name == 'pull_request'
+        run: |
+          MIN=$(jq -r .diff_coverage_min quality.json)
+          BASE=origin/${{ github.base_ref }}
+          uvx --from diff-cover==11.0.1 diff-cover coverage/coverage-backend/coverage.xml \
+            --compare-branch="$BASE" --fail-under="$MIN"
+          uvx --from diff-cover==11.0.1 diff-cover coverage/coverage-frontend/cobertura-coverage.xml \
+            --compare-branch="$BASE" --fail-under="$MIN"
+
+  # Reported, never blocking: nothing else waits for it (see docs/process/TESTING.md).
+  mutation:
+    name: Mutation Testing (domain)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          version: "latest"
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Install Backend Dependencies
+        working-directory: ./patas-backend
+        run: uv sync --frozen --all-groups
+
+      # mutmut does not run on Windows, so it is not a project dependency.
+      - name: Mutate the Domain
+        working-directory: ./patas-backend
+        run: uv run --no-sync --with mutmut==3.8.1 mutmut run --max-children 4
+
+      - name: Mutation Score
+        working-directory: ./patas-backend
+        run: |
+          uv run --no-sync --with mutmut==3.8.1 mutmut export-cicd-stats
+          python3 ../scripts/quality/mutation.py mutants/mutmut-cicd-stats.json | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep Mutation Stats
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-stats
+          path: patas-backend/mutants/mutmut-cicd-stats.json
+
+  dependency-audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Production dependencies only: the development ones never reach the deploy.
+      - name: Backend Vulnerabilities (pip-audit)
+        working-directory: ./patas-backend
+        run: |
+          uv export --frozen --no-dev --no-hashes --no-emit-project -o requirements.txt
+          uvx pip-audit==2.10.1 -r requirements.txt --disable-pip --no-deps
+
+      - name: Frontend Vulnerabilities (pnpm audit)
+        working-directory: ./patas-frontend
+        run: pnpm audit --prod --audit-level=high
+
+  # Runs only when everything above is green, on the commit that was tested.
+  deploy:
+    name: Deploy
+    needs: [quality-gate, dependency-audit]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Push to deployment repository
+        env:
+          DEPLOY_PAT: ${{ secrets.DEPLOY_TOKEN }}
+        run: |
+          git remote add deploy https://ammp102:$DEPLOY_PAT@github.com/ammp102/les-project-group-3-deploy.git
+          git push deploy HEAD:main --force
+
+  # One row per merge on the page served from the gh-pages branch. Nothing waits for it,
+  # and a mutation run that failed only leaves that number as n/d.
+  report:
+    name: Metrics Report
+    needs: [quality-gate, mutation]
+    if: ${{ !cancelled() && github.event_name == 'push' && needs.quality-gate.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: metrics-report
+      cancel-in-progress: false
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Download Reports
+        uses: actions/download-artifact@v4
+        with:
+          path: reports
+
+      # The lines this merge changed: the commit against its first parent.
+      - name: Coverage of the Changed Lines
+        run: |
+          uvx --from diff-cover==11.0.1 diff-cover reports/coverage-backend/coverage.xml \
+            --compare-branch=HEAD^1 --json-report reports/diff-backend.json
+          uvx --from diff-cover==11.0.1 diff-cover reports/coverage-frontend/cobertura-coverage.xml \
+            --compare-branch=HEAD^1 --json-report reports/diff-frontend.json
+
+      - name: Open the gh-pages Branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null; then
+            git fetch origin gh-pages
+            git worktree add pages -B gh-pages origin/gh-pages
+          else
+            git worktree add --detach pages
+            git -C pages checkout --orphan gh-pages
+            git -C pages rm -rf --quiet .
+          fi
+          touch pages/.nojekyll
+
+      - name: Add the Row of This Merge
+        env:
+          BRANCH: ${{ github.ref_name }}
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+        run: |
+          python3 scripts/quality/report.py \
+            --metrics pages/metrics.json --html pages/index.html \
+            --branch "$BRANCH" --commit "${GITHUB_SHA::7}" \
+            --date "$(git show -s --format=%cI "$GITHUB_SHA")" \
+            --title "$(git show -s --format=%s "$GITHUB_SHA")" \
+            --repo-url "$REPO_URL" \
+            --backend-junit reports/coverage-backend/junit-*.xml \
+            --backend-coverage reports/coverage-backend/coverage.json \
+            --backend-diff reports/diff-backend.json \
+            --frontend-tests reports/coverage-frontend/test-results.json \
+            --frontend-coverage reports/coverage-frontend/coverage-summary.json \
+            --frontend-diff reports/diff-frontend.json \
+            --mutation reports/mutation-stats/mutmut-cicd-stats.json
+
+      - name: Publish
+        working-directory: pages
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          git add .nojekyll metrics.json index.html
+          git commit -m "metrics: ${GITHUB_SHA::7} ($BRANCH)"
+          git push origin HEAD:gh-pages
