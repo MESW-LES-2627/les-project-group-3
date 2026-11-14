@@ -1,0 +1,6 @@
+# The quality scripts are separate from the backend, so they have their own settings.
+# Same rules as the backend; a longer line because of the HTML and CSS of the report.
+line-length = 100
+
+[lint]
+select = ["E", "F", "I", "UP", "B"]
