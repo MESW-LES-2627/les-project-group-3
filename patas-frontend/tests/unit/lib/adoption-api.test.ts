@@ -9,6 +9,7 @@ vi.mock("@/lib/matchmaker-api", () => ({
 import {
   getMyApplication,
   getMyRequests,
+  getReceivedRequests,
   requestToAdopt,
   withdrawRequest,
 } from "@/lib/adoption-api";
@@ -19,6 +20,25 @@ const sentRequest = {
   ...application,
   animal_name: "Bolt",
   owner_note: null,
+  created_at: "2026-11-01T10:00:00Z",
+};
+
+const receivedRequest = {
+  id: ID,
+  animal_id: ID,
+  animal_name: "Bolt",
+  status: "open",
+  note: "Hi",
+  applicant_profile: {
+    housing: "apartment",
+    time_away: "half_day",
+    activity: "moderate",
+    experience: "some",
+    has_children: false,
+    has_dogs: true,
+    has_cats: false,
+  },
+  compatibility_concerns: ["Its energy is a bit different from yours"],
   created_at: "2026-11-01T10:00:00Z",
 };
 
@@ -172,6 +192,37 @@ describe("getMyRequests", () => {
 
     fetchMock.mockRejectedValueOnce(new Error("down"));
     expect(await getMyRequests()).toEqual({ kind: "unavailable" });
+  });
+});
+
+describe("getReceivedRequests", () => {
+  it("returns the requests for my animals, asking with my token", async () => {
+    answer(200, [receivedRequest]);
+
+    expect(await getReceivedRequests()).toEqual({
+      kind: "ok",
+      requests: [receivedRequest],
+    });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toMatch(/\/me\/received-applications$/);
+    expect(init?.headers).toEqual({ Authorization: "Bearer test-token" });
+  });
+
+  it("is unavailable when even one item is malformed", async () => {
+    answer(200, [receivedRequest, { id: "x" }]);
+
+    expect(await getReceivedRequests()).toEqual({ kind: "unavailable" });
+  });
+
+  it("is unavailable on an error status, a non-list body or a network failure", async () => {
+    answer(500);
+    expect(await getReceivedRequests()).toEqual({ kind: "unavailable" });
+
+    answer(200, { requests: [] });
+    expect(await getReceivedRequests()).toEqual({ kind: "unavailable" });
+
+    fetchMock.mockRejectedValueOnce(new Error("down"));
+    expect(await getReceivedRequests()).toEqual({ kind: "unavailable" });
   });
 });
 

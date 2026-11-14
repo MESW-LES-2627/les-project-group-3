@@ -16,6 +16,7 @@ from patas_backend.models.adoption.events import (
     ApplicationWithdrawn,
 )
 from patas_backend.models.adoption.profile_snapshot import ProfileSnapshot
+from patas_backend.models.adoption.received_request import ReceivedRequest
 from patas_backend.models.adoption.repository import AdoptionApplicationRepository
 from patas_backend.models.adoption.sent_request import SentRequest
 from patas_backend.models.adoption.status import ApplicationStatus
@@ -37,5 +38,6 @@ __all__ = [
     "MatchmakerProfileRequired",
     "OwnerCannotApply",
     "ProfileSnapshot",
+    "ReceivedRequest",
     "SentRequest",
 ]

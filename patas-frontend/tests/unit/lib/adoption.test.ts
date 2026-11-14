@@ -4,6 +4,7 @@ import {
   canWithdraw,
   filterByStatus,
   isMyApplication,
+  isReceivedRequest,
   isSentRequest,
   noteProblem,
   noteProblemMessage,
@@ -11,6 +12,7 @@ import {
   withdrawConfirmation,
   type SentRequest,
 } from "@/lib/adoption";
+import type { MatchmakerAnswers } from "@/lib/matchmaker-profile";
 
 function sent(status: string, id = "r1"): SentRequest {
   return {
@@ -20,6 +22,29 @@ function sent(status: string, id = "r1"): SentRequest {
     status,
     note: "I have a garden",
     owner_note: null,
+    created_at: "2026-11-01T10:00:00Z",
+  };
+}
+
+const profile: MatchmakerAnswers = {
+  housing: "apartment",
+  time_away: "half_day",
+  activity: "moderate",
+  experience: "some",
+  has_children: false,
+  has_dogs: true,
+  has_cats: false,
+};
+
+function received(concerns: unknown[] = []): Record<string, unknown> {
+  return {
+    id: "r1",
+    animal_id: "a1",
+    animal_name: "Bolt",
+    status: "open",
+    note: "I have a garden",
+    applicant_profile: profile,
+    compatibility_concerns: concerns,
     created_at: "2026-11-01T10:00:00Z",
   };
 }
@@ -123,6 +148,24 @@ describe("response shape guards", () => {
     expect(isSentRequest({ ...sent("open"), created_at: 5 })).toBe(false);
     expect(isSentRequest(null)).toBe(false);
     expect(isSentRequest("open")).toBe(false);
+  });
+
+  it("accepts a well-formed received request, with or without concerns", () => {
+    expect(isReceivedRequest(received())).toBe(true);
+    expect(isReceivedRequest(received(["Its energy is different"]))).toBe(true);
+  });
+
+  it("rejects a received request with a missing or mistyped field", () => {
+    expect(
+      isReceivedRequest({ ...received(), applicant_profile: { housing: "x" } }),
+    ).toBe(false);
+    expect(isReceivedRequest(received(["fine", 5]))).toBe(false);
+    expect(
+      isReceivedRequest({ ...received(), compatibility_concerns: "none" }),
+    ).toBe(false);
+    expect(isReceivedRequest({ ...received(), created_at: 5 })).toBe(false);
+    expect(isReceivedRequest(null)).toBe(false);
+    expect(isReceivedRequest("open")).toBe(false);
   });
 
   it("accepts a well-formed application and rejects a mistyped one", () => {

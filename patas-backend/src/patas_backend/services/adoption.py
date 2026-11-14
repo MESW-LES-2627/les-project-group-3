@@ -1,3 +1,4 @@
+from dataclasses import replace
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -9,10 +10,19 @@ from patas_backend.models.adoption import (
     MatchmakerProfileRequired,
     OwnerCannotApply,
     ProfileSnapshot,
+    ReceivedRequest,
     SentRequest,
 )
 from patas_backend.models.animal import AnimalRepository
-from patas_backend.models.matchmaker_profile import MatchmakerProfileRepository
+from patas_backend.models.compatibility import (
+    CompatibilityMode,
+    ReasonKind,
+    strategy_for,
+)
+from patas_backend.models.matchmaker_profile import (
+    MatchmakerProfile,
+    MatchmakerProfileRepository,
+)
 from patas_backend.models.user import User
 from patas_backend.services.events import EventDispatcher
 from patas_backend.services.locking import lock_animal_and_application
@@ -84,6 +94,41 @@ class AdoptionService:
             return await AdoptionApplicationRepository(session).list_sent_by(
                 applicant.id
             )
+
+    async def list_received_requests(self, owner: User) -> list[ReceivedRequest]:
+        """US-15: requests for the owner's animals, with profile compatibility notes."""
+        async with self._session_factory() as session:
+            requests = await AdoptionApplicationRepository(session).list_received_by(
+                owner.id
+            )
+            animals = {
+                animal.id: animal
+                for animal in await AnimalRepository(session).list_by_owner(owner.id)
+            }
+
+        strategy = strategy_for(CompatibilityMode.LOOSE)
+        received: list[ReceivedRequest] = []
+        for request in requests:
+            animal = animals[request.animal_id]
+            profile = request.applicant_profile
+            applicant_profile = MatchmakerProfile(
+                user_id=request.applicant_id,
+                housing=profile.housing,
+                activity=profile.activity,
+                time_away=profile.time_away,
+                experience=profile.experience,
+                has_children=profile.has_children,
+                has_dogs=profile.has_dogs,
+                has_cats=profile.has_cats,
+            )
+            fit = strategy.evaluate(applicant_profile, animal.match_profile())
+            concerns = tuple(
+                reason.text
+                for reason in fit.reasons
+                if reason.kind is ReasonKind.CONCERN
+            )
+            received.append(replace(request, compatibility_concerns=concerns))
+        return received
 
     async def withdraw(
         self, applicant: User, application_id: UUID

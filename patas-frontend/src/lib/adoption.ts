@@ -4,6 +4,10 @@ import {
   isApplicationStatus,
   type ApplicationStatus,
 } from "@/lib/adoption-status";
+import {
+  isMatchmakerAnswers,
+  type MatchmakerAnswers,
+} from "@/lib/matchmaker-profile";
 
 // The backend's limit (models/adoption/application.py, MAX_NOTE_LENGTH).
 export const NOTE_MAX = 1000;
@@ -107,6 +111,41 @@ export type MyRequestsResult =
   | { kind: "ok"; requests: SentRequest[] }
   | { kind: "unavailable" };
 
+export type ReceivedRequest = {
+  id: string;
+  animal_id: string;
+  animal_name: string;
+  status: string;
+  note: string;
+  applicant_profile: MatchmakerAnswers;
+  compatibility_concerns: string[];
+  created_at: string;
+};
+
+export function isReceivedRequest(value: unknown): value is ReceivedRequest {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const request = value as Record<string, unknown>;
+  return (
+    typeof request.id === "string" &&
+    typeof request.animal_id === "string" &&
+    typeof request.animal_name === "string" &&
+    typeof request.status === "string" &&
+    typeof request.note === "string" &&
+    isMatchmakerAnswers(request.applicant_profile) &&
+    Array.isArray(request.compatibility_concerns) &&
+    request.compatibility_concerns.every(
+      (concern) => typeof concern === "string",
+    ) &&
+    typeof request.created_at === "string"
+  );
+}
+
+export type ReceivedRequestsResult =
+  | { kind: "ok"; requests: ReceivedRequest[] }
+  | { kind: "unavailable" };
+
 export type WithdrawProblem = "not-found" | "not-active" | "unavailable";
 
 export type WithdrawOutcome =
@@ -140,10 +179,10 @@ export function statusFilterOf(value: string | null): ApplicationStatus | null {
   return isApplicationStatus(value) ? value : null;
 }
 
-export function filterByStatus(
-  requests: SentRequest[],
+export function filterByStatus<T extends { status: string }>(
+  requests: T[],
   status: ApplicationStatus | null,
-): SentRequest[] {
+): T[] {
   return status === null
     ? requests
     : requests.filter((request) => request.status === status);
