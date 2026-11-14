@@ -49,5 +49,22 @@
       "diff_pct": null
     },
     "mutation_pct": 76.3
+  },
+  {
+    "date": "2026-11-14T15:42:00Z",
+    "branch": "staging",
+    "commit": "5c86ed4",
+    "title": "Include R2 setup in the guide",
+    "backend": {
+      "tests": 662,
+      "branch_pct": 90.1,
+      "diff_pct": null
+    },
+    "frontend": {
+      "tests": 133,
+      "branch_pct": 100.0,
+      "diff_pct": null
+    },
+    "mutation_pct": 76.3
   }
 ]
