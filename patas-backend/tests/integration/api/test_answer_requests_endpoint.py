@@ -1,9 +1,11 @@
 """The owner's endpoints for answering requests (US-16): what AT-17 and AT-18 do not
-exercise."""
+exercise. Accepting and declining share the same contract, so each test runs for both.
+"""
 
 from uuid import UUID
 
 import httpx
+import pytest
 from adoption_endpoint import (
     ANA,
     BRUNO,
@@ -18,36 +20,48 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from token_issuer import TokenIssuer
 
 UNKNOWN = UUID(int=1)
+ACTIONS = pytest.mark.parametrize("action", ["accept", "decline"])
 
 
-async def test_declining_needs_a_session(client: httpx.AsyncClient) -> None:
-    response = await client.post(f"/applications/{UNKNOWN}/decline")
+@ACTIONS
+async def test_answering_needs_a_session(
+    action: str, client: httpx.AsyncClient
+) -> None:
+    response = await client.post(f"/applications/{UNKNOWN}/{action}")
 
     assert response.status_code == 401
 
 
-async def test_declining_a_request_that_ended_answers_409_with_a_code(
-    client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine
+@ACTIONS
+async def test_answering_a_request_that_ended_answers_409_with_a_code(
+    action: str,
+    client: httpx.AsyncClient,
+    issuer: TokenIssuer,
+    engine: AsyncEngine,
 ) -> None:
     rex = await _seed_rex(engine)
     request = _request(rex, BRUNO, S.WITHDRAWN)
     await _save(engine, request)
 
     response = await client.post(
-        f"/applications/{request.id}/decline", headers=_bearer(issuer.token(**ANA))
+        f"/applications/{request.id}/{action}", headers=_bearer(issuer.token(**ANA))
     )
 
     assert response.status_code == 409
     assert response.json()["detail"]["code"] == "invalid_transition"
 
 
-async def test_declining_an_unknown_request_answers_404(
-    client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine
+@ACTIONS
+async def test_answering_an_unknown_request_answers_404(
+    action: str,
+    client: httpx.AsyncClient,
+    issuer: TokenIssuer,
+    engine: AsyncEngine,
 ) -> None:
     await _seed_rex(engine)
 
     response = await client.post(
-        f"/applications/{UNKNOWN}/decline", headers=_bearer(issuer.token(**ANA))
+        f"/applications/{UNKNOWN}/{action}", headers=_bearer(issuer.token(**ANA))
     )
 
     assert response.status_code == 404
@@ -55,15 +69,19 @@ async def test_declining_an_unknown_request_answers_404(
     assert response.json()["detail"] == "Request not found"
 
 
+@ACTIONS
 async def test_a_note_over_1000_characters_answers_422_and_changes_nothing(
-    client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine
+    action: str,
+    client: httpx.AsyncClient,
+    issuer: TokenIssuer,
+    engine: AsyncEngine,
 ) -> None:
     rex = await _seed_rex(engine)
     request = _request(rex, BRUNO)
     await _save(engine, request)
 
     response = await client.post(
-        f"/applications/{request.id}/decline",
+        f"/applications/{request.id}/{action}",
         json={"note": "a" * 1001},
         headers=_bearer(issuer.token(**ANA)),
     )
@@ -73,18 +91,39 @@ async def test_a_note_over_1000_characters_answers_422_and_changes_nothing(
     assert await _status(engine, request) is S.OPEN
 
 
+@ACTIONS
 async def test_an_unknown_field_in_the_body_answers_422(
-    client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine
+    action: str,
+    client: httpx.AsyncClient,
+    issuer: TokenIssuer,
+    engine: AsyncEngine,
 ) -> None:
     rex = await _seed_rex(engine)
     request = _request(rex, BRUNO)
     await _save(engine, request)
 
     response = await client.post(
-        f"/applications/{request.id}/decline",
-        json={"note": "No", "status": "accepted"},
+        f"/applications/{request.id}/{action}",
+        json={"note": "No", "status": "declined"},
         headers=_bearer(issuer.token(**ANA)),
     )
 
     assert response.status_code == 422
     assert await _status(engine, request) is S.OPEN
+
+
+async def test_accepting_without_a_note_stores_none(
+    client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine
+) -> None:
+    rex = await _seed_rex(engine)
+    request = _request(rex, BRUNO)
+    await _save(engine, request)
+
+    # No body at all: the note is optional.
+    response = await client.post(
+        f"/applications/{request.id}/accept", headers=_bearer(issuer.token(**ANA))
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "accepted"
+    assert response.json()["owner_note"] is None

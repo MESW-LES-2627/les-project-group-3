@@ -30,8 +30,8 @@ class InvalidAnimalTransition(Exception):
     """The animal's adoption status does not allow this change."""
 
 
-class AnimalNotAvailable(Exception):
-    """The animal is not open to adoption requests."""
+class AnimalNotAvailable(InvalidAnimalTransition):
+    """The animal is not available: it cannot take a request or be reserved."""
 
 
 def validate_name(name: str) -> str:
@@ -240,7 +240,11 @@ class Animal:
 
     def reserve(self) -> None:
         """An application was accepted for this animal."""
-        self._move(AdoptionStatus.AVAILABLE, AdoptionStatus.RESERVED, "reserved")
+        if self.adoption_status is not AdoptionStatus.AVAILABLE:
+            raise AnimalNotAvailable(
+                f"an animal that is {self.adoption_status.value} cannot be reserved"
+            )
+        self.adoption_status = AdoptionStatus.RESERVED
 
     def release(self) -> None:
         """The accepted application ended without an adoption."""

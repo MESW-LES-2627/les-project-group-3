@@ -207,6 +207,34 @@ async def list_received_applications(
 
 
 @router.post(
+    "/applications/{application_id}/accept", response_model=ApplicationResponse
+)
+async def accept_application(
+    application_id: UUID,
+    owner: Annotated[User, Depends(get_current_user)],
+    service: Annotated[AdoptionService, Depends(get_adoption_service)],
+    body: OwnerReplyBody | None = None,
+) -> ApplicationResponse:
+    try:
+        application = await service.accept(
+            owner, application_id, body.note if body else None
+        )
+    except InvalidApplication as error:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT, str(error)
+        ) from error
+    # AnimalNotAvailable is an invalid transition of the animal, not of the request.
+    except AnimalNotAvailable as error:
+        raise _conflict("animal_not_available", error) from error
+    except InvalidTransition as error:
+        raise _conflict("invalid_transition", error) from error
+    if application is None:
+        # Also for someone else's animal: to them the request does not exist.
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Request not found")
+    return ApplicationResponse.from_domain(application)
+
+
+@router.post(
     "/applications/{application_id}/decline", response_model=ApplicationResponse
 )
 async def decline_application(

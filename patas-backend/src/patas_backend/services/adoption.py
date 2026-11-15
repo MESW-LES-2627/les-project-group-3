@@ -130,6 +130,30 @@ class AdoptionService:
             received.append(replace(request, compatibility_concerns=concerns))
         return received
 
+    async def accept(
+        self, owner: User, application_id: UUID, note: str | None
+    ) -> AdoptionApplication | None:
+        """US-16: the owner accepts an open request, with an optional note, and the
+        animal is reserved for the applicant.
+
+        None if there is no such request or it is not for one of the caller's
+        animals: to anyone else it does not exist. Raises InvalidTransition if it is
+        not open, AnimalNotAvailable if the animal is already reserved (the whole
+        change is rolled back), or InvalidApplication for a note that is too long.
+        """
+        async with self._session_factory.begin() as session:
+            # The animal first (ADR 0017, decision 8): whether it is still available
+            # is read under the lock, so two accepts for one animal take turns and
+            # the second one finds it reserved.
+            application = await lock_animal_and_application(session, application_id)
+            if application is None or application.owner_id != owner.id:
+                return None
+            application.accept(owner.id, note)
+            events = await self._dispatcher.dispatch(application.pull_events(), session)
+            await AdoptionApplicationRepository(session).update(application)
+        await self._dispatcher.publish(events)
+        return application
+
     async def decline(
         self, owner: User, application_id: UUID, note: str | None
     ) -> AdoptionApplication | None:

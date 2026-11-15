@@ -2,10 +2,6 @@
 
 Every test goes through the endpoints to the real database. Ana owns Rex, Bruno and
 Carla asked to adopt him.
-
-Two bullets of the AT need the owner to accept a request, which US-16 adds in the
-same story: a declined request cannot be accepted afterwards, and a declined accepted
-request lets Carla's open one be accepted. They live with the accept endpoint.
 """
 
 from uuid import UUID
@@ -30,6 +26,10 @@ MINE = "/me/applications"
 
 def _decline(application_id: UUID) -> str:
     return f"/applications/{application_id}/decline"
+
+
+def _accept(application_id: UUID) -> str:
+    return f"/applications/{application_id}/accept"
 
 
 async def test_at_18_a_declined_request_shows_as_declined_with_the_owners_note(
@@ -89,6 +89,47 @@ async def test_at_18_declining_an_accepted_request_makes_the_animal_available(
     assert await _status(engine, request) is S.DECLINED
     page = await client.get(f"/animals/{rex.id}")
     assert page.json()["adoption_status"] == "available"
+
+
+async def test_at_18_a_declined_request_cannot_be_accepted_afterwards(
+    client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine
+) -> None:
+    rex = await _seed_rex(engine)
+    request = _request(rex, CARLA)
+    await _save(engine, request)
+    ana = _bearer(issuer.token(**ANA))
+    await client.post(_decline(request.id), headers=ana)
+
+    response = await client.post(_accept(request.id), headers=ana)
+
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "invalid_transition"
+    assert await _status(engine, request) is S.DECLINED
+    page = await client.get(f"/animals/{rex.id}")
+    assert page.json()["adoption_status"] == "available"
+
+
+async def test_at_18_after_declining_an_accepted_request_another_can_be_accepted(
+    client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine
+) -> None:
+    # Given Bruno's accepted request keeps Rex reserved, and Carla's is still open
+    rex = await _seed_rex(engine, "reserve")
+    bruno = _request(rex, BRUNO, S.ACCEPTED)
+    carla = _request(rex, CARLA)
+    await _save(engine, bruno, carla)
+    ana = _bearer(issuer.token(**ANA))
+
+    # When Ana declines Bruno's, then accepts Carla's
+    declined = await client.post(_decline(bruno.id), headers=ana)
+    accepted = await client.post(_accept(carla.id), headers=ana)
+
+    # Then Carla's is accepted and Rex is reserved for her
+    assert declined.status_code == 200
+    assert accepted.status_code == 200
+    assert await _status(engine, bruno) is S.DECLINED
+    assert await _status(engine, carla) is S.ACCEPTED
+    page = await client.get(f"/animals/{rex.id}")
+    assert page.json()["adoption_status"] == "reserved"
 
 
 async def test_at_18_only_the_owner_can_decline(
