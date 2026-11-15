@@ -17,5 +17,6 @@ class ReceivedRequest:
     status: ApplicationStatus
     applicant_note: str
     applicant_profile: ProfileSnapshot
+    owner_note: str | None
     created_at: datetime
     compatibility_concerns: tuple[str, ...] = ()

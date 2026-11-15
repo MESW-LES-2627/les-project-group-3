@@ -45,7 +45,7 @@ async def test_at_17_owner_sees_received_requests_with_profiles_and_concerns(
 
     bruno = _request(rex, BRUNO, S.OPEN)
     bruno.applicant_note = "I have a calm home."
-    carla = _request(rex, CARLA, S.DECLINED)
+    carla = _request(rex, CARLA, S.DECLINED, owner_note="Rex needs a garden.")
     carla.applicant_note = "I have cared for dogs before."
     await _save(engine, bruno, carla)
 
@@ -64,6 +64,9 @@ async def test_at_17_owner_sees_received_requests_with_profiles_and_concerns(
     )
     assert requests[str(carla.id)]["status"] == "declined"
     assert requests[str(carla.id)]["applicant_profile"] == SNAPSHOT.to_json()
+    # The owner sees her own reply again, and nothing where she wrote none.
+    assert requests[str(carla.id)]["owner_note"] == "Rex needs a garden."
+    assert requests[str(bruno.id)]["owner_note"] is None
 
     someone_elses_list = await client.get(
         RECEIVED, headers=_bearer(issuer.token(**CARLA))

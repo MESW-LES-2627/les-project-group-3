@@ -108,6 +108,7 @@ class ReceivedRequestResponse(BaseModel):
     animal_name: str
     status: ApplicationStatus
     note: str
+    owner_note: str | None
     applicant_profile: MatchmakerProfileResponse
     compatibility_concerns: list[str]
     created_at: datetime
@@ -120,6 +121,7 @@ class ReceivedRequestResponse(BaseModel):
             animal_name=request.animal_name,
             status=request.status,
             note=request.applicant_note,
+            owner_note=request.owner_note,
             applicant_profile=MatchmakerProfileResponse.from_snapshot(
                 request.applicant_profile
             ),

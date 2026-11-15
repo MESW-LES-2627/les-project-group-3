@@ -117,6 +117,7 @@ export type ReceivedRequest = {
   animal_name: string;
   status: string;
   note: string;
+  owner_note: string | null;
   applicant_profile: MatchmakerAnswers;
   compatibility_concerns: string[];
   created_at: string;
@@ -133,6 +134,7 @@ export function isReceivedRequest(value: unknown): value is ReceivedRequest {
     typeof request.animal_name === "string" &&
     typeof request.status === "string" &&
     typeof request.note === "string" &&
+    (request.owner_note === null || typeof request.owner_note === "string") &&
     isMatchmakerAnswers(request.applicant_profile) &&
     Array.isArray(request.compatibility_concerns) &&
     request.compatibility_concerns.every(

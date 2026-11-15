@@ -84,7 +84,8 @@ _SELECT_SENT_BY_APPLICANT = text(
 _SELECT_RECEIVED_BY_OWNER = text(
     """
     SELECT a.id, a.animal_id, an.name AS animal_name, a.applicant_id,
-           a.status, a.applicant_note, a.applicant_profile, a.created_at
+           a.status, a.applicant_note, a.applicant_profile, a.owner_note,
+           a.created_at
     FROM patas.adoption_applications a
     JOIN patas.animals an ON an.id = a.animal_id
     WHERE a.owner_id = :owner_id
@@ -222,6 +223,7 @@ class AdoptionApplicationRepository:
                 status=ApplicationStatus(row.status),
                 applicant_note=row.applicant_note,
                 applicant_profile=ProfileSnapshot.from_json(row.applicant_profile),
+                owner_note=row.owner_note,
                 created_at=row.created_at,
             )
             for row in result

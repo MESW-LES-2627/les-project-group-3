@@ -45,6 +45,7 @@ function received(concerns: unknown[] = []): Record<string, unknown> {
     animal_name: "Bolt",
     status: "open",
     note: "I have a garden",
+    owner_note: null,
     applicant_profile: profile,
     compatibility_concerns: concerns,
     created_at: "2026-11-01T10:00:00Z",
@@ -187,6 +188,19 @@ describe("response shape guards", () => {
   it("accepts a well-formed received request, with or without concerns", () => {
     expect(isReceivedRequest(received())).toBe(true);
     expect(isReceivedRequest(received(["Its energy is different"]))).toBe(true);
+  });
+
+  it("accepts a received request with the owner's own reply", () => {
+    expect(isReceivedRequest({ ...received(), owner_note: "Come on Saturday" })).toBe(
+      true,
+    );
+  });
+
+  it("rejects a received request whose owner note is missing or mistyped", () => {
+    const withoutOwnerNote = received();
+    delete withoutOwnerNote.owner_note;
+    expect(isReceivedRequest(withoutOwnerNote)).toBe(false);
+    expect(isReceivedRequest({ ...received(), owner_note: 5 })).toBe(false);
   });
 
   it("rejects a received request with a missing or mistyped field", () => {

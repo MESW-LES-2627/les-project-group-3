@@ -30,6 +30,7 @@ const receivedRequest = {
   animal_name: "Bolt",
   status: "open",
   note: "Hi",
+  owner_note: null,
   applicant_profile: {
     housing: "apartment",
     time_away: "half_day",
