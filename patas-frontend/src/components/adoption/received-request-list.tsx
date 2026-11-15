@@ -3,9 +3,11 @@
 import { TriangleAlert } from "lucide-react";
 import { usePathname, useSearchParams } from "next/navigation";
 
+import { AnswerPanel } from "@/components/adoption/answer-panel";
 import {
   filterByStatus,
   statusFilterOf,
+  type AnswerAction,
   type ReceivedRequest,
 } from "@/lib/adoption";
 import {
@@ -28,6 +30,7 @@ const DATE = new Intl.DateTimeFormat("en-GB", {
 
 type ReceivedRequestListProps = {
   requests: ReceivedRequest[];
+  answer: AnswerAction;
 };
 
 function optionLabel<T extends string>(
@@ -50,7 +53,10 @@ function profileAnswers(request: ReceivedRequest): [string, string][] {
   ];
 }
 
-export function ReceivedRequestList({ requests }: ReceivedRequestListProps) {
+export function ReceivedRequestList({
+  requests,
+  answer,
+}: ReceivedRequestListProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const active = statusFilterOf(searchParams.get("status"));
@@ -142,6 +148,12 @@ export function ReceivedRequestList({ requests }: ReceivedRequestListProps) {
               <p className="mt-1 text-xs text-muted">
                 Received {DATE.format(new Date(request.created_at))}
               </p>
+              <p className="mt-2 text-sm text-muted">
+                Requested by{" "}
+                <span className="font-semibold text-forest">
+                  {request.applicant_name}
+                </span>
+              </p>
 
               <p className="mt-4 text-sm font-medium text-forest">
                 Applicant&apos;s note
@@ -191,6 +203,24 @@ export function ReceivedRequestList({ requests }: ReceivedRequestListProps) {
                   </ul>
                 </section>
               ) : null}
+
+              {request.owner_note ? (
+                <>
+                  <p className="mt-4 text-sm font-medium text-forest">
+                    Your reply
+                  </p>
+                  <p className="mt-1 whitespace-pre-wrap text-sm text-muted">
+                    {request.owner_note}
+                  </p>
+                </>
+              ) : null}
+
+              <AnswerPanel
+                applicationId={request.id}
+                animalId={request.animal_id}
+                status={request.status}
+                action={answer}
+              />
             </li>
           ))}
         </ul>

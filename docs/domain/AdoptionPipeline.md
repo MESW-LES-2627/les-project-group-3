@@ -49,7 +49,7 @@ stateDiagram-v2
 Rules:
 
 * **Several applicants can be `Open` for the same animal** at the same time (D3). The owner decides from each request's note and Matchmaker answers.
-* **At most one application per animal** can be `Accepted`. While the animal is reserved, the other `Open` applications stay open but cannot be accepted. Reservation is enforced by the animal's status, so no `OnHold` state is needed.
+* **At most one application per animal** can be `Accepted`. While the animal is reserved, the other `Open` applications stay open but cannot be accepted. Reservation is enforced by the animal's status, so no `OnHold` state is needed. Accepting while the animal is reserved is refused (409 `animal_not_available`) and changes nothing.
 * An applicant has at most one active application (`Open`, `Accepted`) per animal.
 * An owner cannot apply to their own animal.
 * New requests are accepted only while the animal is `Available`.
@@ -143,7 +143,7 @@ The adoption base is implemented and explained in [ADR 0017](../architecture/adr
 | D7 | Chat transport | Polling first, SSE later (ADR) |
 | D8 | When does the conversation open? | When the request is accepted: the owner talks to that one applicant, then confirms the handover or declines. (Earlier text: at the request.) |
 | D9 | Can the owner unpublish an animal that is `Reserved` or `Adopted`? | No. A reserved animal must first have its accepted request declined or withdrawn. |
-| D10 | How is the handover confirmed? | Each side confirms once; the second confirmation adopts. A confirmation stays if the request is later declined or withdrawn. Open: should a confirmation block a later decline or withdrawal? |
+| D10 | How is the handover confirmed? | Each side confirms once; the second confirmation adopts. Until then the owner can still decline (US-16) and the applicant can still withdraw: one confirmation blocks neither, and it stays on the request if one of them happens. Only the completed adoption is final. Proposal for the team. |
 | D11 | Can the system close an `Accepted` request? | No (a consequence of D9). Only an `Open` request is closed. |
 
 ## 11. Impact on Other Documents

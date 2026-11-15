@@ -85,7 +85,8 @@ D2 and D8 to D11 in [AdoptionPipeline](../../domain/AdoptionPipeline.md) section
 * **Unpublish is refused while an animal is reserved or adopted.** Today it works from
   any status.
 * **The handover rule:** each side confirms once and the second confirmation adopts.
-  Open question: should a confirmation block a later decline or withdrawal?
+  A confirmation blocks neither a later decline (US-16) nor a withdrawal (US-17): only
+  the second confirmation, which adopts, ends the choice. Still pending the team.
 * **An accepted request cannot be closed by the system**, a consequence of the
   unpublish rule above.
 * **The trial is deferred** for iteration 2.

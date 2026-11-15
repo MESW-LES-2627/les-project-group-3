@@ -15,22 +15,29 @@ from patas_backend.models.events import DomainEvent
 MAX_NOTE_LENGTH = 1000
 
 
+def _check_length(note: str) -> None:
+    if len(note) > MAX_NOTE_LENGTH:
+        raise InvalidApplication(
+            f"the note must have at most {MAX_NOTE_LENGTH} characters"
+        )
+
+
 def _validated_note(note: str) -> str:
     """The applicant's note: required, trimmed, and at most MAX_NOTE_LENGTH long."""
     cleaned = note.strip()
     if not cleaned:
         raise InvalidApplication("the note must not be blank")
-    if len(cleaned) > MAX_NOTE_LENGTH:
-        raise InvalidApplication(
-            f"the note must have at most {MAX_NOTE_LENGTH} characters"
-        )
+    _check_length(cleaned)
     return cleaned
 
 
 def _clean_note(note: str | None) -> str | None:
+    """The owner's note: optional, trimmed (blank is none), at most MAX_NOTE_LENGTH."""
     if note is None:
         return None
-    return note.strip() or None
+    cleaned = note.strip()
+    _check_length(cleaned)
+    return cleaned or None
 
 
 @dataclass

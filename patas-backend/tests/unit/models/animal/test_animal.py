@@ -271,6 +271,37 @@ def test_a_transition_is_refused_from_any_other_status(
     assert animal.adoption_status is status
 
 
+@pytest.mark.parametrize(
+    "status", [s for s in AdoptionStatus if s is not AdoptionStatus.AVAILABLE]
+)
+def test_reserving_an_animal_that_is_not_available_says_so(
+    status: AdoptionStatus,
+) -> None:
+    animal = _animal_in(status)
+
+    with pytest.raises(AnimalNotAvailable) as raised:
+        animal.reserve()
+
+    # It is still an invalid transition, so whatever catches that keeps working.
+    assert isinstance(raised.value, InvalidAnimalTransition)
+    assert animal.adoption_status is status
+
+
+@pytest.mark.parametrize(
+    ("action", "status"), [pair for pair in REFUSED if pair[0] != "reserve"]
+)
+def test_the_other_refused_transitions_are_not_availability_errors(
+    action: str, status: AdoptionStatus
+) -> None:
+    # A router that maps AnimalNotAvailable must not catch a different failure.
+    animal = _animal_in(status)
+
+    with pytest.raises(InvalidAnimalTransition) as raised:
+        getattr(animal, action)()
+
+    assert not isinstance(raised.value, AnimalNotAvailable)
+
+
 def test_unpublishing_records_one_event_that_can_be_pulled_once() -> None:
     animal = _publish()
 
