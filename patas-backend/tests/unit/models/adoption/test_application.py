@@ -274,6 +274,38 @@ def test_a_blank_or_missing_note_is_stored_as_none(
     assert application.owner_note is None
 
 
+@pytest.mark.parametrize("action", ["accept", "decline"])
+def test_an_owner_note_of_exactly_1000_characters_is_accepted(action: str) -> None:
+    application = _application()
+
+    getattr(application, action)(OWNER, "a" * 1000)
+
+    assert application.owner_note == "a" * 1000
+
+
+@pytest.mark.parametrize("action", ["accept", "decline"])
+def test_an_owner_note_of_1001_characters_is_refused_and_changes_nothing(
+    action: str,
+) -> None:
+    application = _application()
+
+    with pytest.raises(InvalidApplication, match="1000"):
+        getattr(application, action)(OWNER, "a" * 1001)
+
+    assert application.status is S.OPEN
+    assert application.owner_note is None
+    assert application.pull_events() == []
+
+
+@pytest.mark.parametrize("action", ["accept", "decline"])
+def test_the_owner_limit_counts_the_trimmed_note(action: str) -> None:
+    application = _application()
+
+    getattr(application, action)(OWNER, "  " + "a" * 1000 + "\n")
+
+    assert application.owner_note == "a" * 1000
+
+
 # --- events -----------------------------------------------------------------
 
 
