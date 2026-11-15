@@ -7,6 +7,7 @@ vi.mock("@/lib/matchmaker-api", () => ({
 }));
 
 import {
+  answerRequest,
   getMyApplication,
   getMyRequests,
   getReceivedRequests,
@@ -257,6 +258,69 @@ describe("withdrawRequest", () => {
     fetchMock.mockRejectedValueOnce(new Error("down"));
 
     expect(await withdrawRequest(ID)).toMatchObject({
+      problem: "unavailable",
+    });
+  });
+});
+
+describe("answerRequest", () => {
+  it.each(["accept", "decline"] as const)(
+    "posts the %s with the owner's token and note",
+    async (verb) => {
+      answer(200, { id: ID });
+
+      expect(await answerRequest(ID, verb, "Come and meet him")).toEqual({
+        ok: true,
+      });
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(String(url)).toMatch(new RegExp(`/applications/${ID}/${verb}$`));
+      expect(init?.method).toBe("POST");
+      expect(init?.headers).toMatchObject({
+        Authorization: "Bearer test-token",
+      });
+      expect(JSON.parse(String(init?.body))).toEqual({
+        note: "Come and meet him",
+      });
+    },
+  );
+
+  it.each(["", "   "])("sends no note for %j", async (note) => {
+    answer(200, { id: ID });
+
+    await answerRequest(ID, "decline", note);
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(String(init?.body))).toEqual({ note: null });
+  });
+
+  it.each([
+    [404, undefined, "not-found"],
+    [422, undefined, "invalid-note"],
+    [500, undefined, "unavailable"],
+    [409, { detail: { code: "invalid_transition" } }, "not-active"],
+    [409, { detail: { code: "animal_not_available" } }, "animal-reserved"],
+    [409, { detail: { code: "constructor" } }, "unavailable"],
+    [409, undefined, "unavailable"],
+  ])("maps the answer %i %j to %s", async (status, body, problem) => {
+    answer(status, body);
+
+    expect(await answerRequest(ID, "accept", "")).toMatchObject({
+      ok: false,
+      problem,
+    });
+  });
+
+  it("does not call the backend for an invalid id", async () => {
+    expect(await answerRequest("nope", "accept", "")).toMatchObject({
+      problem: "not-found",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("reports the service as unavailable when the network fails", async () => {
+    fetchMock.mockRejectedValueOnce(new Error("down"));
+
+    expect(await answerRequest(ID, "accept", "")).toMatchObject({
       problem: "unavailable",
     });
   });

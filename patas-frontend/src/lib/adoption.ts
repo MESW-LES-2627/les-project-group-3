@@ -174,6 +174,51 @@ export function withdrawConfirmation(animalName: string, status: string): string
     : `Withdraw your request for ${animalName}?`;
 }
 
+// US-16: the owner accepts or declines a request, with an optional note.
+
+export type OwnerAnswer = "accept" | "decline";
+
+export type AnswerProblem =
+  | "not-found"
+  | "not-active"
+  | "animal-reserved"
+  | "invalid-note"
+  | "unavailable";
+
+export type AnswerOutcome =
+  | { ok: true }
+  | { ok: false; problem: AnswerProblem; message: string };
+
+export type AnswerAction = (
+  applicationId: string,
+  animalId: string,
+  answer: OwnerAnswer,
+  note: string,
+) => Promise<AnswerOutcome>;
+
+export const ANSWER_MESSAGES: Record<AnswerProblem, string> = {
+  "not-found": "This request no longer exists.",
+  "not-active": "This request has already changed, so it cannot be answered.",
+  "animal-reserved": "This animal is already reserved for another request.",
+  "invalid-note": `Write a note of up to ${NOTE_MAX} characters.`,
+  unavailable: "The service is unavailable, please try again.",
+};
+
+// Presentation only: the backend decides what can be answered. An open request can
+// be accepted or declined; an accepted one can still be declined.
+export function answersAvailable(status: string): OwnerAnswer[] {
+  if (status === "open") {
+    return ["accept", "decline"];
+  }
+  return status === "accepted" ? ["decline"] : [];
+}
+
+// The owner's note is optional, so it can only be too long. It counts the trimmed
+// text, like the backend.
+export function answerNoteProblem(note: string): "too-long" | null {
+  return note.trim().length > NOTE_MAX ? "too-long" : null;
+}
+
 // The ?status= of the requests page. Anything that is not a known status means All.
 export function statusFilterOf(value: string | null): ApplicationStatus | null {
   return isApplicationStatus(value) ? value : null;

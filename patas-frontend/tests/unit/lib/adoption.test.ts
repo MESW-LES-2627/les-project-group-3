@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   NOTE_MAX,
+  answerNoteProblem,
+  answersAvailable,
   canWithdraw,
   filterByStatus,
   isMyApplication,
@@ -88,6 +90,38 @@ describe("canWithdraw", () => {
       expect(canWithdraw(status)).toBe(false);
     },
   );
+});
+
+describe("answersAvailable", () => {
+  it("offers accept and decline for an open request", () => {
+    expect(answersAvailable("open")).toEqual(["accept", "decline"]);
+  });
+
+  it("offers only decline for an accepted request", () => {
+    expect(answersAvailable("accepted")).toEqual(["decline"]);
+  });
+
+  it.each(["declined", "withdrawn", "closed", "adopted", "unknown"])(
+    "offers nothing for a %s request",
+    (status) => {
+      expect(answersAvailable(status)).toEqual([]);
+    },
+  );
+});
+
+describe("answerNoteProblem", () => {
+  it("accepts no note and a note at the limit", () => {
+    expect(answerNoteProblem("")).toBeNull();
+    expect(answerNoteProblem("a".repeat(NOTE_MAX))).toBeNull();
+  });
+
+  it("refuses a note over the limit", () => {
+    expect(answerNoteProblem("a".repeat(NOTE_MAX + 1))).toBe("too-long");
+  });
+
+  it("counts the trimmed note, like the backend", () => {
+    expect(answerNoteProblem(`  ${"a".repeat(NOTE_MAX)}\n`)).toBeNull();
+  });
 });
 
 describe("withdrawConfirmation", () => {
