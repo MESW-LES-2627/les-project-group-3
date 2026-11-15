@@ -43,6 +43,7 @@ function received(concerns: unknown[] = []): Record<string, unknown> {
     id: "r1",
     animal_id: "a1",
     animal_name: "Bolt",
+    applicant_name: "Bruno",
     status: "open",
     note: "I have a garden",
     owner_note: null,
@@ -201,6 +202,13 @@ describe("response shape guards", () => {
     delete withoutOwnerNote.owner_note;
     expect(isReceivedRequest(withoutOwnerNote)).toBe(false);
     expect(isReceivedRequest({ ...received(), owner_note: 5 })).toBe(false);
+  });
+
+  it("rejects a received request without an applicant name", () => {
+    const withoutApplicantName = received();
+    delete withoutApplicantName.applicant_name;
+    expect(isReceivedRequest(withoutApplicantName)).toBe(false);
+    expect(isReceivedRequest({ ...received(), applicant_name: 5 })).toBe(false);
   });
 
   it("rejects a received request with a missing or mistyped field", () => {

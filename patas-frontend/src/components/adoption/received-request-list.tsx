@@ -148,6 +148,12 @@ export function ReceivedRequestList({
               <p className="mt-1 text-xs text-muted">
                 Received {DATE.format(new Date(request.created_at))}
               </p>
+              <p className="mt-2 text-sm text-muted">
+                Requested by{" "}
+                <span className="font-semibold text-forest">
+                  {request.applicant_name}
+                </span>
+              </p>
 
               <p className="mt-4 text-sm font-medium text-forest">
                 Applicant&apos;s note
