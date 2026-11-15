@@ -33,13 +33,23 @@ class RequestToAdoptBody(BaseModel):
     note: str
 
 
+class OwnerReplyBody(BaseModel):
+    # The owner's reply when accepting or declining. The note is optional, and its
+    # length rule lives in the domain. Unknown fields are a 422: the status is
+    # decided by the endpoint, never sent.
+    model_config = ConfigDict(extra="forbid")
+
+    note: str | None = None
+
+
 class ApplicationResponse(BaseModel):
-    # What the applicant sent. The copy of their profile is for the owner and is not
-    # part of this response.
+    # What the applicant sent, and the owner's reply once there is one. The copy of
+    # the applicant's profile is for the owner and is not part of this response.
     id: UUID
     animal_id: UUID
     status: ApplicationStatus
     note: str
+    owner_note: str | None
     created_at: datetime | None
 
     @classmethod
@@ -49,6 +59,7 @@ class ApplicationResponse(BaseModel):
             animal_id=application.animal_id,
             status=application.status,
             note=application.applicant_note,
+            owner_note=application.owner_note,
             created_at=application.created_at,
         )
 
@@ -193,6 +204,31 @@ async def list_received_applications(
     """Every request for the caller's animals, newest first."""
     requests = await service.list_received_requests(owner)
     return [ReceivedRequestResponse.from_read_model(request) for request in requests]
+
+
+@router.post(
+    "/applications/{application_id}/decline", response_model=ApplicationResponse
+)
+async def decline_application(
+    application_id: UUID,
+    owner: Annotated[User, Depends(get_current_user)],
+    service: Annotated[AdoptionService, Depends(get_adoption_service)],
+    body: OwnerReplyBody | None = None,
+) -> ApplicationResponse:
+    try:
+        application = await service.decline(
+            owner, application_id, body.note if body else None
+        )
+    except InvalidApplication as error:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT, str(error)
+        ) from error
+    except InvalidTransition as error:
+        raise _conflict("invalid_transition", error) from error
+    if application is None:
+        # Also for someone else's animal: to them the request does not exist.
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Request not found")
+    return ApplicationResponse.from_domain(application)
 
 
 @router.post(
