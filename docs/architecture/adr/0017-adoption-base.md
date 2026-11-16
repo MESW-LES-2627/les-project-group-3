@@ -7,6 +7,10 @@
 | **Scope** | Adoption base task (#57); AT-21 (#75) for unpublishing |
 | **Related** | [0004-animal-aggregate](0004-animal-aggregate.md) (this replaces the five status values of its decision 2), [0006-application-services](0006-application-services.md), [0012-owner-animals-and-unpublishing](0012-owner-animals-and-unpublishing.md), [0014-editing-an-animal](0014-editing-an-animal.md), [AdoptionPipeline](../../domain/AdoptionPipeline.md) |
 
+> **Amended by [0023-republishing](0023-republishing.md):** `republish` is the
+> reverse of `unpublish` (decision 6). It records no event, so the closed requests
+> stay closed.
+
 ## Context
 
 Six stories (request, received list, accept or decline, my requests and withdraw,

@@ -335,11 +335,64 @@ def test_unpublishing_twice_changes_nothing_the_second_time() -> None:
     assert animal.pull_events() == []
 
 
+def test_owner_can_republish_an_unpublished_animal() -> None:
+    animal = _animal_in(AdoptionStatus.UNAVAILABLE)
+
+    animal.republish(by_user_id=OWNER_ID)
+
+    assert animal.adoption_status is AdoptionStatus.AVAILABLE
+    assert animal.is_published is True
+
+
+def test_non_owner_cannot_republish_animal() -> None:
+    animal = _animal_in(AdoptionStatus.UNAVAILABLE)
+
+    with pytest.raises(AnimalUnauthorized):
+        animal.republish(by_user_id=uuid4())
+
+    assert animal.adoption_status is AdoptionStatus.UNAVAILABLE
+
+
+def test_republishing_an_available_animal_changes_nothing() -> None:
+    animal = _publish()
+
+    animal.republish(by_user_id=OWNER_ID)
+
+    assert animal.adoption_status is AdoptionStatus.AVAILABLE
+
+
+@pytest.mark.parametrize("status", [AdoptionStatus.RESERVED, AdoptionStatus.ADOPTED])
+def test_republish_is_refused_while_reserved_or_adopted(
+    status: AdoptionStatus,
+) -> None:
+    animal = _animal_in(status)
+
+    with pytest.raises(InvalidAnimalTransition):
+        animal.republish(by_user_id=OWNER_ID)
+
+    assert animal.adoption_status is status
+
+
 def test_a_non_owner_is_refused_before_the_status_is_checked() -> None:
     animal = _animal_in(AdoptionStatus.RESERVED)
 
     with pytest.raises(AnimalUnauthorized):
         animal.unpublish(by_user_id=uuid4())
+
+
+@pytest.mark.parametrize(
+    "status",
+    [AdoptionStatus.AVAILABLE, AdoptionStatus.RESERVED, AdoptionStatus.ADOPTED],
+)
+def test_a_non_owner_is_refused_republishing_before_the_status_is_checked(
+    status: AdoptionStatus,
+) -> None:
+    animal = _animal_in(status)
+
+    with pytest.raises(AnimalUnauthorized):
+        animal.republish(by_user_id=uuid4())
+
+    assert animal.adoption_status is status
 
 
 def test_an_edit_keeps_the_recorded_events() -> None:

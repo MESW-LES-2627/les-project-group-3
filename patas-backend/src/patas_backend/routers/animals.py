@@ -238,6 +238,24 @@ async def unpublish_animal(
     return AnimalResponse.from_domain(animal)
 
 
+@router.post("/animals/{animal_id}/republish", response_model=AnimalResponse)
+async def republish_animal(
+    animal_id: UUID,
+    owner: Annotated[User, Depends(get_current_user)],
+    service: Annotated[AnimalService, Depends(get_animal_service)],
+) -> AnimalResponse:
+    try:
+        animal = await service.republish(owner, animal_id)
+    except AnimalUnauthorized as error:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, str(error)) from error
+    except InvalidAnimalTransition as error:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(error)) from error
+
+    if animal is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Animal not found")
+    return AnimalResponse.from_domain(animal)
+
+
 @router.put("/animals/{animal_id}", response_model=AnimalResponse)
 async def edit_animal(
     animal_id: UUID,

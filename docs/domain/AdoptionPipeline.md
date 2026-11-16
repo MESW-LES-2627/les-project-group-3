@@ -62,7 +62,7 @@ stateDiagram-v2
     [*] --> Available : Animal published
 
     Available --> Unavailable : Owner pauses the listing (medical/behavioural)
-    Unavailable --> Available : Owner resumes
+    Unavailable --> Available : Owner republishes
 
     Available --> Reserved : An application is accepted
     Reserved --> Available : Accepted application declined or withdrawn
@@ -74,6 +74,7 @@ stateDiagram-v2
 
 * `Adopted` is final for the listing in the MVP (D5).
 * Only an `Available` animal can be paused (unpublished). A `Reserved` or `Adopted` one cannot (D9).
+* Republishing returns it to `Available`. The applications closed by unpublishing stay `Closed`, and their applicants can apply again.
 * There is no location dimension (see ADR 0004): the animal is with the adopter when it is `Adopted`.
 
 ## 5. Cross-Aggregate Rules

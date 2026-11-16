@@ -17,6 +17,8 @@ the adoption flow is in [AdoptionPipeline](AdoptionPipeline.md).
   needs (energy, space). Feeds the catalog filters and the Matchmaker.
 - **Catalog:** the public list of published animals, with filters.
 - **Unpublish:** the owner removes the animal from the catalog; its data is kept.
+- **Republish:** the owner puts an unpublished animal back in the catalog. The requests
+  closed by unpublishing stay closed.
 - **Adoption Status:** Available, Reserved, Adopted, Unavailable (unpublished).
 
 ## Matchmaker
