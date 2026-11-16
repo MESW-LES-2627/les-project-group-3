@@ -8,7 +8,11 @@ import { isAnimalId } from "@/lib/animal-form";
 import { auth } from "@/lib/auth";
 import { backendUrl } from "@/lib/backend";
 
-export async function unpublishAnimalAction(animalId: string): Promise<{ error?: string }> {
+// Unpublish and republish differ only in the endpoint and the wording.
+async function changeVisibility(
+  animalId: string,
+  action: "unpublish" | "republish",
+): Promise<{ error?: string }> {
   if (!isAnimalId(animalId)) {
     return { error: "Invalid animal id." };
   }
@@ -22,7 +26,7 @@ export async function unpublishAnimalAction(animalId: string): Promise<{ error?:
   const { token } = await auth.api.getToken({ headers: requestHeaders });
 
   try {
-    const response = await fetch(`${backendUrl()}/animals/${encodeURIComponent(animalId)}/unpublish`, {
+    const response = await fetch(`${backendUrl()}/animals/${encodeURIComponent(animalId)}/${action}`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -30,15 +34,15 @@ export async function unpublishAnimalAction(animalId: string): Promise<{ error?:
     });
 
     if (response.status === 403) {
-      return { error: "You are not authorized to unpublish this animal." };
+      return { error: `You are not authorized to ${action} this animal.` };
     }
 
     if (response.status === 409) {
-      return { error: "This animal is reserved or adopted, so it cannot be unpublished." };
+      return { error: `This animal is reserved or adopted, so it cannot be ${action}ed.` };
     }
 
     if (!response.ok) {
-      return { error: `Failed to unpublish animal (backend returned ${response.status}).` };
+      return { error: `Failed to ${action} animal (backend returned ${response.status}).` };
     }
   } catch {
     return { error: "The service is currently unavailable. Please try again later." };
@@ -47,4 +51,12 @@ export async function unpublishAnimalAction(animalId: string): Promise<{ error?:
   revalidatePath("/animals");
   revalidatePath("/animals/mine");
   return {};
+}
+
+export async function unpublishAnimalAction(animalId: string): Promise<{ error?: string }> {
+  return changeVisibility(animalId, "unpublish");
+}
+
+export async function republishAnimalAction(animalId: string): Promise<{ error?: string }> {
+  return changeVisibility(animalId, "republish");
 }

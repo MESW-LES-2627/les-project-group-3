@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import { animalStatusLabel } from "@/lib/adoption-status";
 import { auth } from "@/lib/auth";
 import { backendUrl } from "@/lib/backend";
+import { RepublishButton } from "./republish-button";
 import { UnpublishButton } from "./unpublish-button";
 
 export const metadata: Metadata = {
@@ -145,7 +146,9 @@ async function MyAnimalList({ token }: { token: string }) {
                   >
                     Edit
                   </Link>
-                  {!isUnpublished && (
+                  {isUnpublished ? (
+                    <RepublishButton animalId={animal.id} />
+                  ) : (
                     <UnpublishButton animalId={animal.id} animalName={animal.name} />
                   )}
                 </div>
