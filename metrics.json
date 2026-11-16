@@ -134,5 +134,22 @@
       "diff_pct": null
     },
     "mutation_pct": 76.5
+  },
+  {
+    "date": "2026-11-16T21:03:47Z",
+    "branch": "staging",
+    "commit": "520bd1f",
+    "title": "Merge pull request #94 from MESW-LES-2627/fix/coverage-async",
+    "backend": {
+      "tests": 702,
+      "branch_pct": 96.7,
+      "diff_pct": null
+    },
+    "frontend": {
+      "tests": 159,
+      "branch_pct": 100.0,
+      "diff_pct": null
+    },
+    "mutation_pct": 76.5
   }
 ]
