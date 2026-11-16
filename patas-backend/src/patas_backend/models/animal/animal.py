@@ -283,6 +283,18 @@ class Animal:
         self._move(AdoptionStatus.AVAILABLE, AdoptionStatus.UNAVAILABLE, "unpublished")
         self._events.append(AnimalUnpublished(animal_id=self.id))
 
+    def republish(self, by_user_id: UUID) -> None:
+        """Put an unpublished listing back in the catalog, available again.
+
+        The requests closed by unpublishing stay closed. Republishing an available
+        animal changes nothing; a reserved or adopted one is refused.
+        """
+        if not self.is_owned_by(by_user_id):
+            raise AnimalUnauthorized("Only the owner can republish this animal")
+        if self.adoption_status is AdoptionStatus.AVAILABLE:
+            return
+        self._move(AdoptionStatus.UNAVAILABLE, AdoptionStatus.AVAILABLE, "republished")
+
     def match_profile(self) -> AnimalMatchProfile:
         """This animal on the Matchmaker scales. Built on each call, so it follows
         the animal when it changes."""

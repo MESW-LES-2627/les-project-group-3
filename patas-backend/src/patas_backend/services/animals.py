@@ -194,3 +194,18 @@ class AnimalService:
             events = await self._dispatcher.dispatch(animal.pull_events(), session)
         await self._dispatcher.publish(events)
         return animal
+
+    async def republish(self, owner: User, animal_id: UUID) -> Animal | None:
+        """Put an unpublished animal back in the catalog.
+
+        Raises AnimalUnauthorized if the caller is not the owner, and
+        InvalidAnimalTransition while the animal is reserved or adopted.
+        """
+        async with self._session_factory.begin() as session:
+            repo = AnimalRepository(session)
+            animal = await repo.get_for_update(animal_id)
+            if animal is None:
+                return None
+            animal.republish(by_user_id=owner.id)
+            await repo.update(animal)
+            return animal

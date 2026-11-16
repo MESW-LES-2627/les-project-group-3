@@ -345,6 +345,42 @@ async def test_acceptance_test_bruno_cannot_unpublish_rex(
         assert loaded.adoption_status is AdoptionStatus.AVAILABLE
 
 
+async def test_republishing_an_available_animal_changes_nothing(
+    client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine
+) -> None:
+    rex, _, _ = await _seed_data(engine)
+
+    response = await client.post(
+        f"/animals/{rex.id}/republish", headers=_bearer(issuer.token(**ANA))
+    )
+
+    assert response.status_code == 200
+    assert response.json()["adoption_status"] == "available"
+
+
+async def test_republishing_an_unknown_animal_is_not_found(
+    client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine
+) -> None:
+    await _seed_data(engine)
+
+    response = await client.post(
+        f"/animals/{uuid4()}/republish", headers=_bearer(issuer.token(**ANA))
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Animal not found"
+
+
+async def test_a_visitor_cannot_republish(
+    client: httpx.AsyncClient, engine: AsyncEngine
+) -> None:
+    rex, _, _ = await _seed_data(engine)
+
+    response = await client.post(f"/animals/{rex.id}/republish")
+
+    assert response.status_code == 401
+
+
 async def test_acceptance_test_visitor_cannot_unpublish_rex_or_view_my_animals(
     client: httpx.AsyncClient, engine: AsyncEngine
 ) -> None:
@@ -857,3 +893,32 @@ async def test_an_unpublish_that_meets_an_edit_keeps_the_edit(
     assert stored is not None
     assert stored.size is AnimalSize.LARGE
     assert stored.adoption_status is AdoptionStatus.UNAVAILABLE
+
+
+async def test_a_republish_that_meets_an_edit_keeps_the_edit(
+    client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine
+) -> None:
+    # The republish waits for the edit instead of writing the old fields back.
+    rex, _, _ = await _seed_data(engine)
+    ana = _bearer(issuer.token(**ANA))
+    assert (await client.post(f"/animals/{rex.id}/unpublish", headers=ana)).is_success
+
+    async with async_sessionmaker(engine).begin() as session:
+        repo = AnimalRepository(session)
+        being_edited = await repo.get_for_update(rex.id)
+        assert being_edited is not None
+        holder_pid = await session.scalar(text("SELECT pg_backend_pid()"))
+        republish = asyncio.create_task(
+            client.post(f"/animals/{rex.id}/republish", headers=ana)
+        )
+        await _until_a_request_waits_for(engine, holder_pid)
+        being_edited.edit(
+            rex.owner_id, name="Rex", species=Species.DOG, size=AnimalSize.LARGE
+        )
+        await repo.update(being_edited)
+
+    assert (await republish).status_code == 200
+    stored = await _stored(engine, rex.id)
+    assert stored is not None
+    assert stored.size is AnimalSize.LARGE
+    assert stored.adoption_status is AdoptionStatus.AVAILABLE
