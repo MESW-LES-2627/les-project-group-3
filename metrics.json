@@ -151,5 +151,22 @@
       "diff_pct": null
     },
     "mutation_pct": 76.5
+  },
+  {
+    "date": "2026-11-16T21:24:37Z",
+    "branch": "staging",
+    "commit": "13f211d",
+    "title": "Merge pull request #93 from MESW-LES-2627/feat/us-19-republish",
+    "backend": {
+      "tests": 719,
+      "branch_pct": 96.8,
+      "diff_pct": 100.0
+    },
+    "frontend": {
+      "tests": 159,
+      "branch_pct": 100.0,
+      "diff_pct": null
+    },
+    "mutation_pct": 76.1
   }
 ]
