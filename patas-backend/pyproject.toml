@@ -38,6 +38,9 @@ markers = [
 # have no rules of their own to break.
 [tool.coverage.run]
 branch = true
+# SQLAlchemy's async session switches greenlets under the hood. Without "greenlet", coverage
+# loses track after an await inside a transaction and reports lines the tests do run as missed.
+concurrency = ["thread", "greenlet"]
 source = ["src/patas_backend"]
 omit = [
     "*/__init__.py",
