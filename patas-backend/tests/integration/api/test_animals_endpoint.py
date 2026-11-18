@@ -51,6 +51,7 @@ async def test_catalog_is_public_and_lists_published_animals(
             "id": str(animal.id),
             "owner_id": str(owner.id),
             "owner_name": "Ana",
+            "owner_username": "ana",
             "name": "Milo",
             "species": "cat",
             "age_in_months": 14,
@@ -189,6 +190,7 @@ async def test_animal_profile_fields_are_optional(
             "id",
             "owner_id",
             "owner_name",
+            "owner_username",
             "name",
             "species",
             "adoption_status",
@@ -689,7 +691,9 @@ async def test_acceptance_test_an_invalid_edit_is_rejected_and_rex_is_unchanged(
     )
 
     assert response.status_code == 422
-    assert await _stored(engine, rex.id) == replace(rex, owner_name="Ana")
+    assert await _stored(engine, rex.id) == replace(
+        rex, owner_name="Ana", owner_username="ana"
+    )
 
 
 @pytest.mark.parametrize(
@@ -716,7 +720,9 @@ async def test_acceptance_test_bruno_cannot_edit_rex(
     )
 
     assert response.status_code == 403
-    assert await _stored(engine, rex.id) == replace(rex, owner_name="Ana")
+    assert await _stored(engine, rex.id) == replace(
+        rex, owner_name="Ana", owner_username="ana"
+    )
 
 
 async def test_acceptance_test_visitor_cannot_edit_rex(
@@ -728,7 +734,9 @@ async def test_acceptance_test_visitor_cannot_edit_rex(
     response = await client.put(f"/animals/{rex.id}", json=_rex_edit(size="large"))
 
     assert response.status_code == 401
-    assert await _stored(engine, rex.id) == replace(rex, owner_name="Ana")
+    assert await _stored(engine, rex.id) == replace(
+        rex, owner_name="Ana", owner_username="ana"
+    )
 
 
 async def test_editing_an_animal_that_does_not_exist_is_not_found(
@@ -783,7 +791,9 @@ async def test_an_edit_with_a_field_outside_the_description_is_rejected(
     )
 
     assert response.status_code == 422
-    assert await _stored(engine, rex.id) == replace(rex, owner_name="Ana")
+    assert await _stored(engine, rex.id) == replace(
+        rex, owner_name="Ana", owner_username="ana"
+    )
 
 
 async def test_owner_loads_her_unpublished_animal_for_the_edit_form(

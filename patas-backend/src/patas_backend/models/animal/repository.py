@@ -59,7 +59,8 @@ _INSERT = text(
 _SELECT_ALL_PUBLISHED = text(
     """
     SELECT
-        a.id, a.owner_id, u.name AS owner_name, a.name, a.species,
+        a.id, a.owner_id, u.name AS owner_name, u.username AS owner_username,
+        a.name, a.species,
         a.age_in_months, a.adoption_status, a.sex, a.is_neutered,
         a.postal_code, a.size, a.activity_level, a.space_requirement,
         a.shedding, a.grooming_needs, a.behaves_well_with_children,
@@ -78,7 +79,8 @@ _SELECT_ALL_PUBLISHED = text(
 _SELECT_BY_OWNER = text(
     """
     SELECT
-        a.id, a.owner_id, u.name AS owner_name, a.name, a.species,
+        a.id, a.owner_id, u.name AS owner_name, u.username AS owner_username,
+        a.name, a.species,
         a.age_in_months, a.adoption_status, a.sex, a.is_neutered,
         a.postal_code, a.size, a.activity_level, a.space_requirement,
         a.shedding, a.grooming_needs, a.behaves_well_with_children,
@@ -97,7 +99,8 @@ _SELECT_BY_OWNER = text(
 _SELECT_BY_ID = text(
     """
     SELECT
-        a.id, a.owner_id, u.name AS owner_name, a.name, a.species,
+        a.id, a.owner_id, u.name AS owner_name, u.username AS owner_username,
+        a.name, a.species,
         a.age_in_months, a.adoption_status, a.sex, a.is_neutered,
         a.postal_code, a.size, a.activity_level, a.space_requirement,
         a.shedding, a.grooming_needs, a.behaves_well_with_children,
@@ -226,6 +229,7 @@ def _from_row(row: Row[Any]) -> Animal:
         id=row.id,
         owner_id=row.owner_id,
         owner_name=getattr(row, "owner_name", ""),
+        owner_username=getattr(row, "owner_username", ""),
         name=row.name,
         species=Species(row.species),
         age_in_months=row.age_in_months,

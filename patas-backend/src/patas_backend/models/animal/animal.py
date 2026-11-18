@@ -68,6 +68,7 @@ class Animal:
     name: str
     species: Species
     owner_name: str = ""
+    owner_username: str = ""
     age_in_months: int | None = None
     adoption_status: AdoptionStatus = AdoptionStatus.AVAILABLE
     sex: AnimalSex | None = None
@@ -109,6 +110,7 @@ class Animal:
         name: str,
         species: Species,
         owner_name: str = "",
+        owner_username: str = "",
         age_in_months: int | None = None,
         sex: AnimalSex | None = None,
         is_neutered: NeuteredStatus | None = None,
@@ -137,6 +139,7 @@ class Animal:
             name=name,
             species=species,
             owner_name=owner_name,
+            owner_username=owner_username,
             age_in_months=age_in_months,
             sex=sex,
             is_neutered=is_neutered,
