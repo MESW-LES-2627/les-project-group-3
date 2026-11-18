@@ -7,6 +7,9 @@
 | **Scope** | US-19 (#65, republish my animal); the republishing half of AT-21 (#75) |
 | **Related** | [0012-owner-animals-and-unpublishing](0012-owner-animals-and-unpublishing.md), [0014-editing-an-animal](0014-editing-an-animal.md), [0017-adoption-base](0017-adoption-base.md), [0019-requesting-to-adopt](0019-requesting-to-adopt.md), [AdoptionPipeline](../../domain/AdoptionPipeline.md) |
 
+> **Amended by [0025-quality-and-clean-up](0025-quality-and-clean-up.md):** Republish
+> shows its error under the button instead of in `alert()`.
+
 ## Context
 
 An owner can unpublish an available animal (ADR 0012), which closes its open
