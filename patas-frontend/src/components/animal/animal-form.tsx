@@ -281,13 +281,6 @@ function DescriptionForm({
               min={0}
               defaultValue={values.age_in_months}
             />
-            <TextField
-              label="Postal code"
-              name="postal_code"
-              placeholder="0000-000"
-              maxLength={8}
-              defaultValue={values.postal_code}
-            />
             <label className="flex flex-col gap-2 text-sm font-medium text-forest">
               District
               <select

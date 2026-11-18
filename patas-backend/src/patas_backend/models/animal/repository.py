@@ -22,7 +22,7 @@ _INSERT = text(
     INSERT INTO patas.animals
         (
             id, owner_id, name, species, age_in_months, adoption_status, sex,
-            is_neutered, postal_code, size, activity_level, space_requirement,
+            is_neutered, size, activity_level, space_requirement,
             shedding, grooming_needs, behaves_well_with_children,
             behaves_well_with_dogs, behaves_well_with_cats,
             behaves_well_with_other_animals, training_needs,
@@ -34,7 +34,6 @@ _INSERT = text(
         CAST(:adoption_status AS patas.adoption_status),
         CAST(:sex AS patas.animal_sex),
         CAST(:is_neutered AS patas.neutered_status),
-        :postal_code,
         CAST(:size AS patas.animal_size),
         CAST(:activity_level AS patas.energy_level),
         CAST(:space_requirement AS patas.animal_size),
@@ -62,7 +61,7 @@ _SELECT_ALL_PUBLISHED = text(
         a.id, a.owner_id, u.name AS owner_name, u.username AS owner_username,
         a.name, a.species,
         a.age_in_months, a.adoption_status, a.sex, a.is_neutered,
-        a.postal_code, a.size, a.activity_level, a.space_requirement,
+        a.size, a.activity_level, a.space_requirement,
         a.shedding, a.grooming_needs, a.behaves_well_with_children,
         a.behaves_well_with_dogs, a.behaves_well_with_cats,
         a.behaves_well_with_other_animals, a.training_needs,
@@ -82,7 +81,7 @@ _SELECT_BY_OWNER = text(
         a.id, a.owner_id, u.name AS owner_name, u.username AS owner_username,
         a.name, a.species,
         a.age_in_months, a.adoption_status, a.sex, a.is_neutered,
-        a.postal_code, a.size, a.activity_level, a.space_requirement,
+        a.size, a.activity_level, a.space_requirement,
         a.shedding, a.grooming_needs, a.behaves_well_with_children,
         a.behaves_well_with_dogs, a.behaves_well_with_cats,
         a.behaves_well_with_other_animals, a.training_needs,
@@ -102,7 +101,7 @@ _SELECT_BY_ID = text(
         a.id, a.owner_id, u.name AS owner_name, u.username AS owner_username,
         a.name, a.species,
         a.age_in_months, a.adoption_status, a.sex, a.is_neutered,
-        a.postal_code, a.size, a.activity_level, a.space_requirement,
+        a.size, a.activity_level, a.space_requirement,
         a.shedding, a.grooming_needs, a.behaves_well_with_children,
         a.behaves_well_with_dogs, a.behaves_well_with_cats,
         a.behaves_well_with_other_animals, a.training_needs,
@@ -128,7 +127,6 @@ _UPDATE = text(
         adoption_status = CAST(:adoption_status AS patas.adoption_status),
         sex = CAST(:sex AS patas.animal_sex),
         is_neutered = CAST(:is_neutered AS patas.neutered_status),
-        postal_code = :postal_code,
         size = CAST(:size AS patas.animal_size),
         activity_level = CAST(:activity_level AS patas.energy_level),
         space_requirement = CAST(:space_requirement AS patas.animal_size),
@@ -168,7 +166,6 @@ def _to_params(animal: Animal) -> dict[str, Any]:
         "is_neutered": (
             animal.is_neutered.value if animal.is_neutered is not None else None
         ),
-        "postal_code": animal.postal_code,
         "size": animal.size.value if animal.size is not None else None,
         "activity_level": (
             animal.activity_level.value if animal.activity_level is not None else None
@@ -238,7 +235,6 @@ def _from_row(row: Row[Any]) -> Animal:
         is_neutered=(
             NeuteredStatus(row.is_neutered) if row.is_neutered is not None else None
         ),
-        postal_code=row.postal_code,
         size=AnimalSize(row.size) if row.size is not None else None,
         activity_level=(
             EnergyLevel(row.activity_level) if row.activity_level is not None else None

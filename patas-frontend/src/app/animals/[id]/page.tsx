@@ -25,7 +25,6 @@ type Animal = {
   adoption_status: string;
   sex: string | null;
   is_neutered: string | null;
-  postal_code: string | null;
   district: string | null;
   size: string | null;
   activity_level: string | null;
@@ -170,7 +169,6 @@ async function AnimalDetail({ params }: Props) {
               label: "District",
               value: animal.district && districtLabel(animal.district),
             },
-            { label: "Postal code", value: animal.postal_code },
           ]}
         />
         <DetailGroup

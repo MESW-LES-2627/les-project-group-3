@@ -41,7 +41,6 @@ class PublishAnimalRequest(BaseModel):
     age_in_months: Annotated[int, Field(le=2_147_483_647)] | None = None
     sex: AnimalSex | None = None
     is_neutered: NeuteredStatus | None = None
-    postal_code: str | None = None
     district: District | None = None
     size: AnimalSize | None = None
     activity_level: EnergyLevel | None = None
@@ -109,7 +108,6 @@ class AnimalResponse(BaseModel):
     adoption_status: AdoptionStatus
     sex: AnimalSex | None
     is_neutered: NeuteredStatus | None
-    postal_code: str | None
     district: District | None
     size: AnimalSize | None
     activity_level: EnergyLevel | None
@@ -141,7 +139,6 @@ class AnimalResponse(BaseModel):
             adoption_status=animal.adoption_status,
             sex=animal.sex,
             is_neutered=animal.is_neutered,
-            postal_code=animal.postal_code,
             district=animal.district,
             size=animal.size,
             activity_level=animal.activity_level,
@@ -275,7 +272,6 @@ async def edit_animal(
             age_in_months=body.age_in_months,
             sex=body.sex,
             is_neutered=body.is_neutered,
-            postal_code=body.postal_code,
             district=body.district,
             size=body.size,
             activity_level=body.activity_level,
@@ -321,7 +317,6 @@ async def publish_animal(
             age_in_months=body.age_in_months,
             sex=body.sex,
             is_neutered=body.is_neutered,
-            postal_code=body.postal_code,
             district=body.district,
             size=body.size,
             activity_level=body.activity_level,

@@ -90,7 +90,6 @@ def test_optional_profile_fields_are_kept_and_free_text_is_trimmed() -> None:
     animal = _publish(
         sex=AnimalSex.FEMALE,
         is_neutered=NeuteredStatus.YES,
-        postal_code="1234-567",
         size=AnimalSize.SMALL,
         activity_level=EnergyLevel.MODERATE,
         behaves_well_with_children=AnimalCompatibility.WITH_SUPERVISION,
@@ -106,12 +105,6 @@ def test_optional_profile_fields_are_kept_and_free_text_is_trimmed() -> None:
         animal.suitable_for_first_time_owners is FirstTimeOwnerSuitability.WITH_SUPPORT
     )
     assert animal.special_care_notes == "Daily medication"
-
-
-@pytest.mark.parametrize("postal_code", ["1234567", "1234-56A", "123-4567"])
-def test_invalid_portuguese_postal_code_is_rejected(postal_code: str) -> None:
-    with pytest.raises(InvalidAnimal, match="Portuguese format"):
-        _publish(postal_code=postal_code)
 
 
 def test_owner_can_unpublish_animal() -> None:
@@ -139,7 +132,6 @@ def _rex_before_edit() -> Animal:
     return _publish(
         size=AnimalSize.MEDIUM,
         sex=AnimalSex.MALE,
-        postal_code="4000-001",
         district=District.PORTO,
         special_care_notes="Hip check every year",
     )
@@ -156,14 +148,12 @@ def test_owner_can_edit_the_description() -> None:
         age_in_months=36,
         sex=AnimalSex.MALE,
         size=AnimalSize.LARGE,
-        postal_code="1000-001",
         district=District.LISBOA,
         activity_level=EnergyLevel.HIGH,
         other_details="  Loves the beach  ",
     )
 
     assert animal.size is AnimalSize.LARGE
-    assert animal.postal_code == "1000-001"
     assert animal.district is District.LISBOA
     assert animal.age_in_months == 36
     assert animal.activity_level is EnergyLevel.HIGH
@@ -200,7 +190,6 @@ def test_non_owner_cannot_edit_and_the_animal_is_unchanged() -> None:
     [
         pytest.param({"name": "   "}, id="blank-name"),
         pytest.param({"age_in_months": -1}, id="negative-age"),
-        pytest.param({"postal_code": "12345"}, id="invalid-postal-code"),
     ],
 )
 def test_an_invalid_edit_changes_nothing(invalid: dict[str, object]) -> None:

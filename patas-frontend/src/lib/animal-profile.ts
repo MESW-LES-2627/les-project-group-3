@@ -295,7 +295,6 @@ export const FIRST_TIME_OWNER_OPTIONS: readonly Option<
 export const OPTIONAL_ANIMAL_FIELDS = [
   "sex",
   "is_neutered",
-  "postal_code",
   "district",
   "size",
   "activity_level",

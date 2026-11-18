@@ -1,4 +1,3 @@
-import re
 from dataclasses import dataclass, fields, replace
 from uuid import UUID, uuid4
 
@@ -54,13 +53,6 @@ def validate_optional_text(value: str | None) -> str | None:
     return cleaned or None
 
 
-def validate_postal_code(value: str | None) -> str | None:
-    cleaned = validate_optional_text(value)
-    if cleaned is not None and re.fullmatch(r"[0-9]{4}-[0-9]{3}", cleaned) is None:
-        raise InvalidAnimal("postal code must use the Portuguese format NNNN-NNN")
-    return cleaned
-
-
 @dataclass
 class Animal:
     id: UUID
@@ -73,7 +65,6 @@ class Animal:
     adoption_status: AdoptionStatus = AdoptionStatus.AVAILABLE
     sex: AnimalSex | None = None
     is_neutered: NeuteredStatus | None = None
-    postal_code: str | None = None
     district: District | None = None
     size: AnimalSize | None = None
     activity_level: EnergyLevel | None = None
@@ -95,7 +86,6 @@ class Animal:
         # Invariants hold however an Animal is built (published or loaded from the DB).
         self.name = validate_name(self.name)
         self.age_in_months = validate_age_in_months(self.age_in_months)
-        self.postal_code = validate_postal_code(self.postal_code)
         self.special_care_notes = validate_optional_text(self.special_care_notes)
         self.other_details = validate_optional_text(self.other_details)
         # Not a dataclass field: it is not part of the animal's data, so asdict()
@@ -114,7 +104,6 @@ class Animal:
         age_in_months: int | None = None,
         sex: AnimalSex | None = None,
         is_neutered: NeuteredStatus | None = None,
-        postal_code: str | None = None,
         district: District | None = None,
         size: AnimalSize | None = None,
         activity_level: EnergyLevel | None = None,
@@ -143,7 +132,6 @@ class Animal:
             age_in_months=age_in_months,
             sex=sex,
             is_neutered=is_neutered,
-            postal_code=postal_code,
             district=district,
             size=size,
             activity_level=activity_level,
@@ -179,7 +167,6 @@ class Animal:
         age_in_months: int | None = None,
         sex: AnimalSex | None = None,
         is_neutered: NeuteredStatus | None = None,
-        postal_code: str | None = None,
         district: District | None = None,
         size: AnimalSize | None = None,
         activity_level: EnergyLevel | None = None,
@@ -209,7 +196,6 @@ class Animal:
             age_in_months=age_in_months,
             sex=sex,
             is_neutered=is_neutered,
-            postal_code=postal_code,
             district=district,
             size=size,
             activity_level=activity_level,
