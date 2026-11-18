@@ -20,6 +20,7 @@ Use links that work on tag `iter-2`. If something does not exist yet, write `non
 | :-- | :-- |
 | MVP | [MVP](../../product/MVP.md) |
 | Vision | [Vision](../../archive/Vision.md) |
+| Product Vision Board | [Product Vision Board](../../archive/ProductVisionBoard.md) |
 | Definition of Done | [DEFINITION_OF_DONE.md](../../process/DEFINITION_OF_DONE.md) |
 | This tag (`iter-2`) | none yet |
 | Production | [les-project-group-3-deploy.vercel.app](https://les-project-group-3-deploy.vercel.app) |
