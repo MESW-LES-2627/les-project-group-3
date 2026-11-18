@@ -29,6 +29,7 @@ const receivedRequest = {
   animal_id: ID,
   animal_name: "Bolt",
   applicant_name: "Bruno",
+  applicant_username: "bruno",
   status: "open",
   note: "Hi",
   owner_note: null,
