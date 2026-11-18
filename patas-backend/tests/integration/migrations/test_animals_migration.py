@@ -161,7 +161,7 @@ async def test_the_postal_code_column_is_dropped(engine: AsyncEngine) -> None:
         assert await conn.scalar(_POSTAL_CODE_COLUMN) is None
 
 
-async def test_downgrading_0009_brings_the_postal_code_back_empty(
+async def test_downgrading_0009_brings_the_postal_code_column_back(
     scratch_database: tuple[Config, str],
 ) -> None:
     config, url = scratch_database

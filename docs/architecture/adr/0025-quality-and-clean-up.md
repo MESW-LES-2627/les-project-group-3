@@ -11,8 +11,8 @@
 
 Three loose ends from earlier stories. An animal had both a postal code and a
 district, which could disagree, and only the district is in the MVP. Unpublish and
-Withdraw asked with the browser's `confirm()`, and errors used `alert()`. The
-catalog returned every published animal in one response.
+Withdraw asked with the browser's `confirm()`, and Unpublish and Republish reported
+errors with `alert()`. The catalog returned every published animal in one response.
 
 ## Decisions
 

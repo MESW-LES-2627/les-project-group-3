@@ -13,7 +13,7 @@ import {
   catalogQuery,
   type CatalogFilters,
 } from "@/lib/catalog-filters";
-import { catalogPage, pageCount, totalFromHeader } from "@/lib/catalog-page";
+import { catalogPage, pager, totalFromHeader } from "@/lib/catalog-page";
 
 import { CatalogFilterForm } from "@/components/animal/catalog-filters";
 
@@ -108,8 +108,8 @@ function Pager({
   page: number;
   total: number;
 }) {
-  const pages = pageCount(total);
-  if (pages === 1 && page === 1) {
+  const links = pager(page, total);
+  if (links === null) {
     return null;
   }
   return (
@@ -117,9 +117,9 @@ function Pager({
       aria-label="Catalog pages"
       className="mt-6 flex items-center justify-between gap-4 text-sm"
     >
-      {page > 1 ? (
+      {links.previous !== null ? (
         <Link
-          href={`/animals${catalogQuery(filters, Math.min(page - 1, pages))}`}
+          href={`/animals${catalogQuery(filters, links.previous)}`}
           className={PAGE_LINK}
         >
           Previous
@@ -127,14 +127,12 @@ function Pager({
       ) : (
         <span />
       )}
-      {page <= pages ? (
-        <p className="text-muted">
-          Page {page} of {pages}
-        </p>
+      {links.label !== null ? (
+        <p className="text-muted">{links.label}</p>
       ) : null}
-      {page < pages ? (
+      {links.next !== null ? (
         <Link
-          href={`/animals${catalogQuery(filters, page + 1)}`}
+          href={`/animals${catalogQuery(filters, links.next)}`}
           className={PAGE_LINK}
         >
           Next

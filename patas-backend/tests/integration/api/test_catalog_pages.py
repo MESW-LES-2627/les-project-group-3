@@ -40,10 +40,11 @@ async def test_the_catalog_is_split_into_pages_of_24_newest_first(
     newest_first = await _publish(session_factory, 30, Species.DOG)
 
     first = await client.get("/animals")
+    explicit_first = await client.get("/animals?page=1")
     second = await client.get("/animals?page=2")
     past_the_end = await client.get("/animals?page=3")
 
-    assert _names(first) == newest_first[:24]
+    assert _names(first) == _names(explicit_first) == newest_first[:24]
     assert _names(second) == newest_first[24:]
     assert past_the_end.json() == []
     assert {r.headers["X-Total-Count"] for r in (first, second, past_the_end)} == {"30"}

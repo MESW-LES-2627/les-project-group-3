@@ -62,9 +62,12 @@ export function ConfirmDialog({
         }
       }}
       onClose={() => {
-        // A second Escape closes it anyway (Chrome); tell the opener, or the
-        // open prop stays true and the button can no longer reopen it.
-        if (open) {
+        // A second Escape closes it anyway (Chrome). Mid-action, open it again so
+        // the result still shows; otherwise tell the opener, or the open prop
+        // stays true and the button can no longer reopen it.
+        if (pending) {
+          ref.current?.showModal();
+        } else if (open) {
           onCancel();
         }
       }}

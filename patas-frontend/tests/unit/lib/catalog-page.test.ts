@@ -1,10 +1,20 @@
 import { describe, expect, it } from "vitest";
 
-import { catalogPage, pageCount, totalFromHeader } from "@/lib/catalog-page";
+import {
+  catalogPage,
+  pageCount,
+  pager,
+  totalFromHeader,
+} from "@/lib/catalog-page";
 
 describe("catalogPage", () => {
-  it("reads a page number from the URL", () => {
-    expect(catalogPage({ page: "3" })).toBe(3);
+  it.each([
+    ["1", 1],
+    ["3", 3],
+    ["13", 13],
+    ["999999", 999999],
+  ])("reads page %s from the URL", (page, number) => {
+    expect(catalogPage({ page })).toBe(number);
   });
 
   it.each([undefined, "0", "-1", "two", "1.5", "007", "9999999", ["2", "3"]])(
@@ -24,6 +34,29 @@ describe("pageCount", () => {
     [300, 13],
   ])("%i animals make %i pages", (total, pages) => {
     expect(pageCount(total)).toBe(pages);
+  });
+});
+
+describe("pager", () => {
+  it.each([0, 1, 24])("is hidden when %i animals fit on page 1", (total) => {
+    expect(pager(1, total)).toBeNull();
+  });
+
+  it("has only Next on the first page", () => {
+    expect(pager(1, 25)).toEqual({ previous: null, next: 2, label: "Page 1 of 2" });
+  });
+
+  it("has both in the middle", () => {
+    expect(pager(2, 49)).toEqual({ previous: 1, next: 3, label: "Page 2 of 3" });
+  });
+
+  it("has only Previous on the last page", () => {
+    expect(pager(2, 25)).toEqual({ previous: 1, next: null, label: "Page 2 of 2" });
+  });
+
+  it("leads back to the last page from past the end, with no label", () => {
+    expect(pager(5, 25)).toEqual({ previous: 2, next: null, label: null });
+    expect(pager(2, 0)).toEqual({ previous: 1, next: null, label: null });
   });
 });
 
