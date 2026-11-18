@@ -204,13 +204,13 @@ async function tokenFor(owner) {
   return token;
 }
 
-const catalog = await (await fetch(`${API}/animals`)).json();
 for (const owner of OWNERS) {
   const token = await tokenFor(owner);
   const authorization = `Bearer ${token}`;
-  const me = await (await fetch(`${API}/me`, { headers: { authorization } })).json();
+  // Their own list, not the catalog: the catalog is paged and hides unpublished ones.
+  const mine = await (await fetch(`${API}/me/animals`, { headers: { authorization } })).json();
   for (const animal of owner.animals) {
-    if (catalog.some((a) => a.owner_id === me.id && a.name === animal.name)) {
+    if (mine.some((a) => a.name === animal.name)) {
       console.log(`skip ${animal.name} (already published by ${owner.email})`);
       continue;
     }
