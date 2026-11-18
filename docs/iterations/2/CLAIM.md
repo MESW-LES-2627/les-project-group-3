@@ -27,4 +27,4 @@ Use links that work on tag `iter-2`. If something does not exist yet, write `non
 | CI/CD Pipeline | [CI workflow](https://github.com/MESW-LES-2627/les-project-group-3/actions/workflows/ci.yml) |
 | Stories in this increment | [Stories in this increment](stories-in-this-increment.md) |
 | Retrospective | [Retrospective](retrospective.md) |
-| AI log | [AI log](AI-LOG.md) |
+| AI critique | [AI critique](AI-critique.md) |
