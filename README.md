@@ -4,18 +4,12 @@ MESW, Software Engineering Laboratory (2026/27), Group 3.
 
 ## Vision
 
-> Patas is a collaborative web platform that centralizes and simplifies the entire
-> animal care and adoption cycle, for people looking to adopt, foster or care for
-> animals and for the associations that protect them.
+> Patas helps people find animals that fit their home, communicate directly, and
+> follow each adoption request through handover—all in one web platform.
 
-The long-term vision rests on four options: **Adopt** (with smart lifestyle matching
-and an optional Foster-to-Adopt trial), **Foster** (families hosting animals for a
-period), **Care** (volunteers walking, feeding and transporting animals) and
-**Contribute** (a wishlist of supplies associations need). Applicants follow their
-process in real time through the **Adoption Tracker**, ending the "black hole" of
-unanswered applications.
-
-Full document (archived, not maintained): [Product Vision](docs/archive/Vision.md).
+The [Product Vision Board](docs/archive/ProductVisionBoard.md) describes the current academic
+MVP, its target groups, needs, goals, and non-goals. The broader long-term ideas
+are preserved separately in the [long-term vision](docs/archive/Vision.md).
 
 ## MVP
 
