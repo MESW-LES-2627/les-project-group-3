@@ -10,6 +10,7 @@ from patas_backend.models.adoption import (
     AdoptionApplication,
     AlreadyRequested,
     ApplicationStatus,
+    ApplicationUnauthorized,
     InvalidApplication,
     InvalidTransition,
     MatchmakerProfileRequired,
@@ -50,6 +51,8 @@ class ApplicationResponse(BaseModel):
     status: ApplicationStatus
     note: str
     owner_note: str | None
+    owner_confirmed_at: datetime | None
+    applicant_confirmed_at: datetime | None
     created_at: datetime | None
 
     @classmethod
@@ -60,6 +63,8 @@ class ApplicationResponse(BaseModel):
             status=application.status,
             note=application.applicant_note,
             owner_note=application.owner_note,
+            owner_confirmed_at=application.owner_confirmed_at,
+            applicant_confirmed_at=application.applicant_confirmed_at,
             created_at=application.created_at,
         )
 
@@ -73,6 +78,8 @@ class SentRequestResponse(BaseModel):
     status: ApplicationStatus
     note: str
     owner_note: str | None
+    owner_confirmed_at: datetime | None
+    applicant_confirmed_at: datetime | None
     created_at: datetime
 
     @classmethod
@@ -84,6 +91,8 @@ class SentRequestResponse(BaseModel):
             status=request.status,
             note=request.applicant_note,
             owner_note=request.owner_note,
+            owner_confirmed_at=request.owner_confirmed_at,
+            applicant_confirmed_at=request.applicant_confirmed_at,
             created_at=request.created_at,
         )
 
@@ -113,6 +122,8 @@ class ReceivedRequestResponse(BaseModel):
     owner_note: str | None
     applicant_profile: MatchmakerProfileResponse
     compatibility_concerns: list[str]
+    owner_confirmed_at: datetime | None
+    applicant_confirmed_at: datetime | None
     created_at: datetime
 
     @classmethod
@@ -130,6 +141,8 @@ class ReceivedRequestResponse(BaseModel):
                 request.applicant_profile
             ),
             compatibility_concerns=list(request.compatibility_concerns),
+            owner_confirmed_at=request.owner_confirmed_at,
+            applicant_confirmed_at=request.applicant_confirmed_at,
             created_at=request.created_at,
         )
 
@@ -279,5 +292,26 @@ async def withdraw_application(
         raise _conflict("invalid_transition", error) from error
     if application is None:
         # Also for someone else's request: to them it does not exist.
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Request not found")
+    return ApplicationResponse.from_domain(application)
+
+
+@router.post(
+    "/applications/{application_id}/confirm-handover",
+    response_model=ApplicationResponse,
+)
+async def confirm_handover(
+    application_id: UUID,
+    actor: Annotated[User, Depends(get_current_user)],
+    service: Annotated[AdoptionService, Depends(get_adoption_service)],
+) -> ApplicationResponse:
+    """Owner or applicant confirms the handover; the second confirmation adopts."""
+    try:
+        application = await service.confirm_handover(actor, application_id)
+    except ApplicationUnauthorized as error:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, str(error)) from error
+    except InvalidTransition as error:
+        raise _conflict("invalid_transition", error) from error
+    if application is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Request not found")
     return ApplicationResponse.from_domain(application)
