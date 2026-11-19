@@ -29,6 +29,8 @@ import {
 } from "@/lib/animal-profile";
 import {
   formValues,
+  MAX_PHOTOS,
+  photosToUpload,
   type AnimalDescription,
   type AnimalFormState,
 } from "@/lib/animal-form";
@@ -170,16 +172,26 @@ function DescriptionForm({
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
+    const { accepted, skipped } = photosToUpload(
+      Array.from(files),
+      photos.length,
+    );
     setUploading(true);
-    setUploadError(null);
-    const uploaded: string[] = [];
+    setUploadError(
+      skipped
+        ? `Each photo can be at most 5 MB, and an animal can have up to ${MAX_PHOTOS} photos.`
+        : null,
+    );
 
-    for (const file of Array.from(files)) {
+    for (const file of accepted) {
       try {
         const res = await fetch("/api/uploads/presigned-url", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content_type: file.type || "image/jpeg" }),
+          body: JSON.stringify({
+            content_type: file.type || "image/jpeg",
+            size: file.size,
+          }),
         });
         if (!res.ok) throw new Error("Failed to get upload URL");
 
@@ -195,13 +207,13 @@ function DescriptionForm({
         });
         if (!putRes.ok) throw new Error("Upload to storage failed");
 
-        uploaded.push(public_url);
+        // Added as soon as it is stored, so a later failure does not lose it.
+        setPhotos((prev) => [...prev, public_url]);
       } catch {
         setUploadError("Some photos could not be uploaded. Please try again.");
       }
     }
 
-    setPhotos((prev) => [...prev, ...uploaded]);
     setUploading(false);
     event.target.value = "";
   }
@@ -214,6 +226,8 @@ function DescriptionForm({
   // typed when a save is rejected; `action` is only the pre-hydration fallback.
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // Saving now would leave out the photos still uploading.
+    if (uploading) return;
     const form = new FormData(event.currentTarget);
     startTransition(() => formAction(form));
   }
@@ -495,7 +509,7 @@ function DescriptionForm({
           )}
           <button
             type="submit"
-            disabled={pending}
+            disabled={pending || uploading}
             className="inline-flex min-h-11 items-center justify-center rounded-xl bg-forest px-5 text-sm font-semibold text-white transition-colors hover:bg-leaf focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest disabled:opacity-60"
           >
             {pending ? pendingLabel : submitLabel}

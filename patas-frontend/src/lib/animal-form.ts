@@ -5,6 +5,23 @@ type OptionalAnimalField = (typeof OPTIONAL_ANIMAL_FIELDS)[number];
 const UUID_V4_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+// Placeholders until the team agrees on the limits; the backend enforces them too.
+export const MAX_PHOTOS = 10;
+export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+
+// The chosen files that fit: none over the size limit, and only as many as there
+// is room for next to the photos the animal already has.
+export function photosToUpload<T extends { size: number }>(
+  files: T[],
+  current: number,
+): { accepted: T[]; skipped: boolean } {
+  const room = Math.max(0, MAX_PHOTOS - current);
+  const accepted = files
+    .filter((file) => file.size <= MAX_PHOTO_BYTES)
+    .slice(0, room);
+  return { accepted, skipped: accepted.length < files.length };
+}
+
 export function isAnimalId(id: string): boolean {
   return UUID_V4_PATTERN.test(id);
 }

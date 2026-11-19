@@ -51,8 +51,15 @@ ALLOWED_IMAGE_TYPES = {
 }
 
 
+# Placeholder until the team agrees on the limit.
+MAX_PHOTO_BYTES = 5 * 1024 * 1024
+UPLOAD_URL_LIFETIME_SECONDS = 300
+
+
 class PresignedUrlRequest(BaseModel):
     content_type: str = "image/jpeg"
+    # Signed into the URL, so the storage refuses a file of any other size.
+    size: int = Field(gt=0, le=MAX_PHOTO_BYTES)
 
 
 class PresignedUrlResponse(BaseModel):
@@ -197,8 +204,19 @@ def get_animal_service(request: Request) -> AnimalService:
     )
 
 
-def get_settings() -> Settings:
-    return Settings()
+def get_settings(request: Request) -> Settings:
+    settings: Settings = request.app.state.settings
+    return settings
+
+
+def check_own_uploads(photo_urls: list[str], owner: User, settings: Settings) -> None:
+    """Only photos the owner uploaded through Patas: no third-party URLs."""
+    prefix = f"{settings.public_upload_url.rstrip('/')}/animals/{owner.id}/"
+    if any(not url.startswith(prefix) for url in photo_urls):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "Photos must be uploaded through Patas",
+        )
 
 
 @router.post("/animals/presigned-url", response_model=PresignedUrlResponse)
@@ -208,6 +226,10 @@ async def create_presigned_url(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> PresignedUrlResponse:
     """A short-lived URL the browser uses to upload a photo straight to R2."""
+    if not settings.uploads_configured:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE, "Photo uploads are not configured"
+        )
     extension = ALLOWED_IMAGE_TYPES.get(body.content_type)
     if extension is None:
         raise HTTPException(
@@ -233,8 +255,9 @@ async def create_presigned_url(
             "Bucket": settings.aws_storage_bucket_name,
             "Key": file_name,
             "ContentType": body.content_type,
+            "ContentLength": body.size,
         },
-        ExpiresIn=3600,
+        ExpiresIn=UPLOAD_URL_LIFETIME_SECONDS,
     )
 
     return PresignedUrlResponse(
@@ -339,8 +362,10 @@ async def edit_animal(
     body: EditAnimalRequest,
     owner: Annotated[User, Depends(get_current_user)],
     service: Annotated[AnimalService, Depends(get_animal_service)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> AnimalResponse:
     """The owner replaces the description: 403 if not the owner, 404 if not found."""
+    check_own_uploads(body.photo_urls, owner, settings)
     try:
         animal = await service.edit(
             owner,
@@ -387,7 +412,9 @@ async def publish_animal(
     body: PublishAnimalRequest,
     owner: Annotated[User, Depends(get_current_user)],
     service: Annotated[AnimalService, Depends(get_animal_service)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> AnimalResponse:
+    check_own_uploads(body.photo_urls, owner, settings)
     try:
         animal = await service.publish(
             owner,

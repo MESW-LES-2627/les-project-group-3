@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     aws_storage_bucket_name: Annotated[
         str,
         Field(validation_alias=AliasChoices("AWS_STORAGE_BUCKET_NAME")),
-    ] = "patas-media-bucket"
+    ] = ""
     public_upload_url: Annotated[
         str,
         Field(
@@ -45,3 +45,16 @@ class Settings(BaseSettings):
             )
         ),
     ] = ""
+
+    @property
+    def uploads_configured(self) -> bool:
+        """Photo uploads need all of these; a missing one would give broken URLs."""
+        return all(
+            (
+                self.aws_access_key_id,
+                self.aws_secret_access_key,
+                self.aws_s3_endpoint_url,
+                self.aws_storage_bucket_name,
+                self.public_upload_url,
+            )
+        )

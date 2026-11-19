@@ -117,6 +117,28 @@ def test_photos_are_kept_when_publishing() -> None:
     assert _publish(photo_urls=photos).photo_urls == photos
 
 
+def test_an_animal_has_at_most_ten_photos() -> None:
+    photos = [f"https://media.example/animals/rex-{n}.jpg" for n in range(11)]
+
+    with pytest.raises(InvalidAnimal, match="at most 10 photos"):
+        _publish(photo_urls=photos)
+
+
+def test_the_same_photo_cannot_be_added_twice() -> None:
+    photo = "https://media.example/animals/rex-1.jpg"
+
+    with pytest.raises(InvalidAnimal, match="twice"):
+        _publish(photo_urls=[photo, photo])
+
+
+@pytest.mark.parametrize(
+    "url", ["http://media.example/rex.jpg", "/animals/rex.jpg", "javascript:x"]
+)
+def test_a_photo_must_be_an_https_url(url: str) -> None:
+    with pytest.raises(InvalidAnimal, match="https"):
+        _publish(photo_urls=[url])
+
+
 def test_owner_can_unpublish_animal() -> None:
     animal = _publish()
     assert animal.is_published is True

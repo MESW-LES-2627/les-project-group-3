@@ -46,6 +46,20 @@ def validate_age_in_months(age_in_months: int | None) -> int | None:
     return age_in_months
 
 
+# Placeholder until the team agrees on the limit.
+MAX_PHOTOS = 10
+
+
+def validate_photo_urls(photo_urls: list[str]) -> list[str]:
+    if len(photo_urls) > MAX_PHOTOS:
+        raise InvalidAnimal(f"an animal can have at most {MAX_PHOTOS} photos")
+    if len(set(photo_urls)) != len(photo_urls):
+        raise InvalidAnimal("the same photo must not be added twice")
+    if any(not url.startswith("https://") for url in photo_urls):
+        raise InvalidAnimal("photos must be https URLs")
+    return list(photo_urls)
+
+
 def validate_optional_text(value: str | None) -> str | None:
     if value is None:
         return None
@@ -89,6 +103,7 @@ class Animal:
         self.age_in_months = validate_age_in_months(self.age_in_months)
         self.special_care_notes = validate_optional_text(self.special_care_notes)
         self.other_details = validate_optional_text(self.other_details)
+        self.photo_urls = validate_photo_urls(self.photo_urls)
         # Not a dataclass field: it is not part of the animal's data, so asdict()
         # and replace() never see it.
         self._events: list[DomainEvent] = []
