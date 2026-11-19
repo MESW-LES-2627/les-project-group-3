@@ -185,5 +185,22 @@
       "diff_pct": null
     },
     "mutation_pct": 76.1
+  },
+  {
+    "date": "2026-11-19T09:48:37Z",
+    "branch": "staging",
+    "commit": "5fbd6f8",
+    "title": "Merge pull request #96 from MESW-LES-2627/feat/us-20-username",
+    "backend": {
+      "tests": 781,
+      "branch_pct": 96.7,
+      "diff_pct": 99.0
+    },
+    "frontend": {
+      "tests": 184,
+      "branch_pct": 100.0,
+      "diff_pct": 100.0
+    },
+    "mutation_pct": 76.8
   }
 ]
