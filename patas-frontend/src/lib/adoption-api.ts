@@ -6,6 +6,7 @@
 import { backendUrl } from "@/lib/backend";
 import {
   ANSWER_MESSAGES,
+  CONFIRM_HANDOVER_MESSAGES,
   REQUEST_MESSAGES,
   WITHDRAW_MESSAGES,
   isMyApplication,
@@ -13,6 +14,8 @@ import {
   isSentRequest,
   type AnswerOutcome,
   type AnswerProblem,
+  type ConfirmHandoverOutcome,
+  type ConfirmHandoverProblem,
   type MyApplicationResult,
   type OwnerAnswer,
   type MyRequestsResult,
@@ -213,6 +216,50 @@ export async function withdrawRequest(
     return withdrawProblem("not-active");
   }
   return withdrawProblem("unavailable");
+}
+
+function confirmHandoverProblem(
+  kind: ConfirmHandoverProblem,
+): ConfirmHandoverOutcome {
+  return { ok: false, problem: kind, message: CONFIRM_HANDOVER_MESSAGES[kind] };
+}
+
+export async function confirmHandover(
+  applicationId: string,
+): Promise<ConfirmHandoverOutcome> {
+  if (!UUID_PATTERN.test(applicationId)) {
+    return confirmHandoverProblem("not-found");
+  }
+  // redirect() throws, so this stays outside the try/catch below.
+  const token = await bearerToken();
+
+  let response: Response;
+  try {
+    response = await fetch(
+      `${backendUrl()}/applications/${encodeURIComponent(applicationId)}/confirm-handover`,
+      {
+        method: "POST",
+        cache: "no-store",
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+  } catch {
+    return confirmHandoverProblem("unavailable");
+  }
+
+  if (response.ok) {
+    return { ok: true };
+  }
+  if (response.status === 403) {
+    return confirmHandoverProblem("forbidden");
+  }
+  if (response.status === 404) {
+    return confirmHandoverProblem("not-found");
+  }
+  if (response.status === 409) {
+    return confirmHandoverProblem("not-confirmable");
+  }
+  return confirmHandoverProblem("unavailable");
 }
 
 // The backend's 409 on an answer has two causes: the request is no longer open, or

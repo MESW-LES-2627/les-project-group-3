@@ -27,6 +27,8 @@ export type MyApplication = {
   animal_id: string;
   status: string;
   note: string;
+  owner_confirmed_at: string | null;
+  applicant_confirmed_at: string | null;
 };
 
 export type RequestOutcome =
@@ -71,12 +73,15 @@ export function isMyApplication(value: unknown): value is MyApplication {
   if (typeof value !== "object" || value === null) {
     return false;
   }
-  const { id, animal_id, status, note } = value as Record<string, unknown>;
+  const { id, animal_id, status, note, owner_confirmed_at, applicant_confirmed_at } =
+    value as Record<string, unknown>;
   return (
     typeof id === "string" &&
     typeof animal_id === "string" &&
     typeof status === "string" &&
-    typeof note === "string"
+    typeof note === "string" &&
+    (owner_confirmed_at === null || typeof owner_confirmed_at === "string") &&
+    (applicant_confirmed_at === null || typeof applicant_confirmed_at === "string")
   );
 }
 
@@ -89,6 +94,8 @@ export type SentRequest = {
   status: string;
   note: string;
   owner_note: string | null;
+  owner_confirmed_at: string | null;
+  applicant_confirmed_at: string | null;
   created_at: string;
 };
 
@@ -104,6 +111,10 @@ export function isSentRequest(value: unknown): value is SentRequest {
     typeof r.status === "string" &&
     typeof r.note === "string" &&
     (r.owner_note === null || typeof r.owner_note === "string") &&
+    (r.owner_confirmed_at === null ||
+      typeof r.owner_confirmed_at === "string") &&
+    (r.applicant_confirmed_at === null ||
+      typeof r.applicant_confirmed_at === "string") &&
     typeof r.created_at === "string"
   );
 }
@@ -123,6 +134,8 @@ export type ReceivedRequest = {
   owner_note: string | null;
   applicant_profile: MatchmakerAnswers;
   compatibility_concerns: string[];
+  owner_confirmed_at: string | null;
+  applicant_confirmed_at: string | null;
   created_at: string;
 };
 
@@ -145,6 +158,10 @@ export function isReceivedRequest(value: unknown): value is ReceivedRequest {
     request.compatibility_concerns.every(
       (concern) => typeof concern === "string",
     ) &&
+    (request.owner_confirmed_at === null ||
+      typeof request.owner_confirmed_at === "string") &&
+    (request.applicant_confirmed_at === null ||
+      typeof request.applicant_confirmed_at === "string") &&
     typeof request.created_at === "string"
   );
 }
@@ -186,6 +203,35 @@ export function withdrawConfirmation(
       }
     : { title: `Withdraw your request for ${animalName}?` };
 }
+
+// US-18: the owner or applicant confirms the animal was handed over.
+
+export type ConfirmHandoverProblem =
+  | "not-found"
+  | "forbidden"
+  | "not-confirmable"
+  | "unavailable";
+
+export const CONFIRM_HANDOVER_MESSAGES: Record<
+  ConfirmHandoverProblem,
+  string
+> = {
+  "not-found": "This request could not be found.",
+  forbidden: "You are not allowed to confirm this handover.",
+  "not-confirmable":
+    "This handover can no longer be confirmed, or you have already confirmed it.",
+  unavailable:
+    "We could not confirm the handover right now. Please try again.",
+};
+
+export type ConfirmHandoverOutcome =
+  | { ok: true }
+  | { ok: false; problem: ConfirmHandoverProblem; message: string };
+
+export type ConfirmHandoverAction = (
+  applicationId: string,
+  animalId: string,
+) => Promise<ConfirmHandoverOutcome>;
 
 // US-16: the owner accepts or declines a request, with an optional note.
 

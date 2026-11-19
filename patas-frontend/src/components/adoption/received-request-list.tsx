@@ -4,10 +4,12 @@ import { TriangleAlert } from "lucide-react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 import { AnswerPanel } from "@/components/adoption/answer-panel";
+import { ConfirmHandoverButton } from "@/components/adoption/confirm-handover-button";
 import {
   filterByStatus,
   statusFilterOf,
   type AnswerAction,
+  type ConfirmHandoverAction,
   type ReceivedRequest,
 } from "@/lib/adoption";
 import {
@@ -32,6 +34,7 @@ const DATE = new Intl.DateTimeFormat("en-GB", {
 type ReceivedRequestListProps = {
   requests: ReceivedRequest[];
   answer: AnswerAction;
+  confirmHandover: ConfirmHandoverAction;
 };
 
 function optionLabel<T extends string>(
@@ -57,6 +60,7 @@ function profileAnswers(request: ReceivedRequest): [string, string][] {
 export function ReceivedRequestList({
   requests,
   answer,
+  confirmHandover,
 }: ReceivedRequestListProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -222,6 +226,24 @@ export function ReceivedRequestList({
                 status={request.status}
                 action={answer}
               />
+
+              {request.status === "accepted" ? (
+                <div className="mt-4 border-t border-line pt-4">
+                  {request.owner_confirmed_at ? (
+                    <p className="text-sm font-medium text-forest">
+                      You confirmed the handover. Waiting for the adopter to
+                      confirm.
+                    </p>
+                  ) : (
+                    <ConfirmHandoverButton
+                      applicationId={request.id}
+                      animalId={request.animal_id}
+                      otherSideConfirmed={request.applicant_confirmed_at !== null}
+                      action={confirmHandover}
+                    />
+                  )}
+                </div>
+              ) : null}
             </li>
           ))}
         </ul>
