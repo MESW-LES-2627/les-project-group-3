@@ -168,5 +168,22 @@
       "diff_pct": null
     },
     "mutation_pct": 76.1
+  },
+  {
+    "date": "2026-11-19T09:44:52Z",
+    "branch": "staging",
+    "commit": "d4ff44f",
+    "title": "Merge pull request #95 from MESW-LES-2627/task/product-vision-board",
+    "backend": {
+      "tests": 719,
+      "branch_pct": 96.8,
+      "diff_pct": null
+    },
+    "frontend": {
+      "tests": 159,
+      "branch_pct": 100.0,
+      "diff_pct": null
+    },
+    "mutation_pct": 76.1
   }
 ]
