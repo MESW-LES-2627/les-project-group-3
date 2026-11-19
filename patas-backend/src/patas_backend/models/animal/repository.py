@@ -75,6 +75,32 @@ _SELECT_ALL_PUBLISHED = text(
     """
 )
 
+_SELECT_RANDOM_MATCHMAKER_CANDIDATES = text(
+    """
+    SELECT
+        a.id, a.owner_id, u.name AS owner_name, a.name, a.species,
+        a.age_in_months, a.adoption_status, a.sex, a.is_neutered,
+        a.postal_code, a.size, a.activity_level, a.space_requirement,
+        a.shedding, a.grooming_needs, a.behaves_well_with_children,
+        a.behaves_well_with_dogs, a.behaves_well_with_cats,
+        a.behaves_well_with_other_animals, a.training_needs,
+        a.tolerance_for_time_alone, a.noise_level,
+        a.suitable_for_first_time_owners, a.special_care_notes,
+        a.other_details, a.district
+    FROM patas.animals a
+    JOIN patas.users u ON u.id = a.owner_id
+    WHERE a.adoption_status = 'available'
+      AND a.owner_id <> :owner_id
+      AND NOT EXISTS (
+          SELECT 1
+          FROM patas.matchmaker_swipes s
+          WHERE s.user_id = :user_id AND s.animal_id = a.id
+      )
+    ORDER BY random()
+    LIMIT :limit
+    """
+)
+
 _SELECT_BY_OWNER = text(
     """
     SELECT
@@ -325,4 +351,14 @@ class AnimalRepository:
     async def list_all(self) -> list[Animal]:
         """Every published animal of every owner, newest first: the public catalog."""
         result = await self._session.execute(_SELECT_ALL_PUBLISHED)
+        return [_from_row(row) for row in result]
+
+    async def sample_for_matchmaker(
+        self, user_id: UUID, owner_id: UUID, limit: int
+    ) -> list[Animal]:
+        """A random sample of available, unreviewed animals for one adopter."""
+        result = await self._session.execute(
+            _SELECT_RANDOM_MATCHMAKER_CANDIDATES,
+            {"user_id": user_id, "owner_id": owner_id, "limit": limit},
+        )
         return [_from_row(row) for row in result]
