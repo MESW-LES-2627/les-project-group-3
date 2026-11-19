@@ -88,7 +88,7 @@ _SELECT_RANDOM_MATCHMAKER_CANDIDATES = text(
         a.behaves_well_with_other_animals, a.training_needs,
         a.tolerance_for_time_alone, a.noise_level,
         a.suitable_for_first_time_owners, a.special_care_notes,
-        a.other_details, a.district
+        a.other_details, a.district, a.photo_urls
     FROM patas.animals a
     JOIN patas.users u ON u.id = a.owner_id
     WHERE a.adoption_status = 'available'
@@ -118,7 +118,7 @@ _SELECT_SAVED_BY = text(
         a.behaves_well_with_other_animals, a.training_needs,
         a.tolerance_for_time_alone, a.noise_level,
         a.suitable_for_first_time_owners, a.special_care_notes,
-        a.other_details, a.district,
+        a.other_details, a.district, a.photo_urls,
         EXISTS (
             SELECT 1
             FROM patas.adoption_applications r
