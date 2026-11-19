@@ -69,6 +69,26 @@ describe("parseAnimalForm: other fields", () => {
     expect(description.species).toBe("");
   });
 
+  it("collects the uploaded photo URLs and drops blanks", () => {
+    const data = form({ name: "Bolt", species: "dog" });
+    data.append("photo_urls", "https://media.example/bolt-1.jpg");
+    data.append("photo_urls", "   ");
+    data.append("photo_urls", "https://media.example/bolt-2.png");
+
+    const result = parseAnimalForm(data);
+    if (!("description" in result)) {
+      throw new Error(`expected a description, got: ${result.error}`);
+    }
+    expect(result.description.photo_urls).toEqual([
+      "https://media.example/bolt-1.jpg",
+      "https://media.example/bolt-2.png",
+    ]);
+  });
+
+  it("treats a form without photos as having none", () => {
+    expect(parsed({ name: "Bolt", species: "dog" }).photo_urls).toEqual([]);
+  });
+
   it("refuses a file where text is expected", () => {
     const result = parseAnimalForm(
       form({

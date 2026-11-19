@@ -107,6 +107,16 @@ def test_optional_profile_fields_are_kept_and_free_text_is_trimmed() -> None:
     assert animal.special_care_notes == "Daily medication"
 
 
+def test_photos_are_empty_by_default() -> None:
+    assert _publish().photo_urls == []
+
+
+def test_photos_are_kept_when_publishing() -> None:
+    photos = ["https://media.example/animals/rex-1.jpg"]
+
+    assert _publish(photo_urls=photos).photo_urls == photos
+
+
 def test_owner_can_unpublish_animal() -> None:
     animal = _publish()
     assert animal.is_published is True
@@ -164,6 +174,33 @@ def test_owner_can_edit_the_description() -> None:
     assert animal.special_care_notes is None
     assert animal.id == id_before
     assert animal.owner_id == OWNER_ID
+
+
+def test_an_edit_replaces_the_photos() -> None:
+    animal = _rex_before_edit()
+
+    animal.edit(
+        OWNER_ID,
+        name="Rex",
+        species=Species.DOG,
+        photo_urls=["https://media.example/animals/rex-2.jpg"],
+    )
+
+    assert animal.photo_urls == ["https://media.example/animals/rex-2.jpg"]
+
+
+def test_a_photo_left_out_of_an_edit_is_cleared() -> None:
+    animal = _rex_before_edit()
+    animal.edit(
+        OWNER_ID,
+        name="Rex",
+        species=Species.DOG,
+        photo_urls=["https://media.example/animals/rex-1.jpg"],
+    )
+
+    animal.edit(OWNER_ID, name="Rex", species=Species.DOG)
+
+    assert animal.photo_urls == []
 
 
 def test_an_edit_keeps_the_adoption_status() -> None:
