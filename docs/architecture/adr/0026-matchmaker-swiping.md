@@ -1,4 +1,4 @@
-# ADR 0024: Matchmaker swiping, passes and saved animals
+# ADR 0026: Matchmaker swiping, passes and saved animals
 
 | | |
 | :-- | :-- |
