@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -41,6 +42,7 @@ type Animal = {
   suitable_for_first_time_owners: string | null;
   special_care_notes: string | null;
   other_details: string | null;
+  photo_urls: string[];
 };
 
 type DetailItem = {
@@ -137,6 +139,22 @@ async function AnimalDetail({ params }: Props) {
 
   return (
     <section className="rounded-2xl border border-line bg-surface p-6 shadow-sm sm:p-8">
+      {animal.photo_urls.length > 0 && (
+        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {animal.photo_urls.map((url, index) => (
+            <Image
+              key={url}
+              src={url}
+              alt={`${animal.name} photo ${index + 1}`}
+              width={600}
+              height={600}
+              unoptimized
+              className="aspect-square w-full rounded-xl border border-line object-cover"
+            />
+          ))}
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="rounded-full bg-leaf/10 px-3 py-1 text-xs font-semibold capitalize text-leaf">
           {formatValue(animal.species)}

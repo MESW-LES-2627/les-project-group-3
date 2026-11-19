@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
   startTransition,
   useActionState,
@@ -161,6 +162,53 @@ function DescriptionForm({
   const values = initial ? formValues(initial) : {};
   const [answers, setAnswers] = useState<Record<string, string>>(values);
   const [answered, setAnswered] = useState(() => countDetails(values));
+  const [photos, setPhotos] = useState<string[]>(initial?.photo_urls ?? []);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  async function handlePhotoUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    setUploadError(null);
+    const uploaded: string[] = [];
+
+    for (const file of Array.from(files)) {
+      try {
+        const res = await fetch("/api/uploads/presigned-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content_type: file.type || "image/jpeg" }),
+        });
+        if (!res.ok) throw new Error("Failed to get upload URL");
+
+        const { upload_url, public_url } = (await res.json()) as {
+          upload_url: string;
+          public_url: string;
+        };
+
+        const putRes = await fetch(upload_url, {
+          method: "PUT",
+          body: file,
+          headers: { "Content-Type": file.type || "image/jpeg" },
+        });
+        if (!putRes.ok) throw new Error("Upload to storage failed");
+
+        uploaded.push(public_url);
+      } catch {
+        setUploadError("Some photos could not be uploaded. Please try again.");
+      }
+    }
+
+    setPhotos((prev) => [...prev, ...uploaded]);
+    setUploading(false);
+    event.target.value = "";
+  }
+
+  function removePhoto(urlToRemove: string) {
+    setPhotos((prev) => prev.filter((url) => url !== urlToRemove));
+  }
 
   // React resets a form after running its `action`, which would lose what was
   // typed when a save is rejected; `action` is only the pre-hydration fallback.
@@ -249,6 +297,63 @@ function DescriptionForm({
       </aside>
 
       <div className="divide-y divide-line pt-8 lg:col-start-1 lg:row-start-1 lg:pt-0">
+        <FormSection
+          title="Photos"
+          why="Add clear photos so adopters can see what the animal looks like."
+        >
+          <div className="space-y-3">
+            {photos.map((url, index) => (
+              <input
+                key={`${url}-${index}`}
+                type="hidden"
+                name="photo_urls"
+                value={url}
+              />
+            ))}
+
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {photos.map((url) => (
+                <div key={url} className="group relative aspect-square">
+                  <Image
+                    src={url}
+                    alt="Uploaded animal"
+                    width={200}
+                    height={200}
+                    unoptimized
+                    className="size-full rounded-xl border border-line object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removePhoto(url)}
+                    aria-label="Remove photo"
+                    className="absolute right-2 top-2 rounded-full bg-forest/80 px-2 py-0.5 text-xs font-semibold text-white transition hover:bg-red-700"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+
+              <label className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-line text-center text-sm font-medium text-muted transition hover:border-leaf hover:bg-leaf/5 hover:text-forest">
+                <span>{uploading ? "Uploading..." : "+ Add photos"}</span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  className="hidden"
+                  onChange={handlePhotoUpload}
+                  disabled={uploading}
+                />
+              </label>
+            </div>
+
+            {uploadError && (
+              <p role="alert" className="text-sm font-medium text-red-700">
+                {uploadError}
+              </p>
+            )}
+          </div>
+        </FormSection>
+
         <FormSection
           title="About the animal"
           why="Start with the details needed to publish a listing."
