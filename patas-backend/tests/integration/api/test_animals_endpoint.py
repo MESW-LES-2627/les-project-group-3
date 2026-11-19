@@ -74,6 +74,7 @@ async def test_catalog_is_public_and_lists_published_animals(
             "suitable_for_first_time_owners": None,
             "special_care_notes": None,
             "other_details": None,
+            "photo_urls": [],
             "match_profile": {
                 "activity": None,
                 "max_time_alone": None,
@@ -192,6 +193,7 @@ async def test_animal_profile_fields_are_optional(
             "name",
             "species",
             "adoption_status",
+            "photo_urls",
         }
     )
 

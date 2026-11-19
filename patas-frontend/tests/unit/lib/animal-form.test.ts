@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   formValues,
   isAnimalId,
+  MAX_PHOTO_BYTES,
   parseAnimalForm,
+  photosToUpload,
   rejectionMessage,
   type AnimalDescription,
 } from "@/lib/animal-form";
@@ -69,6 +71,26 @@ describe("parseAnimalForm: other fields", () => {
     expect(description.species).toBe("");
   });
 
+  it("collects the uploaded photo URLs and drops blanks", () => {
+    const data = form({ name: "Bolt", species: "dog" });
+    data.append("photo_urls", "https://media.example/bolt-1.jpg");
+    data.append("photo_urls", "   ");
+    data.append("photo_urls", "https://media.example/bolt-2.png");
+
+    const result = parseAnimalForm(data);
+    if (!("description" in result)) {
+      throw new Error(`expected a description, got: ${result.error}`);
+    }
+    expect(result.description.photo_urls).toEqual([
+      "https://media.example/bolt-1.jpg",
+      "https://media.example/bolt-2.png",
+    ]);
+  });
+
+  it("treats a form without photos as having none", () => {
+    expect(parsed({ name: "Bolt", species: "dog" }).photo_urls).toEqual([]);
+  });
+
   it("refuses a file where text is expected", () => {
     const result = parseAnimalForm(
       form({
@@ -122,5 +144,46 @@ describe("rejectionMessage", () => {
       { status: 422 },
     );
     expect(await rejectionMessage(response)).toBe("Invalid animal data");
+  });
+});
+
+describe("photosToUpload", () => {
+  const small = (name: string) => ({ name, size: 1000 });
+
+  it("keeps every file that fits", () => {
+    const files = [small("a"), small("b")];
+
+    expect(photosToUpload(files, 0)).toEqual({ accepted: files, skipped: false });
+  });
+
+  it("skips a file over 5 MB", () => {
+    const big = { name: "big", size: MAX_PHOTO_BYTES + 1 };
+
+    expect(photosToUpload([small("a"), big], 0)).toEqual({
+      accepted: [small("a")],
+      skipped: true,
+    });
+  });
+
+  it("accepts a file of exactly 5 MB", () => {
+    const edge = { name: "edge", size: MAX_PHOTO_BYTES };
+
+    expect(photosToUpload([edge], 0).accepted).toEqual([edge]);
+  });
+
+  it("only takes as many as fit next to the photos already there", () => {
+    const files = [small("a"), small("b"), small("c")];
+
+    expect(photosToUpload(files, 8)).toEqual({
+      accepted: [small("a"), small("b")],
+      skipped: true,
+    });
+  });
+
+  it("takes none when the animal already has ten photos", () => {
+    expect(photosToUpload([small("a")], 10)).toEqual({
+      accepted: [],
+      skipped: true,
+    });
   });
 });

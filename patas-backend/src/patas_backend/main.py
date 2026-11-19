@@ -49,6 +49,7 @@ def create_app(
         await engine.dispose()
 
     app = FastAPI(title="Patas", lifespan=lifespan)
+    app.state.settings = settings
     app.state.engine = engine
     app.state.session_factory = async_sessionmaker(engine, expire_on_commit=False)
     # The one place that decides who reacts to which domain event. A new feature
