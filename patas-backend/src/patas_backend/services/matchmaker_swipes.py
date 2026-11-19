@@ -30,6 +30,7 @@ SAMPLE_SIZE = 100
 class SwipeAnimal:
     animal: Animal
     fit: CompatibilityResult | None
+    requested: bool = False
 
 
 def _fit_rank(result: SwipeAnimal) -> tuple[bool, int, str]:
@@ -68,28 +69,19 @@ class MatchmakerSwipeService:
     async def list_saved(self, user: User) -> list[SwipeAnimal]:
         async with self._session_factory() as session:
             profile = await MatchmakerProfileRepository(session).get(user.id)
-            animals = await AnimalRepository(session).list_all()
-            swipes = await MatchmakerSwipeRepository(session).list_by_user(user.id)
+            saved = await AnimalRepository(session).list_saved_by(user.id)
 
-        available = {
-            animal.id: animal
-            for animal in animals
-            if animal.adoption_status is AdoptionStatus.AVAILABLE
-            and animal.owner_id != user.id
-        }
-        saved = [
-            available[swipe.animal_id]
-            for swipe in swipes
-            if swipe.disposition is SwipeDisposition.SAVED
-            and swipe.animal_id in available
-        ]
         if profile is None:
-            return [SwipeAnimal(animal, None) for animal in saved]
+            return [SwipeAnimal(animal, None, requested) for animal, requested in saved]
 
         strategy = strategy_for(CompatibilityMode.LOOSE)
         ranked = [
-            SwipeAnimal(animal, strategy.evaluate(profile, animal.match_profile()))
-            for animal in saved
+            SwipeAnimal(
+                animal,
+                strategy.evaluate(profile, animal.match_profile()),
+                requested,
+            )
+            for animal, requested in saved
         ]
         ranked.sort(key=_fit_rank)
         return ranked
@@ -98,7 +90,10 @@ class MatchmakerSwipeService:
         self, user: User, animal_id: UUID, disposition: SwipeDisposition
     ) -> MatchmakerSwipe:
         async with self._session_factory.begin() as session:
-            animal = await AnimalRepository(session).get_for_update(animal_id)
+            # A plain read, no lock: a swipe never changes the animal, so it must
+            # not make the owner's accept or unpublish wait (the swipe's primary
+            # key already stops a second decision on the same animal).
+            animal = await AnimalRepository(session).get_by_id(animal_id)
             if animal is None or not animal.is_published:
                 raise SwipeAnimalNotAvailable("This animal is no longer available")
             if animal.owner_id == user.id:

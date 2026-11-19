@@ -47,6 +47,7 @@ async def test_at_15_swipes_are_private_and_saved_animals_can_be_requested(
         json={"note": NOTE},
         headers=carla,
     )
+    saved_after_request = await client.get(SAVED, headers=carla)
 
     assert pass_response.status_code == 201
     assert save_response.status_code == 201
@@ -57,7 +58,10 @@ async def test_at_15_swipes_are_private_and_saved_animals_can_be_requested(
         str(saved.id),
     }
     assert [item["id"] for item in saved_list.json()] == [str(saved.id)]
+    assert saved_list.json()[0]["requested"] is False
     assert request.status_code == 201
+    # The saved list says the request was sent, so it does not offer the form again.
+    assert saved_after_request.json()[0]["requested"] is True
 
     removed = await client.delete(f"/me/matchmaker/swipes/{saved.id}", headers=carla)
     saved_after_removal = await client.get(SAVED, headers=carla)

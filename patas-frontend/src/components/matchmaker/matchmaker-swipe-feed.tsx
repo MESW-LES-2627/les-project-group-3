@@ -7,6 +7,7 @@ import { useRef, useState, useTransition } from "react";
 import { districtLabel } from "@/lib/animal-profile";
 import { personLabel } from "@/lib/username";
 import {
+  movesOn,
   SWIPE_MESSAGES,
   type SwipeAnimal,
   type SwipeDisposition,
@@ -44,6 +45,8 @@ export function MatchmakerSwipeFeed({ initialAnimals, loadMore, swipe }: Props) 
       const result = await swipe(swiped.id, disposition);
       if (!result.ok) {
         setError(result.message);
+      }
+      if (!movesOn(result)) {
         return;
       }
       setLeaving(true);

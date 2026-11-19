@@ -21,6 +21,8 @@ export type SwipeAnimal = {
   size: string | null;
   adoption_status: string;
   fit: SwipeFit | null;
+  // The adopter already has an open or accepted request for this animal.
+  requested: boolean;
 };
 
 export type SwipeFailure =
@@ -101,7 +103,19 @@ export function isSwipeAnimal(value: unknown): value is SwipeAnimal {
     (animal.district === null || typeof animal.district === "string") &&
     (animal.size === null || typeof animal.size === "string") &&
     typeof animal.adoption_status === "string" &&
-    (animal.fit === null || isSwipeFit(animal.fit))
+    (animal.fit === null || isSwipeFit(animal.fit)) &&
+    typeof animal.requested === "boolean"
+  );
+}
+
+// Whether the feed moves on to the next card after a swipe. An animal that was
+// taken meanwhile, or already decided in another tab, can never be swiped again,
+// so the feed shows the message and moves on instead of getting stuck on it.
+export function movesOn(outcome: SwipeOutcome): boolean {
+  return (
+    outcome.ok ||
+    outcome.problem === "not-available" ||
+    outcome.problem === "already-swiped"
   );
 }
 

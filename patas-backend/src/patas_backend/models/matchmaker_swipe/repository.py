@@ -16,14 +16,6 @@ _INSERT = text(
     ON CONFLICT (user_id, animal_id) DO NOTHING
     """
 )
-_SELECT_BY_USER = text(
-    """
-    SELECT user_id, animal_id, disposition, created_at
-    FROM patas.matchmaker_swipes
-    WHERE user_id = :user_id
-    ORDER BY created_at DESC, animal_id
-    """
-)
 _SELECT_BY_USER_AND_ANIMAL = text(
     """
     SELECT user_id, animal_id, disposition, created_at
@@ -69,10 +61,6 @@ class MatchmakerSwipeRepository:
             },
         )
         return result.rowcount == 1
-
-    async def list_by_user(self, user_id: UUID) -> list[MatchmakerSwipe]:
-        result = await self._session.execute(_SELECT_BY_USER, {"user_id": user_id})
-        return [_from_row(row) for row in result]
 
     async def get_for_update(
         self, user_id: UUID, animal_id: UUID

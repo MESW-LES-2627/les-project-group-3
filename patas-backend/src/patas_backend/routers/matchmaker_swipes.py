@@ -58,6 +58,7 @@ class SwipeAnimalResponse(BaseModel):
     size: str | None
     adoption_status: str
     fit: FitResponse | None
+    requested: bool
 
     @classmethod
     def from_domain(cls, result: SwipeAnimal) -> "SwipeAnimalResponse":
@@ -74,6 +75,7 @@ class SwipeAnimalResponse(BaseModel):
             size=animal.size.value if animal.size is not None else None,
             adoption_status=animal.adoption_status.value,
             fit=FitResponse.from_domain(result.fit) if result.fit is not None else None,
+            requested=result.requested,
         )
 
 

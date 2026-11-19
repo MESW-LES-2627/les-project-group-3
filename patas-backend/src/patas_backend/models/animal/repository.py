@@ -102,6 +102,40 @@ _SELECT_RANDOM_MATCHMAKER_CANDIDATES = text(
     """
 )
 
+# One adopter's saved animals that are still available, joined in the database
+# rather than filtered from the whole catalog (ADR 0026). `requested` says whether
+# the adopter already has an open or accepted request for the animal.
+_SELECT_SAVED_BY = text(
+    """
+    SELECT
+        a.id, a.owner_id, u.name AS owner_name, u.username AS owner_username,
+        a.name, a.species,
+        a.age_in_months, a.adoption_status, a.sex, a.is_neutered,
+        a.size, a.activity_level, a.space_requirement,
+        a.shedding, a.grooming_needs, a.behaves_well_with_children,
+        a.behaves_well_with_dogs, a.behaves_well_with_cats,
+        a.behaves_well_with_other_animals, a.training_needs,
+        a.tolerance_for_time_alone, a.noise_level,
+        a.suitable_for_first_time_owners, a.special_care_notes,
+        a.other_details, a.district,
+        EXISTS (
+            SELECT 1
+            FROM patas.adoption_applications r
+            WHERE r.animal_id = a.id
+              AND r.applicant_id = :user_id
+              AND r.status IN ('open', 'accepted')
+        ) AS requested
+    FROM patas.matchmaker_swipes s
+    JOIN patas.animals a ON a.id = s.animal_id
+    JOIN patas.users u ON u.id = a.owner_id
+    WHERE s.user_id = :user_id
+      AND s.disposition = 'saved'
+      AND a.adoption_status = 'available'
+      AND a.owner_id <> :user_id
+    ORDER BY s.created_at DESC, a.id
+    """
+)
+
 _SELECT_BY_OWNER = text(
     """
     SELECT
@@ -363,3 +397,9 @@ class AnimalRepository:
             {"user_id": user_id, "owner_id": owner_id, "limit": limit},
         )
         return [_from_row(row) for row in result]
+
+    async def list_saved_by(self, user_id: UUID) -> list[tuple[Animal, bool]]:
+        """The adopter's saved, still available animals, each with whether the
+        adopter already requested it."""
+        result = await self._session.execute(_SELECT_SAVED_BY, {"user_id": user_id})
+        return [(_from_row(row), bool(row.requested)) for row in result]

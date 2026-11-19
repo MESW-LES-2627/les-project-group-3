@@ -116,7 +116,7 @@ export function MatchmakerSavedList({ initialAnimals, remove, request }: Props) 
               </div>
             )}
             <div className="mt-5 border-t border-line pt-5">
-              {requested.includes(animal.id) ? (
+              {animal.requested || requested.includes(animal.id) ? (
                 <p role="status" className="text-sm font-medium text-forest">
                   Your adoption request has been sent.
                 </p>
