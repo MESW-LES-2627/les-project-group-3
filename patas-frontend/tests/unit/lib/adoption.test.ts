@@ -24,6 +24,8 @@ function sent(status: string, id = "r1"): SentRequest {
     status,
     note: "I have a garden",
     owner_note: null,
+    owner_confirmed_at: null,
+    applicant_confirmed_at: null,
     created_at: "2026-11-01T10:00:00Z",
   };
 }
@@ -50,6 +52,8 @@ function received(concerns: unknown[] = []): Record<string, unknown> {
     owner_note: null,
     applicant_profile: profile,
     compatibility_concerns: concerns,
+    owner_confirmed_at: null,
+    applicant_confirmed_at: null,
     created_at: "2026-11-01T10:00:00Z",
   };
 }
@@ -188,6 +192,18 @@ describe("response shape guards", () => {
     expect(isSentRequest("open")).toBe(false);
   });
 
+  it("tracks each side's handover confirmation", () => {
+    expect(
+      isSentRequest({ ...sent("accepted"), owner_confirmed_at: "2026-11-02T10:00:00Z" }),
+    ).toBe(true);
+    expect(
+      isSentRequest({ ...sent("accepted"), applicant_confirmed_at: 5 }),
+    ).toBe(false);
+    const withoutConfirmation: Record<string, unknown> = { ...sent("accepted") };
+    delete withoutConfirmation.owner_confirmed_at;
+    expect(isSentRequest(withoutConfirmation)).toBe(false);
+  });
+
   it("accepts a well-formed received request, with or without concerns", () => {
     expect(isReceivedRequest(received())).toBe(true);
     expect(isReceivedRequest(received(["Its energy is different"]))).toBe(true);
@@ -235,10 +251,35 @@ describe("response shape guards", () => {
     expect(isReceivedRequest("open")).toBe(false);
   });
 
+  it("tracks each side's handover confirmation on a received request", () => {
+    expect(
+      isReceivedRequest({
+        ...received(),
+        applicant_confirmed_at: "2026-11-02T10:00:00Z",
+      }),
+    ).toBe(true);
+    expect(
+      isReceivedRequest({ ...received(), owner_confirmed_at: 5 }),
+    ).toBe(false);
+    const withoutConfirmation = received();
+    delete withoutConfirmation.applicant_confirmed_at;
+    expect(isReceivedRequest(withoutConfirmation)).toBe(false);
+  });
+
   it("accepts a well-formed application and rejects a mistyped one", () => {
-    const application = { id: "x", animal_id: "a", status: "open", note: "n" };
+    const application = {
+      id: "x",
+      animal_id: "a",
+      status: "open",
+      note: "n",
+      owner_confirmed_at: null,
+      applicant_confirmed_at: null,
+    };
     expect(isMyApplication(application)).toBe(true);
     expect(isMyApplication({ ...application, note: undefined })).toBe(false);
+    expect(isMyApplication({ ...application, owner_confirmed_at: 5 })).toBe(
+      false,
+    );
     expect(isMyApplication(undefined)).toBe(false);
   });
 });
