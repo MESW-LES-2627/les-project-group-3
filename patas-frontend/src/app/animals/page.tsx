@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -7,11 +8,13 @@ import { animalStatusLabel } from "@/lib/adoption-status";
 import { districtLabel } from "@/lib/animal-profile";
 import { auth } from "@/lib/auth";
 import { backendUrl } from "@/lib/backend";
+import { personLabel } from "@/lib/username";
 import {
   catalogFilters,
   catalogQuery,
   type CatalogFilters,
 } from "@/lib/catalog-filters";
+import { catalogPage, pager, totalFromHeader } from "@/lib/catalog-page";
 
 import { CatalogFilterForm } from "@/components/animal/catalog-filters";
 
@@ -25,10 +28,12 @@ type Animal = {
   name: string;
   owner_id: string;
   owner_name: string;
+  owner_username: string;
   age_in_months: number | null;
   adoption_status: string;
   size: string | null;
   district: string | null;
+  photo_urls: string[];
 };
 
 type Props = {
@@ -47,16 +52,22 @@ function isAnimal(value: unknown): value is Animal {
     typeof animal.name === "string" &&
     typeof animal.owner_id === "string" &&
     typeof animal.owner_name === "string" &&
+    typeof animal.owner_username === "string" &&
     (animal.age_in_months === null || typeof animal.age_in_months === "number") &&
     typeof animal.adoption_status === "string" &&
     (animal.size === null || typeof animal.size === "string") &&
-    (animal.district === null || typeof animal.district === "string")
+    (animal.district === null || typeof animal.district === "string") &&
+    Array.isArray(animal.photo_urls) &&
+    animal.photo_urls.every((url) => typeof url === "string")
   );
 }
 
-async function getAnimals(filters: CatalogFilters): Promise<Animal[]> {
+async function getAnimals(
+  filters: CatalogFilters,
+  page: number,
+): Promise<{ animals: Animal[]; total: number }> {
   const response = await fetch(
-    `${backendUrl()}/animals${catalogQuery(filters)}`,
+    `${backendUrl()}/animals${catalogQuery(filters, page)}`,
     { cache: "no-store" },
   );
 
@@ -69,30 +80,96 @@ async function getAnimals(filters: CatalogFilters): Promise<Animal[]> {
     throw new Error("Unable to load animals: backend returned invalid data");
   }
 
-  return payload;
+  const total = totalFromHeader(response.headers.get("X-Total-Count"));
+  return { animals: payload, total: total ?? payload.length };
 }
 
 async function Catalog({ searchParams }: Props) {
-  const filters = catalogFilters(await searchParams);
-  const animals = await getAnimals(filters);
+  const params = await searchParams;
+  const filters = catalogFilters(params);
+  const page = catalogPage(params);
+  const { animals, total } = await getAnimals(filters, page);
   return (
     <>
       <CatalogFilterForm filters={filters} />
       <AnimalList
         animals={animals}
+        total={total}
         filtered={Object.keys(filters).length > 0}
       />
+      <Pager filters={filters} page={page} total={total} />
     </>
   );
 }
 
+// Previous and next keep the filters; applying filters starts again at page 1.
+function Pager({
+  filters,
+  page,
+  total,
+}: {
+  filters: CatalogFilters;
+  page: number;
+  total: number;
+}) {
+  const links = pager(page, total);
+  if (links === null) {
+    return null;
+  }
+  return (
+    <nav
+      aria-label="Catalog pages"
+      className="mt-6 flex items-center justify-between gap-4 text-sm"
+    >
+      {links.previous !== null ? (
+        <Link
+          href={`/animals${catalogQuery(filters, links.previous)}`}
+          className={PAGE_LINK}
+        >
+          Previous
+        </Link>
+      ) : (
+        <span />
+      )}
+      {links.label !== null ? (
+        <p className="text-muted">{links.label}</p>
+      ) : null}
+      {links.next !== null ? (
+        <Link
+          href={`/animals${catalogQuery(filters, links.next)}`}
+          className={PAGE_LINK}
+        >
+          Next
+        </Link>
+      ) : (
+        <span />
+      )}
+    </nav>
+  );
+}
+
+const PAGE_LINK =
+  "inline-flex min-h-11 items-center justify-center rounded-xl border border-line bg-surface px-4 font-semibold text-forest transition hover:border-forest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest";
+
 function AnimalList({
   animals,
+  total,
   filtered,
 }: {
   animals: Animal[];
+  total: number;
   filtered: boolean;
 }) {
+  if (animals.length === 0 && total > 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-line bg-surface px-6 py-12 text-center">
+        <p className="text-lg font-semibold text-forest">
+          There are no animals on this page
+        </p>
+      </div>
+    );
+  }
+
   if (animals.length === 0 && filtered) {
     return (
       <div className="rounded-2xl border border-dashed border-line bg-surface px-6 py-12 text-center">
@@ -131,55 +208,76 @@ function AnimalList({
           Animals in our community
         </h2>
         <p className="text-sm text-muted">
-          {animals.length} {animals.length === 1 ? "animal" : "animals"}
+          {total} {total === 1 ? "animal" : "animals"}
         </p>
       </div>
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {animals.map((animal) => (
           <li
             key={animal.id}
-            className="flex min-h-48 flex-col rounded-2xl border border-line bg-surface p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-leaf/40 hover:shadow-md"
+            className="relative flex min-h-48 flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-leaf/40 hover:shadow-md"
           >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="rounded-full bg-leaf/10 px-3 py-1 text-xs font-semibold capitalize text-leaf">
-                {animal.species}
-              </span>
-              <span className="rounded-full bg-sunlight/20 px-3 py-1 text-xs font-medium text-forest">
-                {animalStatusLabel(animal.adoption_status)}
-              </span>
-            </div>
-            <h3 className="mt-5 text-2xl font-semibold text-forest">
-              <Link href={`/animals/${animal.id}`} className="hover:underline">
-                {animal.name}
-              </Link>
-            </h3>
-            <p className="mt-1 text-xs text-muted">
-              Published by {animal.owner_name}
-            </p>
-            <div className="mt-auto border-t border-line pt-4">
-              {animal.age_in_months !== null ? (
-                <p className="text-sm text-muted">
-                  <span className="font-medium text-forest">Age</span>
-                  <span aria-hidden="true"> · </span>
-                  {animal.age_in_months} months
-                </p>
-              ) : (
-                <p className="text-sm text-muted">Age not listed</p>
-              )}
-              {animal.size !== null && (
-                <p className="mt-1 text-sm capitalize text-muted">
-                  <span className="font-medium text-forest">Size</span>
-                  <span aria-hidden="true"> · </span>
-                  {animal.size}
-                </p>
-              )}
-              {animal.district !== null && (
-                <p className="mt-1 text-sm text-muted">
-                  <span className="font-medium text-forest">District</span>
-                  <span aria-hidden="true"> · </span>
-                  {districtLabel(animal.district)}
-                </p>
-              )}
+            {animal.photo_urls.length > 0 ? (
+              <Image
+                src={animal.photo_urls[0]}
+                alt={animal.name}
+                width={600}
+                height={400}
+                unoptimized
+                className="h-48 w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-48 w-full items-center justify-center bg-leaf/5 text-sm text-muted">
+                No photo yet
+              </div>
+            )}
+
+            <div className="flex flex-1 flex-col p-5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="rounded-full bg-leaf/10 px-3 py-1 text-xs font-semibold capitalize text-leaf">
+                  {animal.species}
+                </span>
+                <span className="rounded-full bg-sunlight/20 px-3 py-1 text-xs font-medium text-forest">
+                  {animalStatusLabel(animal.adoption_status)}
+                </span>
+              </div>
+              <h3 className="mt-5 text-2xl font-semibold text-forest">
+                <Link
+                  href={`/animals/${animal.id}`}
+                  className="before:absolute before:inset-0 hover:underline focus-visible:outline-none"
+                >
+                  {animal.name}
+                </Link>
+              </h3>
+              <p className="mt-1 text-xs text-muted">
+                Published by{" "}
+                {personLabel(animal.owner_name, animal.owner_username)}
+              </p>
+              <div className="mt-auto border-t border-line pt-4">
+                {animal.age_in_months !== null ? (
+                  <p className="text-sm text-muted">
+                    <span className="font-medium text-forest">Age</span>
+                    <span aria-hidden="true"> · </span>
+                    {animal.age_in_months} months
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted">Age not listed</p>
+                )}
+                {animal.size !== null && (
+                  <p className="mt-1 text-sm capitalize text-muted">
+                    <span className="font-medium text-forest">Size</span>
+                    <span aria-hidden="true"> · </span>
+                    {animal.size}
+                  </p>
+                )}
+                {animal.district !== null && (
+                  <p className="mt-1 text-sm text-muted">
+                    <span className="font-medium text-forest">District</span>
+                    <span aria-hidden="true"> · </span>
+                    {districtLabel(animal.district)}
+                  </p>
+                )}
+              </div>
             </div>
           </li>
         ))}

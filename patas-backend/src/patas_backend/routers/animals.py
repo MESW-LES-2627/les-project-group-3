@@ -1,10 +1,21 @@
+import uuid
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+import boto3
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    status,
+)
 from pydantic import BaseModel, ConfigDict, Field
 
 from patas_backend.auth.dependencies import get_current_user
+from patas_backend.config import Settings
 from patas_backend.models.animal import (
     AdoptionStatus,
     Animal,
@@ -14,6 +25,7 @@ from patas_backend.models.animal import (
     AnimalSize,
     AnimalUnauthorized,
     CatalogFilter,
+    CatalogPage,
     District,
     FirstTimeOwnerSuitability,
     InvalidAnimal,
@@ -32,6 +44,21 @@ from patas_backend.services.animals import AnimalService
 
 router = APIRouter()
 
+ALLOWED_IMAGE_TYPES = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+}
+
+
+class PresignedUrlRequest(BaseModel):
+    content_type: str = "image/jpeg"
+
+
+class PresignedUrlResponse(BaseModel):
+    upload_url: str
+    public_url: str
+
 
 class PublishAnimalRequest(BaseModel):
     # Types only. The business rules (non-blank name, age >= 0) live in the domain.
@@ -41,7 +68,6 @@ class PublishAnimalRequest(BaseModel):
     age_in_months: Annotated[int, Field(le=2_147_483_647)] | None = None
     sex: AnimalSex | None = None
     is_neutered: NeuteredStatus | None = None
-    postal_code: str | None = None
     district: District | None = None
     size: AnimalSize | None = None
     activity_level: EnergyLevel | None = None
@@ -58,6 +84,7 @@ class PublishAnimalRequest(BaseModel):
     suitable_for_first_time_owners: FirstTimeOwnerSuitability | None = None
     special_care_notes: str | None = None
     other_details: str | None = None
+    photo_urls: list[str] = Field(default_factory=list)
 
 
 class EditAnimalRequest(PublishAnimalRequest):
@@ -102,13 +129,13 @@ class AnimalResponse(BaseModel):
     id: UUID
     owner_id: UUID
     owner_name: str
+    owner_username: str
     name: str
     species: Species
     age_in_months: int | None
     adoption_status: AdoptionStatus
     sex: AnimalSex | None
     is_neutered: NeuteredStatus | None
-    postal_code: str | None
     district: District | None
     size: AnimalSize | None
     activity_level: EnergyLevel | None
@@ -125,6 +152,7 @@ class AnimalResponse(BaseModel):
     suitable_for_first_time_owners: FirstTimeOwnerSuitability | None
     special_care_notes: str | None
     other_details: str | None
+    photo_urls: list[str]
     match_profile: AnimalMatchProfileResponse
 
     @classmethod
@@ -133,13 +161,13 @@ class AnimalResponse(BaseModel):
             id=animal.id,
             owner_id=animal.owner_id,
             owner_name=animal.owner_name,
+            owner_username=animal.owner_username,
             name=animal.name,
             species=animal.species,
             age_in_months=animal.age_in_months,
             adoption_status=animal.adoption_status,
             sex=animal.sex,
             is_neutered=animal.is_neutered,
-            postal_code=animal.postal_code,
             district=animal.district,
             size=animal.size,
             activity_level=animal.activity_level,
@@ -156,6 +184,7 @@ class AnimalResponse(BaseModel):
             suitable_for_first_time_owners=animal.suitable_for_first_time_owners,
             special_care_notes=animal.special_care_notes,
             other_details=animal.other_details,
+            photo_urls=animal.photo_urls,
             match_profile=AnimalMatchProfileResponse.from_domain(
                 animal.match_profile()
             ),
@@ -168,22 +197,70 @@ def get_animal_service(request: Request) -> AnimalService:
     )
 
 
+def get_settings() -> Settings:
+    return Settings()
+
+
+@router.post("/animals/presigned-url", response_model=PresignedUrlResponse)
+async def create_presigned_url(
+    body: PresignedUrlRequest,
+    owner: Annotated[User, Depends(get_current_user)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> PresignedUrlResponse:
+    """A short-lived URL the browser uses to upload a photo straight to R2."""
+    extension = ALLOWED_IMAGE_TYPES.get(body.content_type)
+    if extension is None:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "Unsupported image type. Use JPEG, PNG, or WebP.",
+        )
+
+    file_name = f"animals/{owner.id}/{uuid.uuid4()}{extension}"
+
+    s3_client = boto3.client(
+        "s3",
+        endpoint_url=settings.aws_s3_endpoint_url,
+        region_name="auto",
+        # Passed explicitly so credentials loaded from .env work too (boto3 alone
+        # only reads the process environment).
+        aws_access_key_id=settings.aws_access_key_id or None,
+        aws_secret_access_key=settings.aws_secret_access_key or None,
+    )
+
+    upload_url = s3_client.generate_presigned_url(
+        "put_object",
+        Params={
+            "Bucket": settings.aws_storage_bucket_name,
+            "Key": file_name,
+            "ContentType": body.content_type,
+        },
+        ExpiresIn=3600,
+    )
+
+    return PresignedUrlResponse(
+        upload_url=upload_url,
+        public_url=f"{settings.public_upload_url.rstrip('/')}/{file_name}",
+    )
+
+
 @router.get("/animals", response_model=list[AnimalResponse])
 async def list_animals(
+    response: Response,
     service: Annotated[AnimalService, Depends(get_animal_service)],
     species: Species | None = None,
     size: AnimalSize | None = None,
     district: District | None = None,
     age_group: LifeStage | None = None,
+    page: Annotated[int, Query(ge=1)] = 1,
 ) -> list[AnimalResponse]:
-    """The public catalog: published animals only, narrowed by the given filters."""
+    """The public catalog: one page of the published animals that match the
+    filters. X-Total-Count says how many match in all (ADR 0025)."""
     catalog_filter = CatalogFilter(
         species=species, size=size, district=district, age_group=age_group
     )
-    return [
-        AnimalResponse.from_domain(a)
-        for a in await service.list_catalog(catalog_filter)
-    ]
+    animals, total = await service.list_catalog(catalog_filter, CatalogPage(page))
+    response.headers["X-Total-Count"] = str(total)
+    return [AnimalResponse.from_domain(a) for a in animals]
 
 
 @router.get("/me/animals", response_model=list[AnimalResponse])
@@ -238,6 +315,24 @@ async def unpublish_animal(
     return AnimalResponse.from_domain(animal)
 
 
+@router.post("/animals/{animal_id}/republish", response_model=AnimalResponse)
+async def republish_animal(
+    animal_id: UUID,
+    owner: Annotated[User, Depends(get_current_user)],
+    service: Annotated[AnimalService, Depends(get_animal_service)],
+) -> AnimalResponse:
+    try:
+        animal = await service.republish(owner, animal_id)
+    except AnimalUnauthorized as error:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, str(error)) from error
+    except InvalidAnimalTransition as error:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(error)) from error
+
+    if animal is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Animal not found")
+    return AnimalResponse.from_domain(animal)
+
+
 @router.put("/animals/{animal_id}", response_model=AnimalResponse)
 async def edit_animal(
     animal_id: UUID,
@@ -255,7 +350,6 @@ async def edit_animal(
             age_in_months=body.age_in_months,
             sex=body.sex,
             is_neutered=body.is_neutered,
-            postal_code=body.postal_code,
             district=body.district,
             size=body.size,
             activity_level=body.activity_level,
@@ -272,6 +366,7 @@ async def edit_animal(
             suitable_for_first_time_owners=body.suitable_for_first_time_owners,
             special_care_notes=body.special_care_notes,
             other_details=body.other_details,
+            photo_urls=body.photo_urls,
         )
     except AnimalUnauthorized as error:
         raise HTTPException(status.HTTP_403_FORBIDDEN, str(error)) from error
@@ -301,7 +396,6 @@ async def publish_animal(
             age_in_months=body.age_in_months,
             sex=body.sex,
             is_neutered=body.is_neutered,
-            postal_code=body.postal_code,
             district=body.district,
             size=body.size,
             activity_level=body.activity_level,
@@ -318,6 +412,7 @@ async def publish_animal(
             suitable_for_first_time_owners=body.suitable_for_first_time_owners,
             special_care_notes=body.special_care_notes,
             other_details=body.other_details,
+            photo_urls=body.photo_urls,
         )
     except InvalidAnimal as error:
         raise HTTPException(

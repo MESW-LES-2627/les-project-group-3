@@ -1,5 +1,4 @@
-import re
-from dataclasses import dataclass, fields, replace
+from dataclasses import dataclass, field, fields, replace
 from uuid import UUID, uuid4
 
 from patas_backend.models.animal.enums import (
@@ -30,8 +29,8 @@ class InvalidAnimalTransition(Exception):
     """The animal's adoption status does not allow this change."""
 
 
-class AnimalNotAvailable(Exception):
-    """The animal is not open to adoption requests."""
+class AnimalNotAvailable(InvalidAnimalTransition):
+    """The animal is not available: it cannot take a request or be reserved."""
 
 
 def validate_name(name: str) -> str:
@@ -54,13 +53,6 @@ def validate_optional_text(value: str | None) -> str | None:
     return cleaned or None
 
 
-def validate_postal_code(value: str | None) -> str | None:
-    cleaned = validate_optional_text(value)
-    if cleaned is not None and re.fullmatch(r"[0-9]{4}-[0-9]{3}", cleaned) is None:
-        raise InvalidAnimal("postal code must use the Portuguese format NNNN-NNN")
-    return cleaned
-
-
 @dataclass
 class Animal:
     id: UUID
@@ -68,11 +60,11 @@ class Animal:
     name: str
     species: Species
     owner_name: str = ""
+    owner_username: str = ""
     age_in_months: int | None = None
     adoption_status: AdoptionStatus = AdoptionStatus.AVAILABLE
     sex: AnimalSex | None = None
     is_neutered: NeuteredStatus | None = None
-    postal_code: str | None = None
     district: District | None = None
     size: AnimalSize | None = None
     activity_level: EnergyLevel | None = None
@@ -89,12 +81,12 @@ class Animal:
     suitable_for_first_time_owners: FirstTimeOwnerSuitability | None = None
     special_care_notes: str | None = None
     other_details: str | None = None
+    photo_urls: list[str] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         # Invariants hold however an Animal is built (published or loaded from the DB).
         self.name = validate_name(self.name)
         self.age_in_months = validate_age_in_months(self.age_in_months)
-        self.postal_code = validate_postal_code(self.postal_code)
         self.special_care_notes = validate_optional_text(self.special_care_notes)
         self.other_details = validate_optional_text(self.other_details)
         # Not a dataclass field: it is not part of the animal's data, so asdict()
@@ -109,10 +101,10 @@ class Animal:
         name: str,
         species: Species,
         owner_name: str = "",
+        owner_username: str = "",
         age_in_months: int | None = None,
         sex: AnimalSex | None = None,
         is_neutered: NeuteredStatus | None = None,
-        postal_code: str | None = None,
         district: District | None = None,
         size: AnimalSize | None = None,
         activity_level: EnergyLevel | None = None,
@@ -129,6 +121,7 @@ class Animal:
         suitable_for_first_time_owners: FirstTimeOwnerSuitability | None = None,
         special_care_notes: str | None = None,
         other_details: str | None = None,
+        photo_urls: list[str] | None = None,
     ) -> "Animal":
         """Create a new listing. It always starts available, owned by its publisher."""
         return cls(
@@ -137,10 +130,10 @@ class Animal:
             name=name,
             species=species,
             owner_name=owner_name,
+            owner_username=owner_username,
             age_in_months=age_in_months,
             sex=sex,
             is_neutered=is_neutered,
-            postal_code=postal_code,
             district=district,
             size=size,
             activity_level=activity_level,
@@ -157,6 +150,7 @@ class Animal:
             suitable_for_first_time_owners=suitable_for_first_time_owners,
             special_care_notes=special_care_notes,
             other_details=other_details,
+            photo_urls=list(photo_urls) if photo_urls else [],
         )
 
     @property
@@ -176,7 +170,6 @@ class Animal:
         age_in_months: int | None = None,
         sex: AnimalSex | None = None,
         is_neutered: NeuteredStatus | None = None,
-        postal_code: str | None = None,
         district: District | None = None,
         size: AnimalSize | None = None,
         activity_level: EnergyLevel | None = None,
@@ -193,6 +186,7 @@ class Animal:
         suitable_for_first_time_owners: FirstTimeOwnerSuitability | None = None,
         special_care_notes: str | None = None,
         other_details: str | None = None,
+        photo_urls: list[str] | None = None,
     ) -> None:
         """Replace the description; a field left out is cleared. All or nothing."""
         if not self.is_owned_by(by_user_id):
@@ -206,7 +200,6 @@ class Animal:
             age_in_months=age_in_months,
             sex=sex,
             is_neutered=is_neutered,
-            postal_code=postal_code,
             district=district,
             size=size,
             activity_level=activity_level,
@@ -223,11 +216,12 @@ class Animal:
             suitable_for_first_time_owners=suitable_for_first_time_owners,
             special_care_notes=special_care_notes,
             other_details=other_details,
+            photo_urls=list(photo_urls) if photo_urls else [],
         )
         # Only the declared fields: vars() would also copy the edited copy's empty
         # event list over the events this animal has recorded.
-        for field in fields(edited):
-            setattr(self, field.name, getattr(edited, field.name))
+        for f in fields(edited):
+            setattr(self, f.name, getattr(edited, f.name))
 
     def _move(
         self, source: AdoptionStatus, target: AdoptionStatus, action: str
@@ -240,7 +234,11 @@ class Animal:
 
     def reserve(self) -> None:
         """An application was accepted for this animal."""
-        self._move(AdoptionStatus.AVAILABLE, AdoptionStatus.RESERVED, "reserved")
+        if self.adoption_status is not AdoptionStatus.AVAILABLE:
+            raise AnimalNotAvailable(
+                f"an animal that is {self.adoption_status.value} cannot be reserved"
+            )
+        self.adoption_status = AdoptionStatus.RESERVED
 
     def release(self) -> None:
         """The accepted application ended without an adoption."""
@@ -278,6 +276,18 @@ class Animal:
             return
         self._move(AdoptionStatus.AVAILABLE, AdoptionStatus.UNAVAILABLE, "unpublished")
         self._events.append(AnimalUnpublished(animal_id=self.id))
+
+    def republish(self, by_user_id: UUID) -> None:
+        """Put an unpublished listing back in the catalog, available again.
+
+        The requests closed by unpublishing stay closed. Republishing an available
+        animal changes nothing; a reserved or adopted one is refused.
+        """
+        if not self.is_owned_by(by_user_id):
+            raise AnimalUnauthorized("Only the owner can republish this animal")
+        if self.adoption_status is AdoptionStatus.AVAILABLE:
+            return
+        self._move(AdoptionStatus.UNAVAILABLE, AdoptionStatus.AVAILABLE, "republished")
 
     def match_profile(self) -> AnimalMatchProfile:
         """This animal on the Matchmaker scales. Built on each call, so it follows

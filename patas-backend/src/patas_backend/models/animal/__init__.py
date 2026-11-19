@@ -6,6 +6,7 @@ from patas_backend.models.animal.animal import (
     InvalidAnimalTransition,
 )
 from patas_backend.models.animal.catalog_filter import CatalogFilter
+from patas_backend.models.animal.catalog_page import CatalogPage
 from patas_backend.models.animal.enums import (
     AdoptionStatus,
     AnimalCompatibility,
@@ -32,6 +33,7 @@ __all__ = [
     "AnimalUnauthorized",
     "AnimalUnpublished",
     "CatalogFilter",
+    "CatalogPage",
     "District",
     "FirstTimeOwnerSuitability",
     "InvalidAnimal",

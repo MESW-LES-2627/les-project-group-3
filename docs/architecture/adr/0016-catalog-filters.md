@@ -7,6 +7,9 @@
 | **Scope** | US-06 (filter the catalog): AT-06, the filters half of AT-03, AT-05's "dog" results; the district US-01 asks for |
 | **Related** | [0004-animal-aggregate](0004-animal-aggregate.md), [0010-animal-profile-fields](0010-animal-profile-fields.md), [0011-animal-match-profile](0011-animal-match-profile.md), [0012-owner-animals-and-unpublishing](0012-owner-animals-and-unpublishing.md), [0014-editing-an-animal](0014-editing-an-animal.md) |
 
+> **Amended by [0025-quality-and-clean-up](0025-quality-and-clean-up.md):** the postal
+> code is removed, and the filtered catalog is returned one page at a time.
+
 ## Context
 
 A visitor filters the public catalog by species, size, age group and district.

@@ -7,6 +7,9 @@
 | **Scope** | US-04 (owner page with all animals, unpublished included), US-05 (unpublish) |
 | **Related** | [0004-animal-aggregate](0004-animal-aggregate.md), [0006-application-services](0006-application-services.md), [AdoptionPipeline](../../domain/AdoptionPipeline.md) |
 
+> **Amended by [0023-republishing](0023-republishing.md):** an unpublished animal
+> can be republished, with `POST /animals/{id}/republish` and a Republish button.
+
 ## Context
 
 An animal owner needs a dashboard to view all the animals they have published,

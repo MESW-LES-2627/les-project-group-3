@@ -50,6 +50,10 @@ The headline number is **branch coverage**. Lines and statements are reported to
 table of options adds lines and no branches, so branches say less about filler and more
 about decisions that are actually taken.
 
+The backend measures with `concurrency = ["thread", "greenlet"]` (`pyproject.toml`).
+SQLAlchemy's async session switches greenlets, and without it coverage reports the lines
+after an `await` inside a transaction as missed even when the tests run them.
+
 Coverage says what ran, not what was checked. For that, **mutation testing** runs on the
 domain (`models/`, except `repository.py`): it changes the code on purpose and counts how
 many changes the unit tests notice. Repositories are persistence, covered by the

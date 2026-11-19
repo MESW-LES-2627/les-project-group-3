@@ -49,4 +49,10 @@ describe("catalogQuery", () => {
       "?species=cat",
     );
   });
+
+  it("adds the page after the filters, but not the first page", () => {
+    expect(catalogQuery({ species: "dog" }, 3)).toBe("?species=dog&page=3");
+    expect(catalogQuery({}, 2)).toBe("?page=2");
+    expect(catalogQuery({ species: "dog" }, 1)).toBe("?species=dog");
+  });
 });

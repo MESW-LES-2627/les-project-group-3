@@ -43,6 +43,7 @@ def _publish(owner_id: UUID, **overrides: object) -> Animal:
         **{
             "owner_id": owner_id,
             "owner_name": "Owner",
+            "owner_username": "owner",
             "name": "Rex",
             "species": Species.DOG,
             "age_in_months": 12,
@@ -98,7 +99,6 @@ async def test_optional_animal_profile_round_trips(
         ana,
         sex=AnimalSex.FEMALE,
         is_neutered=NeuteredStatus.YES,
-        postal_code="1234-567",
         district=District.PORTO,
         size=AnimalSize.SMALL,
         activity_level=EnergyLevel.MODERATE,
@@ -115,6 +115,10 @@ async def test_optional_animal_profile_round_trips(
         suitable_for_first_time_owners=FirstTimeOwnerSuitability.WITH_SUPPORT,
         special_care_notes="Medication",
         other_details="Enjoys sunny spots",
+        photo_urls=[
+            "https://media.example/animals/rex-1.jpg",
+            "https://media.example/animals/rex-2.png",
+        ],
     )
 
     await _add(session_factory, animal)
@@ -130,6 +134,7 @@ async def test_the_stored_adoption_status_is_loaded(
         id=uuid4(),
         owner_id=ana,
         owner_name="Owner",
+        owner_username="owner",
         name="Rex",
         species=Species.DOG,
         adoption_status=status,

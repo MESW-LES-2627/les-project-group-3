@@ -34,9 +34,14 @@ export function catalogFilters(
   );
 }
 
-export function catalogQuery(filters: CatalogFilters): string {
+// The page is left out on the first page, so filter links stay short.
+export function catalogQuery(filters: CatalogFilters, page = 1): string {
   const query = new URLSearchParams(
     Object.entries(filters).filter(([, value]) => value !== undefined),
-  ).toString();
-  return query === "" ? "" : `?${query}`;
+  );
+  if (page > 1) {
+    query.set("page", String(page));
+  }
+  const text = query.toString();
+  return text === "" ? "" : `?${text}`;
 }

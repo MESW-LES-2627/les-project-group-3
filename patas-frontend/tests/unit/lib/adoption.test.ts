@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   NOTE_MAX,
+  answerNoteProblem,
+  answersAvailable,
   canWithdraw,
   filterByStatus,
   isMyApplication,
@@ -41,8 +43,11 @@ function received(concerns: unknown[] = []): Record<string, unknown> {
     id: "r1",
     animal_id: "a1",
     animal_name: "Bolt",
+    applicant_name: "Bruno",
+    applicant_username: "bruno",
     status: "open",
     note: "I have a garden",
+    owner_note: null,
     applicant_profile: profile,
     compatibility_concerns: concerns,
     created_at: "2026-11-01T10:00:00Z",
@@ -90,17 +95,50 @@ describe("canWithdraw", () => {
   );
 });
 
+describe("answersAvailable", () => {
+  it("offers accept and decline for an open request", () => {
+    expect(answersAvailable("open")).toEqual(["accept", "decline"]);
+  });
+
+  it("offers only decline for an accepted request", () => {
+    expect(answersAvailable("accepted")).toEqual(["decline"]);
+  });
+
+  it.each(["declined", "withdrawn", "closed", "adopted", "unknown"])(
+    "offers nothing for a %s request",
+    (status) => {
+      expect(answersAvailable(status)).toEqual([]);
+    },
+  );
+});
+
+describe("answerNoteProblem", () => {
+  it("accepts no note and a note at the limit", () => {
+    expect(answerNoteProblem("")).toBeNull();
+    expect(answerNoteProblem("a".repeat(NOTE_MAX))).toBeNull();
+  });
+
+  it("refuses a note over the limit", () => {
+    expect(answerNoteProblem("a".repeat(NOTE_MAX + 1))).toBe("too-long");
+  });
+
+  it("counts the trimmed note, like the backend", () => {
+    expect(answerNoteProblem(`  ${"a".repeat(NOTE_MAX)}\n`)).toBeNull();
+  });
+});
+
 describe("withdrawConfirmation", () => {
   it("warns that an accepted request frees the animal for others", () => {
-    expect(withdrawConfirmation("Bolt", "accepted")).toContain(
-      "available to others again",
-    );
+    expect(withdrawConfirmation("Bolt", "accepted")).toEqual({
+      title: "Withdraw your accepted request for Bolt?",
+      message: "Bolt will be available to others again.",
+    });
   });
 
   it("asks a plain question for an open request", () => {
-    expect(withdrawConfirmation("Bolt", "open")).toBe(
-      "Withdraw your request for Bolt?",
-    );
+    expect(withdrawConfirmation("Bolt", "open")).toEqual({
+      title: "Withdraw your request for Bolt?",
+    });
   });
 });
 
@@ -153,6 +191,35 @@ describe("response shape guards", () => {
   it("accepts a well-formed received request, with or without concerns", () => {
     expect(isReceivedRequest(received())).toBe(true);
     expect(isReceivedRequest(received(["Its energy is different"]))).toBe(true);
+  });
+
+  it("accepts a received request with the owner's own reply", () => {
+    expect(isReceivedRequest({ ...received(), owner_note: "Come on Saturday" })).toBe(
+      true,
+    );
+  });
+
+  it("rejects a received request whose owner note is missing or mistyped", () => {
+    const withoutOwnerNote = received();
+    delete withoutOwnerNote.owner_note;
+    expect(isReceivedRequest(withoutOwnerNote)).toBe(false);
+    expect(isReceivedRequest({ ...received(), owner_note: 5 })).toBe(false);
+  });
+
+  it("rejects a received request without an applicant name", () => {
+    const withoutApplicantName = received();
+    delete withoutApplicantName.applicant_name;
+    expect(isReceivedRequest(withoutApplicantName)).toBe(false);
+    expect(isReceivedRequest({ ...received(), applicant_name: 5 })).toBe(false);
+  });
+
+  it("rejects a received request without an applicant username", () => {
+    const withoutUsername = received();
+    delete withoutUsername.applicant_username;
+    expect(isReceivedRequest(withoutUsername)).toBe(false);
+    expect(isReceivedRequest({ ...received(), applicant_username: 5 })).toBe(
+      false,
+    );
   });
 
   it("rejects a received request with a missing or mistyped field", () => {

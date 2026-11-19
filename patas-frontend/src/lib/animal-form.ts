@@ -14,6 +14,7 @@ export type AnimalDescription = {
   name: string;
   species: string;
   age_in_months: number | null;
+  photo_urls: string[];
 } & Record<OptionalAnimalField, string | null>;
 
 export type AnimalFormState = { error: string | null };
@@ -65,11 +66,18 @@ export function parseAnimalForm(
       ];
     }),
   ) as Record<OptionalAnimalField, string | null>;
+  const photoUrls = form
+    .getAll("photo_urls")
+    .filter(
+      (value): value is string =>
+        typeof value === "string" && value.trim() !== "",
+    );
   return {
     description: {
       name: String(form.get("name") ?? ""),
       species: String(form.get("species") ?? ""),
       age_in_months: age === "" ? null : Number(age),
+      photo_urls: photoUrls,
       ...optionalFields,
     },
   };
