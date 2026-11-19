@@ -10,6 +10,7 @@ const animal = {
   id: "00000000-0000-4000-8000-000000000001",
   owner_id: "00000000-0000-4000-8000-000000000002",
   owner_name: "Ana",
+  owner_username: "ana_owner",
   name: "Rex",
   species: "dog",
   age_in_months: 36,
