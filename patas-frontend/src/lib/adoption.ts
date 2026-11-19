@@ -206,9 +206,23 @@ export function withdrawConfirmation(
 
 // US-18: the owner or applicant confirms the animal was handed over.
 
+export function handoverConfirmation(
+  animalName: string,
+  otherSideConfirmed: boolean,
+): Confirmation {
+  return otherSideConfirmed
+    ? {
+        title: `Complete the adoption of ${animalName}?`,
+        message: `The other side has already confirmed. ${animalName} will be marked adopted and any other open requests will be closed. This cannot be undone.`,
+      }
+    : {
+        title: `Confirm the handover of ${animalName}?`,
+        message: "The adoption is completed when the other side confirms too.",
+      };
+}
+
 export type ConfirmHandoverProblem =
   | "not-found"
-  | "forbidden"
   | "not-confirmable"
   | "unavailable";
 
@@ -217,7 +231,6 @@ export const CONFIRM_HANDOVER_MESSAGES: Record<
   string
 > = {
   "not-found": "This request could not be found.",
-  forbidden: "You are not allowed to confirm this handover.",
   "not-confirmable":
     "This handover can no longer be confirmed, or you have already confirmed it.",
   unavailable:

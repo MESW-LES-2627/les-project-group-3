@@ -79,7 +79,7 @@ async def test_at_20_someone_else_cannot_confirm_the_handover(
         _confirm(request.id), headers=_bearer(issuer.token(**CARLA))
     )
 
-    assert response.status_code == 403
+    assert response.status_code == 404
 
 
 async def test_at_20_the_second_confirmation_adopts_the_animal(

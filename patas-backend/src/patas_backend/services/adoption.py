@@ -202,15 +202,18 @@ class AdoptionService:
     ) -> AdoptionApplication | None:
         """US-18: the owner or applicant confirms the animal was handed over.
 
-        None if there is no such request: to anyone else it does not exist. Raises
-        ApplicationUnauthorized if the caller is neither side, or InvalidTransition
-        if the request is not accepted or the caller already confirmed.
+        None if there is no such request or the caller is neither side: to anyone
+        else it does not exist. Raises InvalidTransition if the request is not
+        accepted or the caller already confirmed.
         """
         async with self._session_factory.begin() as session:
             # The animal first (ADR 0017, decision 8). The second confirmation
             # adopts, and the handler then marks the animal adopted under its lock.
             application = await lock_animal_and_application(session, application_id)
-            if application is None:
+            if application is None or actor.id not in (
+                application.owner_id,
+                application.applicant_id,
+            ):
                 return None
 
             application.confirm_handover(actor.id, datetime.now(UTC))

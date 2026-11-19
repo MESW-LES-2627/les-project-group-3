@@ -238,6 +238,7 @@ export function ReceivedRequestList({
                     <ConfirmHandoverButton
                       applicationId={request.id}
                       animalId={request.animal_id}
+                      animalName={request.animal_name}
                       otherSideConfirmed={request.applicant_confirmed_at !== null}
                       action={confirmHandover}
                     />

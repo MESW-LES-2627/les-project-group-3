@@ -10,7 +10,6 @@ from patas_backend.models.adoption import (
     AdoptionApplication,
     AlreadyRequested,
     ApplicationStatus,
-    ApplicationUnauthorized,
     InvalidApplication,
     InvalidTransition,
     MatchmakerProfileRequired,
@@ -308,10 +307,9 @@ async def confirm_handover(
     """Owner or applicant confirms the handover; the second confirmation adopts."""
     try:
         application = await service.confirm_handover(actor, application_id)
-    except ApplicationUnauthorized as error:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, str(error)) from error
     except InvalidTransition as error:
         raise _conflict("invalid_transition", error) from error
     if application is None:
+        # Also for someone who is neither side: to them it does not exist.
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Request not found")
     return ApplicationResponse.from_domain(application)

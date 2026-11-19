@@ -11,6 +11,7 @@ import {
   noteProblem,
   noteProblemMessage,
   statusFilterOf,
+  handoverConfirmation,
   withdrawConfirmation,
   type SentRequest,
 } from "@/lib/adoption";
@@ -142,6 +143,23 @@ describe("withdrawConfirmation", () => {
   it("asks a plain question for an open request", () => {
     expect(withdrawConfirmation("Bolt", "open")).toEqual({
       title: "Withdraw your request for Bolt?",
+    });
+  });
+});
+
+describe("handoverConfirmation", () => {
+  it("warns that the second confirmation completes the adoption for good", () => {
+    expect(handoverConfirmation("Bolt", true)).toEqual({
+      title: "Complete the adoption of Bolt?",
+      message:
+        "The other side has already confirmed. Bolt will be marked adopted and any other open requests will be closed. This cannot be undone.",
+    });
+  });
+
+  it("explains that the first confirmation waits for the other side", () => {
+    expect(handoverConfirmation("Bolt", false)).toEqual({
+      title: "Confirm the handover of Bolt?",
+      message: "The adoption is completed when the other side confirms too.",
     });
   });
 });

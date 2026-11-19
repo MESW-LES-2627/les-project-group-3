@@ -292,7 +292,7 @@ describe("confirmHandover", () => {
   });
 
   it.each([
-    [403, "forbidden"],
+    [403, "unavailable"],
     [404, "not-found"],
     [409, "not-confirmable"],
     [500, "unavailable"],

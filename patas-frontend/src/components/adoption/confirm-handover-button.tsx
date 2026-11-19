@@ -1,35 +1,42 @@
 "use client";
 
-import { startTransition, useActionState } from "react";
+import { useState, useTransition } from "react";
 
-import type {
-  ConfirmHandoverAction,
-  ConfirmHandoverOutcome,
+import { ConfirmDialog } from "@/components/confirm-dialog";
+import {
+  handoverConfirmation,
+  type ConfirmHandoverAction,
 } from "@/lib/adoption";
 
 type ConfirmHandoverButtonProps = {
   applicationId: string;
   animalId: string;
+  animalName: string;
   otherSideConfirmed: boolean;
   action: ConfirmHandoverAction;
 };
 
-const initialState: ConfirmHandoverOutcome | null = null;
-
 export function ConfirmHandoverButton({
   applicationId,
   animalId,
+  animalName,
   otherSideConfirmed,
   action,
 }: ConfirmHandoverButtonProps) {
-  const [state, runAction, pending] = useActionState(
-    async () => action(applicationId, animalId),
-    initialState,
-  );
+  const [open, setOpen] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
-  function handleClick() {
-    startTransition(() => {
-      runAction();
+  function handleConfirm() {
+    setError(null);
+    startTransition(async () => {
+      const outcome = await action(applicationId, animalId);
+      // On success the action revalidated the page, which now shows the new state.
+      if (outcome.ok) {
+        setOpen(false);
+      } else {
+        setError(outcome.message);
+      }
     });
   }
 
@@ -41,19 +48,27 @@ export function ConfirmHandoverButton({
           adoption.
         </p>
       )}
-      {state && !state.ok && (
-        <p role="alert" className="text-sm font-medium text-red-700">
-          {state.message}
-        </p>
-      )}
       <button
         type="button"
-        onClick={handleClick}
+        onClick={() => setOpen(true)}
         disabled={pending}
         className="inline-flex min-h-11 items-center justify-center rounded-xl bg-forest px-5 text-sm font-semibold text-white transition hover:bg-leaf focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest disabled:opacity-60"
       >
-        {pending ? "Confirming..." : "Confirm handover"}
+        Confirm handover
       </button>
+      <ConfirmDialog
+        open={open}
+        confirmation={handoverConfirmation(animalName, otherSideConfirmed)}
+        confirmLabel="Confirm handover"
+        pendingLabel="Confirming…"
+        pending={pending}
+        error={error}
+        onConfirm={handleConfirm}
+        onCancel={() => {
+          setOpen(false);
+          setError(null);
+        }}
+      />
     </div>
   );
 }

@@ -250,9 +250,6 @@ export async function confirmHandover(
   if (response.ok) {
     return { ok: true };
   }
-  if (response.status === 403) {
-    return confirmHandoverProblem("forbidden");
-  }
   if (response.status === 404) {
     return confirmHandoverProblem("not-found");
   }
