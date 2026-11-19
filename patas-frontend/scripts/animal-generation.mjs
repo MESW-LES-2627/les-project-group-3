@@ -46,17 +46,6 @@ function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function randomPostalCode(district) {
-  const prefixes = {
-    aveiro: "3800", beja: "7800", braga: "4700", braganca: "5300",
-    castelo_branco: "6000", coimbra: "3000", evora: "7000", faro: "8000",
-    guarda: "6300", leiria: "2400", lisboa: "1000", portalegre: "7300",
-    porto: "4000", santarem: "2000", setubal: "2900", viana_do_castelo: "4900",
-    vila_real: "5000", viseu: "3500", acores: "9500", madeira: "9000",
-  };
-  return `${prefixes[district] ?? "1000"}-${randomInt(100, 999).toString().padStart(3, "0")}`;
-}
-
 export function generateRandomAnimal(index = 0) {
   const district = randomItem(DISTRICTS);
   const species = randomItem(SPECIES);
@@ -70,7 +59,6 @@ export function generateRandomAnimal(index = 0) {
     age_in_months: ageInMonths,
     sex: randomItem(SEXES),
     is_neutered: randomItem(NEUTERING),
-    postal_code: randomPostalCode(district),
     district,
     size: randomItem(SIZES),
     activity_level: randomItem(ENERGY),

@@ -13,6 +13,7 @@ export type SwipeAnimal = {
   id: string;
   owner_id: string;
   owner_name: string;
+  owner_username: string;
   name: string;
   species: string;
   age_in_months: number | null;
@@ -92,6 +93,7 @@ export function isSwipeAnimal(value: unknown): value is SwipeAnimal {
     typeof animal.id === "string" &&
     typeof animal.owner_id === "string" &&
     typeof animal.owner_name === "string" &&
+    typeof animal.owner_username === "string" &&
     typeof animal.name === "string" &&
     typeof animal.species === "string" &&
     (animal.age_in_months === null ||

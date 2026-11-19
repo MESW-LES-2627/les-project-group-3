@@ -78,9 +78,10 @@ _SELECT_ALL_PUBLISHED = text(
 _SELECT_RANDOM_MATCHMAKER_CANDIDATES = text(
     """
     SELECT
-        a.id, a.owner_id, u.name AS owner_name, a.name, a.species,
+        a.id, a.owner_id, u.name AS owner_name, u.username AS owner_username,
+        a.name, a.species,
         a.age_in_months, a.adoption_status, a.sex, a.is_neutered,
-        a.postal_code, a.size, a.activity_level, a.space_requirement,
+        a.size, a.activity_level, a.space_requirement,
         a.shedding, a.grooming_needs, a.behaves_well_with_children,
         a.behaves_well_with_dogs, a.behaves_well_with_cats,
         a.behaves_well_with_other_animals, a.training_needs,

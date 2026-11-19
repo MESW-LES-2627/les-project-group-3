@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
 
 import { districtLabel } from "@/lib/animal-profile";
+import { personLabel } from "@/lib/username";
 import {
   SWIPE_MESSAGES,
   type SwipeAnimal,
@@ -158,7 +159,7 @@ export function MatchmakerSwipeFeed({ initialAnimals, loadMore, swipe }: Props) 
               </Link>
             </h2>
             <p className="mt-1 text-sm text-muted">
-              Published by {current.owner_name}
+              Published by {personLabel(current.owner_name, current.owner_username)}
             </p>
           </div>
           {fit && (

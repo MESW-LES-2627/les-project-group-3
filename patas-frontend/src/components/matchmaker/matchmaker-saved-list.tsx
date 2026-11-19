@@ -7,6 +7,7 @@ import { useState, useTransition } from "react";
 import { RequestForm } from "@/components/adoption/request-form";
 import { districtLabel } from "@/lib/animal-profile";
 import type { RequestOutcome } from "@/lib/adoption";
+import { personLabel } from "@/lib/username";
 import type { SwipeAnimal, SwipeOutcome } from "@/lib/matchmaker-swipes";
 
 type Props = {
@@ -80,7 +81,7 @@ export function MatchmakerSavedList({ initialAnimals, remove, request }: Props) 
                   </Link>
                 </h2>
                 <p className="mt-1 text-sm text-muted">
-                  Published by {animal.owner_name}
+                  Published by {personLabel(animal.owner_name, animal.owner_username)}
                 </p>
               </div>
               <button

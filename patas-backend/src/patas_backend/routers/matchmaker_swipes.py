@@ -50,6 +50,7 @@ class SwipeAnimalResponse(BaseModel):
     id: UUID
     owner_id: UUID
     owner_name: str
+    owner_username: str
     name: str
     species: Species
     age_in_months: int | None
@@ -65,6 +66,7 @@ class SwipeAnimalResponse(BaseModel):
             id=animal.id,
             owner_id=animal.owner_id,
             owner_name=animal.owner_name,
+            owner_username=animal.owner_username,
             name=animal.name,
             species=animal.species,
             age_in_months=animal.age_in_months,
