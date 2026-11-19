@@ -1,7 +1,7 @@
 """remember Matchmaker passes and saves
 
-Revision ID: 0008
-Revises: 0007
+Revision ID: 0010
+Revises: 0009
 """
 
 import sqlalchemy as sa
@@ -9,8 +9,8 @@ from sqlalchemy.dialects import postgresql
 
 from alembic import op
 
-revision = "0008"
-down_revision = "0007"
+revision = "0010"
+down_revision = "0009"
 branch_labels = None
 depends_on = None
 
