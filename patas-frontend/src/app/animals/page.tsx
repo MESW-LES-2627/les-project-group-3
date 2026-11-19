@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -32,6 +33,7 @@ type Animal = {
   adoption_status: string;
   size: string | null;
   district: string | null;
+  photo_urls: string[];
 };
 
 type Props = {
@@ -54,7 +56,9 @@ function isAnimal(value: unknown): value is Animal {
     (animal.age_in_months === null || typeof animal.age_in_months === "number") &&
     typeof animal.adoption_status === "string" &&
     (animal.size === null || typeof animal.size === "string") &&
-    (animal.district === null || typeof animal.district === "string")
+    (animal.district === null || typeof animal.district === "string") &&
+    Array.isArray(animal.photo_urls) &&
+    animal.photo_urls.every((url) => typeof url === "string")
   );
 }
 
@@ -211,48 +215,69 @@ function AnimalList({
         {animals.map((animal) => (
           <li
             key={animal.id}
-            className="flex min-h-48 flex-col rounded-2xl border border-line bg-surface p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-leaf/40 hover:shadow-md"
+            className="relative flex min-h-48 flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-leaf/40 hover:shadow-md"
           >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="rounded-full bg-leaf/10 px-3 py-1 text-xs font-semibold capitalize text-leaf">
-                {animal.species}
-              </span>
-              <span className="rounded-full bg-sunlight/20 px-3 py-1 text-xs font-medium text-forest">
-                {animalStatusLabel(animal.adoption_status)}
-              </span>
-            </div>
-            <h3 className="mt-5 text-2xl font-semibold text-forest">
-              <Link href={`/animals/${animal.id}`} className="hover:underline">
-                {animal.name}
-              </Link>
-            </h3>
-            <p className="mt-1 text-xs text-muted">
-              Published by {personLabel(animal.owner_name, animal.owner_username)}
-            </p>
-            <div className="mt-auto border-t border-line pt-4">
-              {animal.age_in_months !== null ? (
-                <p className="text-sm text-muted">
-                  <span className="font-medium text-forest">Age</span>
-                  <span aria-hidden="true"> · </span>
-                  {animal.age_in_months} months
-                </p>
-              ) : (
-                <p className="text-sm text-muted">Age not listed</p>
-              )}
-              {animal.size !== null && (
-                <p className="mt-1 text-sm capitalize text-muted">
-                  <span className="font-medium text-forest">Size</span>
-                  <span aria-hidden="true"> · </span>
-                  {animal.size}
-                </p>
-              )}
-              {animal.district !== null && (
-                <p className="mt-1 text-sm text-muted">
-                  <span className="font-medium text-forest">District</span>
-                  <span aria-hidden="true"> · </span>
-                  {districtLabel(animal.district)}
-                </p>
-              )}
+            {animal.photo_urls.length > 0 ? (
+              <Image
+                src={animal.photo_urls[0]}
+                alt={animal.name}
+                width={600}
+                height={400}
+                unoptimized
+                className="h-48 w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-48 w-full items-center justify-center bg-leaf/5 text-sm text-muted">
+                No photo yet
+              </div>
+            )}
+
+            <div className="flex flex-1 flex-col p-5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="rounded-full bg-leaf/10 px-3 py-1 text-xs font-semibold capitalize text-leaf">
+                  {animal.species}
+                </span>
+                <span className="rounded-full bg-sunlight/20 px-3 py-1 text-xs font-medium text-forest">
+                  {animalStatusLabel(animal.adoption_status)}
+                </span>
+              </div>
+              <h3 className="mt-5 text-2xl font-semibold text-forest">
+                <Link
+                  href={`/animals/${animal.id}`}
+                  className="before:absolute before:inset-0 hover:underline focus-visible:outline-none"
+                >
+                  {animal.name}
+                </Link>
+              </h3>
+              <p className="mt-1 text-xs text-muted">
+                Published by{" "}
+                {personLabel(animal.owner_name, animal.owner_username)}
+              </p>
+              <div className="mt-auto border-t border-line pt-4">
+                {animal.age_in_months !== null ? (
+                  <p className="text-sm text-muted">
+                    <span className="font-medium text-forest">Age</span>
+                    <span aria-hidden="true"> · </span>
+                    {animal.age_in_months} months
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted">Age not listed</p>
+                )}
+                {animal.size !== null && (
+                  <p className="mt-1 text-sm capitalize text-muted">
+                    <span className="font-medium text-forest">Size</span>
+                    <span aria-hidden="true"> · </span>
+                    {animal.size}
+                  </p>
+                )}
+                {animal.district !== null && (
+                  <p className="mt-1 text-sm text-muted">
+                    <span className="font-medium text-forest">District</span>
+                    <span aria-hidden="true"> · </span>
+                    {districtLabel(animal.district)}
+                  </p>
+                )}
+              </div>
             </div>
           </li>
         ))}

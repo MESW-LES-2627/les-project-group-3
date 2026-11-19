@@ -56,6 +56,7 @@ class AnimalService:
         suitable_for_first_time_owners: FirstTimeOwnerSuitability | None = None,
         special_care_notes: str | None = None,
         other_details: str | None = None,
+        photo_urls: list[str] | None = None,
     ) -> Animal:
         """A1 (create): the logged-in user publishes an animal they own."""
         # Built before the transaction opens: an invalid animal raises InvalidAnimal
@@ -85,6 +86,7 @@ class AnimalService:
             suitable_for_first_time_owners=suitable_for_first_time_owners,
             special_care_notes=special_care_notes,
             other_details=other_details,
+            photo_urls=photo_urls,
         )
 
         async with self._session_factory.begin() as session:
@@ -138,6 +140,7 @@ class AnimalService:
         suitable_for_first_time_owners: FirstTimeOwnerSuitability | None = None,
         special_care_notes: str | None = None,
         other_details: str | None = None,
+        photo_urls: list[str] | None = None,
     ) -> Animal | None:
         """US-03: the owner replaces the description. None if there is no animal."""
         async with self._session_factory.begin() as session:
@@ -168,6 +171,7 @@ class AnimalService:
                 suitable_for_first_time_owners=suitable_for_first_time_owners,
                 special_care_notes=special_care_notes,
                 other_details=other_details,
+                photo_urls=photo_urls,
             )
             await repo.update(animal)
             return animal

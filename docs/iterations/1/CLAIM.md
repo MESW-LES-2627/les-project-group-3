@@ -71,7 +71,7 @@ The decisions below describe the iteration's implemented scope.
 These are discussion topics, not blockers or requests to change delivered
 features:
 
-* How should the matchmaking algorith evolve? Is the current implementation enough or will we have to tweak it in the future when new animal attributes or user fields are though and added?
+* How should the matchmaking algorithm evolve? Is the current implementation enough or will we have to tweak it in the future when new animal attributes or user fields are though and added?
 * How will the adoption pipeline work, and how should it integrate with the
   matching features developed in this iteration?
 * How should we prevent frontend and backend copies of enum values and display

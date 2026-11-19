@@ -1,10 +1,21 @@
+import uuid
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+import boto3
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    status,
+)
 from pydantic import BaseModel, ConfigDict, Field
 
 from patas_backend.auth.dependencies import get_current_user
+from patas_backend.config import Settings
 from patas_backend.models.animal import (
     AdoptionStatus,
     Animal,
@@ -33,6 +44,28 @@ from patas_backend.services.animals import AnimalService
 
 router = APIRouter()
 
+ALLOWED_IMAGE_TYPES = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+}
+
+
+# Placeholder until the team agrees on the limit.
+MAX_PHOTO_BYTES = 5 * 1024 * 1024
+UPLOAD_URL_LIFETIME_SECONDS = 300
+
+
+class PresignedUrlRequest(BaseModel):
+    content_type: str = "image/jpeg"
+    # Signed into the URL, so the storage refuses a file of any other size.
+    size: int = Field(gt=0, le=MAX_PHOTO_BYTES)
+
+
+class PresignedUrlResponse(BaseModel):
+    upload_url: str
+    public_url: str
+
 
 class PublishAnimalRequest(BaseModel):
     # Types only. The business rules (non-blank name, age >= 0) live in the domain.
@@ -58,6 +91,7 @@ class PublishAnimalRequest(BaseModel):
     suitable_for_first_time_owners: FirstTimeOwnerSuitability | None = None
     special_care_notes: str | None = None
     other_details: str | None = None
+    photo_urls: list[str] = Field(default_factory=list)
 
 
 class EditAnimalRequest(PublishAnimalRequest):
@@ -125,6 +159,7 @@ class AnimalResponse(BaseModel):
     suitable_for_first_time_owners: FirstTimeOwnerSuitability | None
     special_care_notes: str | None
     other_details: str | None
+    photo_urls: list[str]
     match_profile: AnimalMatchProfileResponse
 
     @classmethod
@@ -156,6 +191,7 @@ class AnimalResponse(BaseModel):
             suitable_for_first_time_owners=animal.suitable_for_first_time_owners,
             special_care_notes=animal.special_care_notes,
             other_details=animal.other_details,
+            photo_urls=animal.photo_urls,
             match_profile=AnimalMatchProfileResponse.from_domain(
                 animal.match_profile()
             ),
@@ -165,6 +201,68 @@ class AnimalResponse(BaseModel):
 def get_animal_service(request: Request) -> AnimalService:
     return AnimalService(
         request.app.state.session_factory, request.app.state.dispatcher
+    )
+
+
+def get_settings(request: Request) -> Settings:
+    settings: Settings = request.app.state.settings
+    return settings
+
+
+def check_own_uploads(photo_urls: list[str], owner: User, settings: Settings) -> None:
+    """Only photos the owner uploaded through Patas: no third-party URLs."""
+    prefix = f"{settings.public_upload_url.rstrip('/')}/animals/{owner.id}/"
+    if any(not url.startswith(prefix) for url in photo_urls):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "Photos must be uploaded through Patas",
+        )
+
+
+@router.post("/animals/presigned-url", response_model=PresignedUrlResponse)
+async def create_presigned_url(
+    body: PresignedUrlRequest,
+    owner: Annotated[User, Depends(get_current_user)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> PresignedUrlResponse:
+    """A short-lived URL the browser uses to upload a photo straight to R2."""
+    if not settings.uploads_configured:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE, "Photo uploads are not configured"
+        )
+    extension = ALLOWED_IMAGE_TYPES.get(body.content_type)
+    if extension is None:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "Unsupported image type. Use JPEG, PNG, or WebP.",
+        )
+
+    file_name = f"animals/{owner.id}/{uuid.uuid4()}{extension}"
+
+    s3_client = boto3.client(
+        "s3",
+        endpoint_url=settings.aws_s3_endpoint_url,
+        region_name="auto",
+        # Passed explicitly so credentials loaded from .env work too (boto3 alone
+        # only reads the process environment).
+        aws_access_key_id=settings.aws_access_key_id or None,
+        aws_secret_access_key=settings.aws_secret_access_key or None,
+    )
+
+    upload_url = s3_client.generate_presigned_url(
+        "put_object",
+        Params={
+            "Bucket": settings.aws_storage_bucket_name,
+            "Key": file_name,
+            "ContentType": body.content_type,
+            "ContentLength": body.size,
+        },
+        ExpiresIn=UPLOAD_URL_LIFETIME_SECONDS,
+    )
+
+    return PresignedUrlResponse(
+        upload_url=upload_url,
+        public_url=f"{settings.public_upload_url.rstrip('/')}/{file_name}",
     )
 
 
@@ -264,8 +362,10 @@ async def edit_animal(
     body: EditAnimalRequest,
     owner: Annotated[User, Depends(get_current_user)],
     service: Annotated[AnimalService, Depends(get_animal_service)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> AnimalResponse:
     """The owner replaces the description: 403 if not the owner, 404 if not found."""
+    check_own_uploads(body.photo_urls, owner, settings)
     try:
         animal = await service.edit(
             owner,
@@ -291,6 +391,7 @@ async def edit_animal(
             suitable_for_first_time_owners=body.suitable_for_first_time_owners,
             special_care_notes=body.special_care_notes,
             other_details=body.other_details,
+            photo_urls=body.photo_urls,
         )
     except AnimalUnauthorized as error:
         raise HTTPException(status.HTTP_403_FORBIDDEN, str(error)) from error
@@ -311,7 +412,9 @@ async def publish_animal(
     body: PublishAnimalRequest,
     owner: Annotated[User, Depends(get_current_user)],
     service: Annotated[AnimalService, Depends(get_animal_service)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> AnimalResponse:
+    check_own_uploads(body.photo_urls, owner, settings)
     try:
         animal = await service.publish(
             owner,
@@ -336,6 +439,7 @@ async def publish_animal(
             suitable_for_first_time_owners=body.suitable_for_first_time_owners,
             special_care_notes=body.special_care_notes,
             other_details=body.other_details,
+            photo_urls=body.photo_urls,
         )
     except InvalidAnimal as error:
         raise HTTPException(

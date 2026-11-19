@@ -27,7 +27,7 @@ _INSERT = text(
             behaves_well_with_dogs, behaves_well_with_cats,
             behaves_well_with_other_animals, training_needs,
             tolerance_for_time_alone, noise_level, suitable_for_first_time_owners,
-            special_care_notes, other_details, district
+            special_care_notes, other_details, district, photo_urls
         )
     VALUES (
         :id, :owner_id, :name, CAST(:species AS patas.species), :age_in_months,
@@ -49,7 +49,8 @@ _INSERT = text(
         CAST(:suitable_for_first_time_owners AS patas.first_time_owner_suitability),
         :special_care_notes,
         :other_details,
-        CAST(:district AS patas.district)
+        CAST(:district AS patas.district),
+        CAST(:photo_urls AS text[])
     )
     """
 )
@@ -67,7 +68,7 @@ _SELECT_ALL_PUBLISHED = text(
         a.behaves_well_with_other_animals, a.training_needs,
         a.tolerance_for_time_alone, a.noise_level,
         a.suitable_for_first_time_owners, a.special_care_notes,
-        a.other_details, a.district
+        a.other_details, a.district, a.photo_urls
     FROM patas.animals a
     JOIN patas.users u ON u.id = a.owner_id
     WHERE a.adoption_status != 'unavailable'
@@ -148,7 +149,7 @@ _SELECT_BY_OWNER = text(
         a.behaves_well_with_other_animals, a.training_needs,
         a.tolerance_for_time_alone, a.noise_level,
         a.suitable_for_first_time_owners, a.special_care_notes,
-        a.other_details, a.district
+        a.other_details, a.district, a.photo_urls
     FROM patas.animals a
     JOIN patas.users u ON u.id = a.owner_id
     WHERE a.owner_id = :owner_id
@@ -168,7 +169,7 @@ _SELECT_BY_ID = text(
         a.behaves_well_with_other_animals, a.training_needs,
         a.tolerance_for_time_alone, a.noise_level,
         a.suitable_for_first_time_owners, a.special_care_notes,
-        a.other_details, a.district
+        a.other_details, a.district, a.photo_urls
     FROM patas.animals a
     JOIN patas.users u ON u.id = a.owner_id
     WHERE a.id = :id
@@ -209,7 +210,8 @@ _UPDATE = text(
             CAST(:suitable_for_first_time_owners AS patas.first_time_owner_suitability),
         special_care_notes = :special_care_notes,
         other_details = :other_details,
-        district = CAST(:district AS patas.district)
+        district = CAST(:district AS patas.district),
+        photo_urls = CAST(:photo_urls AS text[])
     WHERE id = :id
     """
 )
@@ -279,6 +281,7 @@ def _to_params(animal: Animal) -> dict[str, Any]:
         "special_care_notes": animal.special_care_notes,
         "other_details": animal.other_details,
         "district": animal.district.value if animal.district is not None else None,
+        "photo_urls": animal.photo_urls,
     }
 
 
@@ -348,6 +351,7 @@ def _from_row(row: Row[Any]) -> Animal:
         special_care_notes=row.special_care_notes,
         other_details=row.other_details,
         district=District(row.district) if row.district is not None else None,
+        photo_urls=list(row.photo_urls) if row.photo_urls is not None else [],
     )
 
 

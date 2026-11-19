@@ -115,6 +115,10 @@ async def test_optional_animal_profile_round_trips(
         suitable_for_first_time_owners=FirstTimeOwnerSuitability.WITH_SUPPORT,
         special_care_notes="Medication",
         other_details="Enjoys sunny spots",
+        photo_urls=[
+            "https://media.example/animals/rex-1.jpg",
+            "https://media.example/animals/rex-2.png",
+        ],
     )
 
     await _add(session_factory, animal)

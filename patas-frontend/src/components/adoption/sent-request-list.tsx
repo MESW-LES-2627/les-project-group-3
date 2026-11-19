@@ -7,6 +7,7 @@ import {
   canWithdraw,
   filterByStatus,
   statusFilterOf,
+  type ConfirmHandoverAction,
   type SentRequest,
   type WithdrawAction,
 } from "@/lib/adoption";
@@ -16,6 +17,7 @@ import {
   type ApplicationStatus,
 } from "@/lib/adoption-status";
 
+import { ConfirmHandoverButton } from "./confirm-handover-button";
 import { WithdrawButton } from "./withdraw-button";
 
 const FILTERS: (ApplicationStatus | null)[] = [null, ...APPLICATION_STATUS];
@@ -28,9 +30,14 @@ const DATE = new Intl.DateTimeFormat("en-GB", {
 type SentRequestListProps = {
   requests: SentRequest[];
   withdraw: WithdrawAction;
+  confirmHandover: ConfirmHandoverAction;
 };
 
-export function SentRequestList({ requests, withdraw }: SentRequestListProps) {
+export function SentRequestList({
+  requests,
+  withdraw,
+  confirmHandover,
+}: SentRequestListProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const active = statusFilterOf(searchParams.get("status"));
@@ -160,6 +167,25 @@ export function SentRequestList({ requests, withdraw }: SentRequestListProps) {
                     status={request.status}
                     action={withdraw}
                   />
+                </div>
+              ) : null}
+
+              {request.status === "accepted" ? (
+                <div className="mt-4 border-t border-line pt-4">
+                  {request.applicant_confirmed_at ? (
+                    <p className="text-sm font-medium text-forest">
+                      You confirmed the handover. Waiting for the owner to
+                      confirm.
+                    </p>
+                  ) : (
+                    <ConfirmHandoverButton
+                      applicationId={request.id}
+                      animalId={request.animal_id}
+                      animalName={request.animal_name}
+                      otherSideConfirmed={request.owner_confirmed_at !== null}
+                      action={confirmHandover}
+                    />
+                  )}
                 </div>
               ) : null}
             </li>

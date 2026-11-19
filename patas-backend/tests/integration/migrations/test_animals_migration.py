@@ -129,6 +129,26 @@ async def test_animal_profile_columns_are_nullable(engine: AsyncEngine) -> None:
     assert all(row.is_nullable == "YES" for row in rows)
 
 
+async def test_photo_urls_defaults_to_an_empty_list(engine: AsyncEngine) -> None:
+    async with engine.connect() as conn:
+        row = (
+            await conn.execute(
+                text(
+                    """
+                    SELECT data_type, is_nullable, column_default
+                    FROM information_schema.columns
+                    WHERE table_schema = 'patas' AND table_name = 'animals'
+                      AND column_name = 'photo_urls'
+                    """
+                )
+            )
+        ).one()
+
+    assert row.data_type == "ARRAY"
+    assert row.is_nullable == "NO"
+    assert row.column_default is not None
+
+
 async def test_rejects_an_unknown_district(engine: AsyncEngine, owner_id: UUID) -> None:
     with pytest.raises(DBAPIError, match="invalid input value for enum"):
         async with engine.begin() as conn:
