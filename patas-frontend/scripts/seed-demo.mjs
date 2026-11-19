@@ -224,3 +224,11 @@ for (const owner of OWNERS) {
   }
 }
 console.log(`Demo users log in with password "${PASSWORD}".`);
+
+export async function expectStatus(response, expectedStatus, label) {
+  if (response.status === expectedStatus) {
+    return;
+  }
+  const body = await response.text();
+  throw new Error(`${label} failed (HTTP ${response.status}): ${body}`);
+}
