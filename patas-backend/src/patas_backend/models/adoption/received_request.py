@@ -15,6 +15,7 @@ class ReceivedRequest:
     animal_name: str
     applicant_id: UUID
     applicant_name: str
+    applicant_username: str
     status: ApplicationStatus
     applicant_note: str
     applicant_profile: ProfileSnapshot

@@ -21,6 +21,7 @@ import {
   HOUSING_OPTIONS,
   TIME_AWAY_OPTIONS,
 } from "@/lib/matchmaker-profile";
+import { personLabel } from "@/lib/username";
 
 const FILTERS: (ApplicationStatus | null)[] = [null, ...APPLICATION_STATUS];
 const DATE = new Intl.DateTimeFormat("en-GB", {
@@ -151,7 +152,7 @@ export function ReceivedRequestList({
               <p className="mt-2 text-sm text-muted">
                 Requested by{" "}
                 <span className="font-semibold text-forest">
-                  {request.applicant_name}
+                  {personLabel(request.applicant_name, request.applicant_username)}
                 </span>
               </p>
 

@@ -7,6 +7,10 @@
 | **Scope** | US-15 (#61), US-17 (#63); AT-17 (#71), AT-19 (#73) |
 | **Related** | [0005-fetch-animal-data](0005-fetch-animal-data.md), [0016-catalog-filters](0016-catalog-filters.md), [0017-adoption-base](0017-adoption-base.md) (decisions 3 and 8), [0019-requesting-to-adopt](0019-requesting-to-adopt.md) (decisions 6 and 9) |
 
+> **Amended by [0025-quality-and-clean-up](0025-quality-and-clean-up.md):** Withdraw asks
+> in the shared confirmation dialog instead of `window.confirm()` (decision 8). Since
+> ADR 0021 the frontend also has Vitest for its `src/lib` logic.
+
 ## Context
 
 US-14 lets a person send a request, and the animal page shows the one active

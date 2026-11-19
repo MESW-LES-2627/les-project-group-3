@@ -9,6 +9,7 @@ from patas_backend.models.animal import (
     AnimalSex,
     AnimalSize,
     CatalogFilter,
+    CatalogPage,
     District,
     FirstTimeOwnerSuitability,
     NeuteredStatus,
@@ -39,7 +40,6 @@ class AnimalService:
         age_in_months: int | None,
         sex: AnimalSex | None = None,
         is_neutered: NeuteredStatus | None = None,
-        postal_code: str | None = None,
         district: District | None = None,
         size: AnimalSize | None = None,
         activity_level: EnergyLevel | None = None,
@@ -65,10 +65,10 @@ class AnimalService:
             name=name,
             species=species,
             owner_name=owner.name,
+            owner_username=owner.username,
             age_in_months=age_in_months,
             sex=sex,
             is_neutered=is_neutered,
-            postal_code=postal_code,
             district=district,
             size=size,
             activity_level=activity_level,
@@ -91,12 +91,16 @@ class AnimalService:
             await AnimalRepository(session).add(animal)
         return animal
 
-    async def list_catalog(self, catalog_filter: CatalogFilter) -> list[Animal]:
-        """A2 (list): the published animals that match, newest first. Public."""
+    async def list_catalog(
+        self, catalog_filter: CatalogFilter, page: CatalogPage
+    ) -> tuple[list[Animal], int]:
+        """A2 (list): one page of the published animals that match, newest first,
+        and how many match in all. Public."""
         # Read-only: a plain session, no transaction to commit.
         async with self._session_factory() as session:
             animals = await AnimalRepository(session).list_all()
-            return [a for a in animals if catalog_filter.matches(a)]
+        matching = [a for a in animals if catalog_filter.matches(a)]
+        return page.of(matching), len(matching)
 
     async def list_by_owner(self, owner: User) -> list[Animal]:
         """List all animals owned by the user, published and unpublished."""
@@ -118,7 +122,6 @@ class AnimalService:
         age_in_months: int | None,
         sex: AnimalSex | None = None,
         is_neutered: NeuteredStatus | None = None,
-        postal_code: str | None = None,
         district: District | None = None,
         size: AnimalSize | None = None,
         activity_level: EnergyLevel | None = None,
@@ -149,7 +152,6 @@ class AnimalService:
                 age_in_months=age_in_months,
                 sex=sex,
                 is_neutered=is_neutered,
-                postal_code=postal_code,
                 district=district,
                 size=size,
                 activity_level=activity_level,

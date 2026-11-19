@@ -4,6 +4,7 @@ import {
   isApplicationStatus,
   type ApplicationStatus,
 } from "@/lib/adoption-status";
+import type { Confirmation } from "@/lib/confirmation";
 import {
   isMatchmakerAnswers,
   type MatchmakerAnswers,
@@ -116,6 +117,7 @@ export type ReceivedRequest = {
   animal_id: string;
   animal_name: string;
   applicant_name: string;
+  applicant_username: string;
   status: string;
   note: string;
   owner_note: string | null;
@@ -134,6 +136,7 @@ export function isReceivedRequest(value: unknown): value is ReceivedRequest {
     typeof request.animal_id === "string" &&
     typeof request.animal_name === "string" &&
     typeof request.applicant_name === "string" &&
+    typeof request.applicant_username === "string" &&
     typeof request.status === "string" &&
     typeof request.note === "string" &&
     (request.owner_note === null || typeof request.owner_note === "string") &&
@@ -172,10 +175,16 @@ export function canWithdraw(status: string): boolean {
   return status === "open" || status === "accepted";
 }
 
-export function withdrawConfirmation(animalName: string, status: string): string {
+export function withdrawConfirmation(
+  animalName: string,
+  status: string,
+): Confirmation {
   return status === "accepted"
-    ? `Withdraw your accepted request for ${animalName}? ${animalName} will be available to others again.`
-    : `Withdraw your request for ${animalName}?`;
+    ? {
+        title: `Withdraw your accepted request for ${animalName}?`,
+        message: `${animalName} will be available to others again.`,
+      }
+    : { title: `Withdraw your request for ${animalName}?` };
 }
 
 // US-16: the owner accepts or declines a request, with an optional note.

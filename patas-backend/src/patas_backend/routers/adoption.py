@@ -107,6 +107,7 @@ class ReceivedRequestResponse(BaseModel):
     animal_id: UUID
     animal_name: str
     applicant_name: str
+    applicant_username: str
     status: ApplicationStatus
     note: str
     owner_note: str | None
@@ -121,6 +122,7 @@ class ReceivedRequestResponse(BaseModel):
             animal_id=request.animal_id,
             animal_name=request.animal_name,
             applicant_name=request.applicant_name,
+            applicant_username=request.applicant_username,
             status=request.status,
             note=request.applicant_note,
             owner_note=request.owner_note,

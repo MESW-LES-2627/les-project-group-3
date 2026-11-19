@@ -1,17 +1,21 @@
+import asyncio
 from uuid import UUID, uuid4
 
 import pytest
 import pytest_asyncio
+from alembic.config import Config
 from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError, IntegrityError
-from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
+from alembic import command
 from patas_backend.models.animal import District
 
 OWNER_ID = UUID("0b1f2a3c-4d5e-4f60-8a7b-9c0d1e2f3a4b")
 
 INSERT_USER = text(
-    "INSERT INTO patas.users (id, name, email) VALUES (:id, 'Ana', 'ana@example.com')"
+    "INSERT INTO patas.users (id, name, email, username) "
+    "VALUES (:id, 'Ana', 'ana@example.com', 'ana')"
 )
 INSERT_ANIMAL = text(
     "INSERT INTO patas.animals (id, owner_id, name, species, age_in_months) "
@@ -107,7 +111,7 @@ async def test_animal_profile_columns_are_nullable(engine: AsyncEngine) -> None:
                         FROM information_schema.columns
                         WHERE table_schema = 'patas' AND table_name = 'animals'
                           AND column_name IN (
-                            'sex', 'is_neutered', 'postal_code', 'district', 'size',
+                            'sex', 'is_neutered', 'district', 'size',
                             'activity_level', 'space_requirement', 'shedding',
                             'grooming_needs',
                             'behaves_well_with_children', 'behaves_well_with_dogs',
@@ -121,7 +125,7 @@ async def test_animal_profile_columns_are_nullable(engine: AsyncEngine) -> None:
             )
         ).all()
 
-    assert len(rows) == 19
+    assert len(rows) == 18
     assert all(row.is_nullable == "YES" for row in rows)
 
 
@@ -144,3 +148,28 @@ async def test_the_district_enum_matches_the_domain(engine: AsyncEngine) -> None
             text("SELECT enum_range(NULL::patas.district)::text[]")
         )
     assert values == [district.value for district in District]
+
+
+_POSTAL_CODE_COLUMN = text(
+    "SELECT is_nullable FROM information_schema.columns WHERE table_schema = "
+    "'patas' AND table_name = 'animals' AND column_name = 'postal_code'"
+)
+
+
+async def test_the_postal_code_column_is_dropped(engine: AsyncEngine) -> None:
+    async with engine.connect() as conn:
+        assert await conn.scalar(_POSTAL_CODE_COLUMN) is None
+
+
+async def test_downgrading_0009_brings_the_postal_code_column_back(
+    scratch_database: tuple[Config, str],
+) -> None:
+    config, url = scratch_database
+    await asyncio.to_thread(command.upgrade, config, "head")
+    await asyncio.to_thread(command.downgrade, config, "0008")
+
+    engine = create_async_engine(url)
+    async with engine.connect() as conn:
+        nullable = await conn.scalar(_POSTAL_CODE_COLUMN)
+    await engine.dispose()
+    assert nullable == "YES"

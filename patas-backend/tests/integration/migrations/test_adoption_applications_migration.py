@@ -1,7 +1,5 @@
 import asyncio
-from collections.abc import AsyncIterator
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import NamedTuple
 from uuid import UUID, uuid4
 
@@ -9,19 +7,20 @@ import pytest
 import pytest_asyncio
 from alembic.config import Config
 from sqlalchemy import text
-from sqlalchemy.engine import make_url
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from alembic import command
-from patas_backend.config import Settings
 
-ALEMBIC_INI = Path(__file__).resolve().parents[3] / "alembic.ini"
-SCRATCH_DATABASE = "patas_migration_scratch"
 NOW = datetime.now(UTC)
 
+# Before 0008 a user has no username; the scratch database starts there.
 INSERT_USER = text(
     "INSERT INTO patas.users (id, name, email) VALUES (:id, :name, :email)"
+)
+INSERT_USER_WITH_USERNAME = text(
+    "INSERT INTO patas.users (id, name, email, username) "
+    "VALUES (:id, :name, :email, :username)"
 )
 INSERT_ANIMAL = text(
     "INSERT INTO patas.animals (id, owner_id, name, species) "
@@ -54,7 +53,8 @@ async def world(engine: AsyncEngine) -> World:
         for user_id, name in people:
             email = f"{name.lower()}@example.com"
             await conn.execute(
-                INSERT_USER, {"id": user_id, "name": name, "email": email}
+                INSERT_USER_WITH_USERNAME,
+                {"id": user_id, "name": name, "email": email, "username": name},
             )
         await conn.execute(INSERT_ANIMAL, {"id": ids.animal, "owner_id": ids.owner})
     return ids
@@ -206,28 +206,6 @@ async def test_deleting_an_animal_with_applications_is_restricted(
 
 
 # --- the enum change, on a throwaway database -------------------------------
-
-
-@pytest_asyncio.fixture
-async def scratch_database() -> AsyncIterator[tuple[Config, str]]:
-    """An empty database of its own, so a failure cannot break the shared one."""
-    base = Settings().database_url
-    admin = create_async_engine(base, isolation_level="AUTOCOMMIT")
-    drop = text(f"DROP DATABASE IF EXISTS {SCRATCH_DATABASE} WITH (FORCE)")
-    async with admin.connect() as conn:
-        await conn.execute(drop)
-        await conn.execute(text(f"CREATE DATABASE {SCRATCH_DATABASE}"))
-    url = (
-        make_url(base)
-        .set(database=SCRATCH_DATABASE)
-        .render_as_string(hide_password=False)
-    )
-    config = Config(str(ALEMBIC_INI))
-    config.set_main_option("sqlalchemy.url", url)
-    yield config, url
-    async with admin.connect() as conn:
-        await conn.execute(drop)
-    await admin.dispose()
 
 
 _LABELS = text("SELECT unnest(enum_range(NULL::patas.adoption_status))::text")

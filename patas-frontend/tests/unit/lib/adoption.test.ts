@@ -44,6 +44,7 @@ function received(concerns: unknown[] = []): Record<string, unknown> {
     animal_id: "a1",
     animal_name: "Bolt",
     applicant_name: "Bruno",
+    applicant_username: "bruno",
     status: "open",
     note: "I have a garden",
     owner_note: null,
@@ -128,15 +129,16 @@ describe("answerNoteProblem", () => {
 
 describe("withdrawConfirmation", () => {
   it("warns that an accepted request frees the animal for others", () => {
-    expect(withdrawConfirmation("Bolt", "accepted")).toContain(
-      "available to others again",
-    );
+    expect(withdrawConfirmation("Bolt", "accepted")).toEqual({
+      title: "Withdraw your accepted request for Bolt?",
+      message: "Bolt will be available to others again.",
+    });
   });
 
   it("asks a plain question for an open request", () => {
-    expect(withdrawConfirmation("Bolt", "open")).toBe(
-      "Withdraw your request for Bolt?",
-    );
+    expect(withdrawConfirmation("Bolt", "open")).toEqual({
+      title: "Withdraw your request for Bolt?",
+    });
   });
 });
 
@@ -209,6 +211,15 @@ describe("response shape guards", () => {
     delete withoutApplicantName.applicant_name;
     expect(isReceivedRequest(withoutApplicantName)).toBe(false);
     expect(isReceivedRequest({ ...received(), applicant_name: 5 })).toBe(false);
+  });
+
+  it("rejects a received request without an applicant username", () => {
+    const withoutUsername = received();
+    delete withoutUsername.applicant_username;
+    expect(isReceivedRequest(withoutUsername)).toBe(false);
+    expect(isReceivedRequest({ ...received(), applicant_username: 5 })).toBe(
+      false,
+    );
   });
 
   it("rejects a received request with a missing or mistyped field", () => {
