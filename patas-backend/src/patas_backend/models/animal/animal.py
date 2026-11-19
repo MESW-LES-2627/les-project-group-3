@@ -1,4 +1,4 @@
-from dataclasses import dataclass, fields, replace
+from dataclasses import dataclass, field, fields, replace
 from uuid import UUID, uuid4
 
 from patas_backend.models.animal.enums import (
@@ -81,6 +81,7 @@ class Animal:
     suitable_for_first_time_owners: FirstTimeOwnerSuitability | None = None
     special_care_notes: str | None = None
     other_details: str | None = None
+    photo_urls: list[str] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         # Invariants hold however an Animal is built (published or loaded from the DB).
@@ -120,6 +121,7 @@ class Animal:
         suitable_for_first_time_owners: FirstTimeOwnerSuitability | None = None,
         special_care_notes: str | None = None,
         other_details: str | None = None,
+        photo_urls: list[str] | None = None,
     ) -> "Animal":
         """Create a new listing. It always starts available, owned by its publisher."""
         return cls(
@@ -148,6 +150,7 @@ class Animal:
             suitable_for_first_time_owners=suitable_for_first_time_owners,
             special_care_notes=special_care_notes,
             other_details=other_details,
+            photo_urls=list(photo_urls) if photo_urls else [],
         )
 
     @property
@@ -183,6 +186,7 @@ class Animal:
         suitable_for_first_time_owners: FirstTimeOwnerSuitability | None = None,
         special_care_notes: str | None = None,
         other_details: str | None = None,
+        photo_urls: list[str] | None = None,
     ) -> None:
         """Replace the description; a field left out is cleared. All or nothing."""
         if not self.is_owned_by(by_user_id):
@@ -212,11 +216,12 @@ class Animal:
             suitable_for_first_time_owners=suitable_for_first_time_owners,
             special_care_notes=special_care_notes,
             other_details=other_details,
+            photo_urls=list(photo_urls) if photo_urls else [],
         )
         # Only the declared fields: vars() would also copy the edited copy's empty
         # event list over the events this animal has recorded.
-        for field in fields(edited):
-            setattr(self, field.name, getattr(edited, field.name))
+        for f in fields(edited):
+            setattr(self, f.name, getattr(edited, f.name))
 
     def _move(
         self, source: AdoptionStatus, target: AdoptionStatus, action: str
