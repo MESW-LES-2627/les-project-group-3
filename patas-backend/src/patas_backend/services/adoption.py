@@ -1,4 +1,5 @@
 from dataclasses import replace
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -193,5 +194,31 @@ class AdoptionService:
             application.withdraw(applicant.id)
             events = await self._dispatcher.dispatch(application.pull_events(), session)
             await AdoptionApplicationRepository(session).update(application)
+        await self._dispatcher.publish(events)
+        return application
+
+    async def confirm_handover(
+        self, actor: User, application_id: UUID
+    ) -> AdoptionApplication | None:
+        """US-18: the owner or applicant confirms the animal was handed over.
+
+        None if there is no such request or the caller is neither side: to anyone
+        else it does not exist. Raises InvalidTransition if the request is not
+        accepted or the caller already confirmed.
+        """
+        async with self._session_factory.begin() as session:
+            # The animal first (ADR 0017, decision 8). The second confirmation
+            # adopts, and the handler then marks the animal adopted under its lock.
+            application = await lock_animal_and_application(session, application_id)
+            if application is None or actor.id not in (
+                application.owner_id,
+                application.applicant_id,
+            ):
+                return None
+
+            application.confirm_handover(actor.id, datetime.now(UTC))
+            events = await self._dispatcher.dispatch(application.pull_events(), session)
+            await AdoptionApplicationRepository(session).update(application)
+
         await self._dispatcher.publish(events)
         return application
