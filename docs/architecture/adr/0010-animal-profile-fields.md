@@ -7,6 +7,9 @@
 | **Scope** | Animal registration and the optional animal profile fields in `temp.md` |
 | **Related** | [0004-animal-aggregate](0004-animal-aggregate.md), [0008-matchmaker-profile](0008-matchmaker-profile.md), [0009-matchmaker-profile-page](0009-matchmaker-profile-page.md) |
 
+> **Amended by [0025-quality-and-clean-up](0025-quality-and-clean-up.md):** the postal
+> code is removed (decision 4); the district (ADR 0016) is the only location.
+
 > **Amended by [0016-catalog-filters](0016-catalog-filters.md):** the animal
 > also has an optional district, picked from a fixed list.
 

@@ -99,7 +99,6 @@ async def test_optional_animal_profile_round_trips(
         ana,
         sex=AnimalSex.FEMALE,
         is_neutered=NeuteredStatus.YES,
-        postal_code="1234-567",
         district=District.PORTO,
         size=AnimalSize.SMALL,
         activity_level=EnergyLevel.MODERATE,

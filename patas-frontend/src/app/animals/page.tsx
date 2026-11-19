@@ -13,6 +13,7 @@ import {
   catalogQuery,
   type CatalogFilters,
 } from "@/lib/catalog-filters";
+import { catalogPage, pager, totalFromHeader } from "@/lib/catalog-page";
 
 import { CatalogFilterForm } from "@/components/animal/catalog-filters";
 
@@ -57,9 +58,12 @@ function isAnimal(value: unknown): value is Animal {
   );
 }
 
-async function getAnimals(filters: CatalogFilters): Promise<Animal[]> {
+async function getAnimals(
+  filters: CatalogFilters,
+  page: number,
+): Promise<{ animals: Animal[]; total: number }> {
   const response = await fetch(
-    `${backendUrl()}/animals${catalogQuery(filters)}`,
+    `${backendUrl()}/animals${catalogQuery(filters, page)}`,
     { cache: "no-store" },
   );
 
@@ -72,30 +76,96 @@ async function getAnimals(filters: CatalogFilters): Promise<Animal[]> {
     throw new Error("Unable to load animals: backend returned invalid data");
   }
 
-  return payload;
+  const total = totalFromHeader(response.headers.get("X-Total-Count"));
+  return { animals: payload, total: total ?? payload.length };
 }
 
 async function Catalog({ searchParams }: Props) {
-  const filters = catalogFilters(await searchParams);
-  const animals = await getAnimals(filters);
+  const params = await searchParams;
+  const filters = catalogFilters(params);
+  const page = catalogPage(params);
+  const { animals, total } = await getAnimals(filters, page);
   return (
     <>
       <CatalogFilterForm filters={filters} />
       <AnimalList
         animals={animals}
+        total={total}
         filtered={Object.keys(filters).length > 0}
       />
+      <Pager filters={filters} page={page} total={total} />
     </>
   );
 }
 
+// Previous and next keep the filters; applying filters starts again at page 1.
+function Pager({
+  filters,
+  page,
+  total,
+}: {
+  filters: CatalogFilters;
+  page: number;
+  total: number;
+}) {
+  const links = pager(page, total);
+  if (links === null) {
+    return null;
+  }
+  return (
+    <nav
+      aria-label="Catalog pages"
+      className="mt-6 flex items-center justify-between gap-4 text-sm"
+    >
+      {links.previous !== null ? (
+        <Link
+          href={`/animals${catalogQuery(filters, links.previous)}`}
+          className={PAGE_LINK}
+        >
+          Previous
+        </Link>
+      ) : (
+        <span />
+      )}
+      {links.label !== null ? (
+        <p className="text-muted">{links.label}</p>
+      ) : null}
+      {links.next !== null ? (
+        <Link
+          href={`/animals${catalogQuery(filters, links.next)}`}
+          className={PAGE_LINK}
+        >
+          Next
+        </Link>
+      ) : (
+        <span />
+      )}
+    </nav>
+  );
+}
+
+const PAGE_LINK =
+  "inline-flex min-h-11 items-center justify-center rounded-xl border border-line bg-surface px-4 font-semibold text-forest transition hover:border-forest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest";
+
 function AnimalList({
   animals,
+  total,
   filtered,
 }: {
   animals: Animal[];
+  total: number;
   filtered: boolean;
 }) {
+  if (animals.length === 0 && total > 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-line bg-surface px-6 py-12 text-center">
+        <p className="text-lg font-semibold text-forest">
+          There are no animals on this page
+        </p>
+      </div>
+    );
+  }
+
   if (animals.length === 0 && filtered) {
     return (
       <div className="rounded-2xl border border-dashed border-line bg-surface px-6 py-12 text-center">
@@ -134,7 +204,7 @@ function AnimalList({
           Animals in our community
         </h2>
         <p className="text-sm text-muted">
-          {animals.length} {animals.length === 1 ? "animal" : "animals"}
+          {total} {total === 1 ? "animal" : "animals"}
         </p>
       </div>
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

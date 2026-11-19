@@ -168,6 +168,10 @@ Then `docker compose exec backend python scripts/seed_applications.py` adds samp
 adoption requests in every state (open, accepted, declined, withdrawn, closed,
 adopted) on top of those animals. It is safe to run again.
 
+To check the catalog's paging, `docker compose exec backend python scripts/seed_catalog.py`
+adds 300 animals among 100 users (pass other numbers as `[animals] [users]`). Those
+users cannot sign in. It is safe to run again.
+
 `pnpm smoke:auth` (in `patas-frontend`, with the stack running) checks the same
 handoff automatically.
 

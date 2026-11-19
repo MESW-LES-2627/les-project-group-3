@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field
 
 from patas_backend.auth.dependencies import get_current_user
@@ -14,6 +14,7 @@ from patas_backend.models.animal import (
     AnimalSize,
     AnimalUnauthorized,
     CatalogFilter,
+    CatalogPage,
     District,
     FirstTimeOwnerSuitability,
     InvalidAnimal,
@@ -41,7 +42,6 @@ class PublishAnimalRequest(BaseModel):
     age_in_months: Annotated[int, Field(le=2_147_483_647)] | None = None
     sex: AnimalSex | None = None
     is_neutered: NeuteredStatus | None = None
-    postal_code: str | None = None
     district: District | None = None
     size: AnimalSize | None = None
     activity_level: EnergyLevel | None = None
@@ -109,7 +109,6 @@ class AnimalResponse(BaseModel):
     adoption_status: AdoptionStatus
     sex: AnimalSex | None
     is_neutered: NeuteredStatus | None
-    postal_code: str | None
     district: District | None
     size: AnimalSize | None
     activity_level: EnergyLevel | None
@@ -141,7 +140,6 @@ class AnimalResponse(BaseModel):
             adoption_status=animal.adoption_status,
             sex=animal.sex,
             is_neutered=animal.is_neutered,
-            postal_code=animal.postal_code,
             district=animal.district,
             size=animal.size,
             activity_level=animal.activity_level,
@@ -172,20 +170,22 @@ def get_animal_service(request: Request) -> AnimalService:
 
 @router.get("/animals", response_model=list[AnimalResponse])
 async def list_animals(
+    response: Response,
     service: Annotated[AnimalService, Depends(get_animal_service)],
     species: Species | None = None,
     size: AnimalSize | None = None,
     district: District | None = None,
     age_group: LifeStage | None = None,
+    page: Annotated[int, Query(ge=1)] = 1,
 ) -> list[AnimalResponse]:
-    """The public catalog: published animals only, narrowed by the given filters."""
+    """The public catalog: one page of the published animals that match the
+    filters. X-Total-Count says how many match in all (ADR 0025)."""
     catalog_filter = CatalogFilter(
         species=species, size=size, district=district, age_group=age_group
     )
-    return [
-        AnimalResponse.from_domain(a)
-        for a in await service.list_catalog(catalog_filter)
-    ]
+    animals, total = await service.list_catalog(catalog_filter, CatalogPage(page))
+    response.headers["X-Total-Count"] = str(total)
+    return [AnimalResponse.from_domain(a) for a in animals]
 
 
 @router.get("/me/animals", response_model=list[AnimalResponse])
@@ -275,7 +275,6 @@ async def edit_animal(
             age_in_months=body.age_in_months,
             sex=body.sex,
             is_neutered=body.is_neutered,
-            postal_code=body.postal_code,
             district=body.district,
             size=body.size,
             activity_level=body.activity_level,
@@ -321,7 +320,6 @@ async def publish_animal(
             age_in_months=body.age_in_months,
             sex=body.sex,
             is_neutered=body.is_neutered,
-            postal_code=body.postal_code,
             district=body.district,
             size=body.size,
             activity_level=body.activity_level,

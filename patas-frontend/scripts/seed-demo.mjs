@@ -20,7 +20,6 @@ const OWNERS = [
         age_in_months: 18,
         sex: "male",
         is_neutered: "yes",
-        postal_code: "4000-001",
         district: "porto",
         size: "small",
         activity_level: "moderate",
@@ -44,7 +43,6 @@ const OWNERS = [
         age_in_months: 30,
         sex: "female",
         is_neutered: "yes",
-        postal_code: "4000-001",
         district: "porto",
         size: "medium",
         activity_level: "high",
@@ -74,7 +72,6 @@ const OWNERS = [
         age_in_months: 8,
         sex: "female",
         is_neutered: "unknown",
-        postal_code: "1100-001",
         district: "lisboa",
         size: "small",
         activity_level: "moderate",
@@ -98,7 +95,6 @@ const OWNERS = [
         age_in_months: null,
         sex: "female",
         is_neutered: "yes",
-        postal_code: "1100-001",
         district: "lisboa",
         size: "small",
         activity_level: "low",
@@ -128,7 +124,6 @@ const OWNERS = [
         age_in_months: 60,
         sex: "male",
         is_neutered: "no",
-        postal_code: "1000-001",
         district: "lisboa",
         size: "large",
         activity_level: "moderate",
@@ -152,7 +147,6 @@ const OWNERS = [
         age_in_months: 12,
         sex: "unknown",
         is_neutered: "unknown",
-        postal_code: "1000-001",
         district: "lisboa",
         size: "small",
         activity_level: "low",
@@ -210,13 +204,13 @@ async function tokenFor(owner) {
   return token;
 }
 
-const catalog = await (await fetch(`${API}/animals`)).json();
 for (const owner of OWNERS) {
   const token = await tokenFor(owner);
   const authorization = `Bearer ${token}`;
-  const me = await (await fetch(`${API}/me`, { headers: { authorization } })).json();
+  // Their own list, not the catalog: the catalog is paged and hides unpublished ones.
+  const mine = await (await fetch(`${API}/me/animals`, { headers: { authorization } })).json();
   for (const animal of owner.animals) {
-    if (catalog.some((a) => a.owner_id === me.id && a.name === animal.name)) {
+    if (mine.some((a) => a.name === animal.name)) {
       console.log(`skip ${animal.name} (already published by ${owner.email})`);
       continue;
     }

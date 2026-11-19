@@ -129,15 +129,16 @@ describe("answerNoteProblem", () => {
 
 describe("withdrawConfirmation", () => {
   it("warns that an accepted request frees the animal for others", () => {
-    expect(withdrawConfirmation("Bolt", "accepted")).toContain(
-      "available to others again",
-    );
+    expect(withdrawConfirmation("Bolt", "accepted")).toEqual({
+      title: "Withdraw your accepted request for Bolt?",
+      message: "Bolt will be available to others again.",
+    });
   });
 
   it("asks a plain question for an open request", () => {
-    expect(withdrawConfirmation("Bolt", "open")).toBe(
-      "Withdraw your request for Bolt?",
-    );
+    expect(withdrawConfirmation("Bolt", "open")).toEqual({
+      title: "Withdraw your request for Bolt?",
+    });
   });
 });
 
