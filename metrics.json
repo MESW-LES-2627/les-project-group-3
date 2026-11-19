@@ -236,5 +236,22 @@
       "diff_pct": 100.0
     },
     "mutation_pct": 76.8
+  },
+  {
+    "date": "2026-11-19T20:41:18Z",
+    "branch": "staging",
+    "commit": "fe74f89",
+    "title": "Merge pull request #98 from MESW-LES-2627/feat/us-11-browse-animals-and-swipe-matchmaking",
+    "backend": {
+      "tests": 820,
+      "branch_pct": 94.0,
+      "diff_pct": 93.0
+    },
+    "frontend": {
+      "tests": 266,
+      "branch_pct": 98.9,
+      "diff_pct": 95.0
+    },
+    "mutation_pct": 76.4
   }
 ]
