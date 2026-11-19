@@ -8,6 +8,7 @@ import { FitSection } from "@/components/compatibility/fit-section";
 import { animalStatusLabel } from "@/lib/adoption-status";
 import { districtLabel } from "@/lib/animal-profile";
 import { backendUrl } from "@/lib/backend";
+import { personLabel } from "@/lib/username";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -19,6 +20,7 @@ type Animal = {
   name: string;
   owner_id: string;
   owner_name: string;
+  owner_username: string;
   age_in_months: number | null;
   adoption_status: string;
   sex: string | null;
@@ -150,7 +152,7 @@ async function AnimalDetail({ params }: Props) {
       </h1>
 
       <p className="mt-2 text-sm text-muted">
-        Published by {animal.owner_name}
+        Published by {personLabel(animal.owner_name, animal.owner_username)}
       </p>
 
       <div className="mt-6 space-y-6">

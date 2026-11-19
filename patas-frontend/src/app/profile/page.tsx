@@ -15,6 +15,7 @@ type UserProfile = {
   id: string;
   name: string;
   email: string;
+  username: string;
   is_platform_admin: boolean;
 };
 
@@ -46,7 +47,11 @@ async function ProfileContent() {
 
   return (
     <section className="rounded-2xl border border-line bg-surface p-6 shadow-sm sm:p-8">
-      <ProfileForm initialName={profile.name} email={profile.email} />
+      <ProfileForm
+        initialName={profile.name}
+        initialUsername={profile.username}
+        email={profile.email}
+      />
     </section>
   );
 }
@@ -63,7 +68,7 @@ export default function ProfilePage() {
           Citizen profile
         </h1>
         <p className="mt-2 text-sm text-muted">
-          Manage your personal details. Your name will be visible on any animal listings you publish.
+          Manage your personal details. Your name and username are shown on the animals you publish and the requests you send.
         </p>
       </div>
 

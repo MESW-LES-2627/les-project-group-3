@@ -1,23 +1,37 @@
 "use client";
 
-import { useActionState } from "react";
+import { startTransition, useActionState, type FormEvent } from "react";
+import { USERNAME_RULE } from "@/lib/username";
 import { updateProfile, type ProfileFormState } from "./actions";
 
 type ProfileFormProps = {
   initialName: string;
+  initialUsername: string;
   email: string;
 };
 
 const initialState: ProfileFormState = {};
 
-export function ProfileForm({ initialName, email }: ProfileFormProps) {
+export function ProfileForm({
+  initialName,
+  initialUsername,
+  email,
+}: ProfileFormProps) {
   const [state, formAction, isPending] = useActionState(
     updateProfile,
     initialState
   );
 
+  // React resets a form after running its `action`, which would put the old
+  // username back over a refused one; `action` is only the pre-hydration fallback.
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    startTransition(() => formAction(form));
+  }
+
   return (
-    <form action={formAction} className="flex flex-col gap-6">
+    <form action={formAction} onSubmit={submit} className="flex flex-col gap-6">
       {state.error && (
         <div
           role="alert"
@@ -69,6 +83,30 @@ export function ProfileForm({ initialName, email }: ProfileFormProps) {
           required
           className="mt-2 w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-forest shadow-sm focus:border-forest focus:outline-none focus:ring-1 focus:ring-forest"
         />
+      </div>
+
+      <div>
+        <label
+          htmlFor="username"
+          className="block text-sm font-medium text-forest"
+        >
+          Username
+        </label>
+        <input
+          id="username"
+          name="username"
+          type="text"
+          defaultValue={initialUsername}
+          required
+          minLength={3}
+          maxLength={30}
+          autoComplete="username"
+          aria-describedby="username-rule"
+          className="mt-2 w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-forest shadow-sm focus:border-forest focus:outline-none focus:ring-1 focus:ring-forest"
+        />
+        <p id="username-rule" className="mt-1 text-xs text-muted">
+          {USERNAME_RULE} Nobody else can have it.
+        </p>
       </div>
 
       <div className="flex justify-end pt-2">

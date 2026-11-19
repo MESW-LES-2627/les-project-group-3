@@ -34,7 +34,7 @@ def test_trims_surrounding_whitespace_in_name_and_email() -> None:
 
 def test_invariants_hold_when_built_directly() -> None:
     with pytest.raises(InvalidUser):
-        User(id=USER_ID, name="   ", email="ana@example.com")
+        User(id=USER_ID, name="   ", email="ana@example.com", username="ana")
 
 
 def test_change_name_updates_and_trims() -> None:
@@ -49,3 +49,26 @@ def test_change_name_rejects_blank(name: str) -> None:
     with pytest.raises(InvalidUser):
         user.change_name(name)
     assert user.name == "Ana"
+
+
+def test_a_provisioned_user_gets_a_username_from_the_name() -> None:
+    user = User.provision(id=USER_ID, name="Ana Demo", email="ana@example.com")
+    assert user.username == "ana_demo"
+
+
+def test_change_username_keeps_it_as_typed() -> None:
+    user = User.provision(id=USER_ID, name="Ana", email="ana@example.com")
+    user.change_username("  Ana.Demo  ")
+    assert user.username == "Ana.Demo"
+
+
+def test_change_username_refuses_a_malformed_one_and_keeps_the_old() -> None:
+    user = User.provision(id=USER_ID, name="Ana", email="ana@example.com")
+    with pytest.raises(InvalidUser):
+        user.change_username("ana demo")
+    assert user.username == "ana"
+
+
+def test_a_stored_username_is_checked_when_loaded() -> None:
+    with pytest.raises(InvalidUser):
+        User(id=USER_ID, name="Ana", email="ana@example.com", username=".ana")

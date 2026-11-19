@@ -58,6 +58,7 @@ async def test_at_17_owner_sees_received_requests_with_profiles_and_concerns(
     assert requests[str(bruno.id)]["note"] == "I have a calm home."
     assert requests[str(bruno.id)]["animal_name"] == "Rex"
     assert requests[str(bruno.id)]["applicant_name"] == "Bruno"
+    assert requests[str(bruno.id)]["applicant_username"] == "bruno"
     assert requests[str(bruno.id)]["applicant_profile"] == SNAPSHOT.to_json()
     assert (
         "Its energy is a bit different from yours"

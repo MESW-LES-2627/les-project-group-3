@@ -11,7 +11,8 @@ from patas_backend.models.animal import District
 OWNER_ID = UUID("0b1f2a3c-4d5e-4f60-8a7b-9c0d1e2f3a4b")
 
 INSERT_USER = text(
-    "INSERT INTO patas.users (id, name, email) VALUES (:id, 'Ana', 'ana@example.com')"
+    "INSERT INTO patas.users (id, name, email, username) "
+    "VALUES (:id, 'Ana', 'ana@example.com', 'ana')"
 )
 INSERT_ANIMAL = text(
     "INSERT INTO patas.animals (id, owner_id, name, species, age_in_months) "

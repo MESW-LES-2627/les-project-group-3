@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import { animalStatusLabel } from "@/lib/adoption-status";
 import { auth } from "@/lib/auth";
 import { backendUrl } from "@/lib/backend";
+import { personLabel } from "@/lib/username";
 import { RepublishButton } from "./republish-button";
 import { UnpublishButton } from "./unpublish-button";
 
@@ -20,6 +21,7 @@ type Animal = {
   name: string;
   owner_id: string;
   owner_name: string;
+  owner_username: string;
   age_in_months: number | null;
   adoption_status: string;
 };
@@ -36,6 +38,7 @@ function isAnimal(value: unknown): value is Animal {
     typeof animal.name === "string" &&
     typeof animal.owner_id === "string" &&
     typeof animal.owner_name === "string" &&
+    typeof animal.owner_username === "string" &&
     (animal.age_in_months === null || typeof animal.age_in_months === "number") &&
     typeof animal.adoption_status === "string"
   );
@@ -120,7 +123,7 @@ async function MyAnimalList({ token }: { token: string }) {
                 {animal.name}
               </h3>
               <p className="mt-1 text-xs text-muted">
-                Published by {animal.owner_name}
+                Published by {personLabel(animal.owner_name, animal.owner_username)}
               </p>
               <div className="mt-2">
 

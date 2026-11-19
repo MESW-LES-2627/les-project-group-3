@@ -65,6 +65,7 @@ class AnimalService:
             name=name,
             species=species,
             owner_name=owner.name,
+            owner_username=owner.username,
             age_in_months=age_in_months,
             sex=sex,
             is_neutered=is_neutered,

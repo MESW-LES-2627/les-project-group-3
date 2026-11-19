@@ -6,6 +6,8 @@ the adoption flow is in [AdoptionPipeline](AdoptionPipeline.md).
 ## People
 - **Visitor:** not logged in. Browses the catalog, views animal profiles, takes the Matchmaker quiz.
 - **User:** registered user. The same account can be an owner and an applicant.
+- **Username:** a user's handle, unique ignoring case and shown next to their name
+  ("Ana Demo (@ana_demo)"). Names can repeat; usernames cannot.
 - **Owner:** the user who published an animal.
 - **Applicant:** a user who sent an adoption request for someone else's animal.
 - **Administrator:** platform operator. Handles reports, suspends users, removes listings.

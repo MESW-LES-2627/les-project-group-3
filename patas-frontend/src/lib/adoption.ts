@@ -116,6 +116,7 @@ export type ReceivedRequest = {
   animal_id: string;
   animal_name: string;
   applicant_name: string;
+  applicant_username: string;
   status: string;
   note: string;
   owner_note: string | null;
@@ -134,6 +135,7 @@ export function isReceivedRequest(value: unknown): value is ReceivedRequest {
     typeof request.animal_id === "string" &&
     typeof request.animal_name === "string" &&
     typeof request.applicant_name === "string" &&
+    typeof request.applicant_username === "string" &&
     typeof request.status === "string" &&
     typeof request.note === "string" &&
     (request.owner_note === null || typeof request.owner_note === "string") &&
