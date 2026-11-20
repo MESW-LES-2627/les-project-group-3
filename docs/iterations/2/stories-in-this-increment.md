@@ -13,13 +13,15 @@ This iteration delivered the adoption pipeline, the Matchmaker swiping feed, ani
 | See and withdraw my requests (adopter) | US-17 [#63](https://github.com/MESW-LES-2627/les-project-group-3/issues/63) | AT-19 [#73](https://github.com/MESW-LES-2627/les-project-group-3/issues/73) | [0020](../../architecture/adr/0020-seeing-and-withdrawing-my-requests.md) | Done |
 | Confirm handover | US-18 [#64](https://github.com/MESW-LES-2627/les-project-group-3/issues/64) | AT-20 [#74](https://github.com/MESW-LES-2627/les-project-group-3/issues/74) | — | Done |
 | Republish my animal | US-19 [#65](https://github.com/MESW-LES-2627/les-project-group-3/issues/65) | AT-21 (republishing half) [#75](https://github.com/MESW-LES-2627/les-project-group-3/issues/75) | [0023](../../architecture/adr/0023-republishing.md) | Done |
+| Full adoption journey (end to end) | US-14 to US-18 | AT-23 [#77](https://github.com/MESW-LES-2627/les-project-group-3/issues/77) | [0017](../../architecture/adr/0017-adoption-base.md) | Done |
 
 ## Matchmaker & catalog
 
 | Story | Issue | Acceptance tests | ADR | Status |
 | :-- | :-- | :-- | :-- | :-- |
-| Browse animals and swipe (Matchmaker feed) | US-11 [#59](https://github.com/MESW-LES-2627/les-project-group-3/issues/59) | AT-14 [#68](https://github.com/MESW-LES-2627/les-project-group-3/issues/68), AT-15 [#69](https://github.com/MESW-LES-2627/les-project-group-3/issues/69) | [0026](../../architecture/adr/0026-matchmaker-swiping.md) | Done |
-| Upload animal photos | US-13 [#67](https://github.com/MESW-LES-2627/les-project-group-3/issues/67) | — | — | Done |
+| Browse animals and swipe (Matchmaker feed) | US-11 [#49](https://github.com/MESW-LES-2627/les-project-group-3/issues/49) | AT-14 [#68](https://github.com/MESW-LES-2627/les-project-group-3/issues/68), AT-15 [#69](https://github.com/MESW-LES-2627/les-project-group-3/issues/69) | [0026](../../architecture/adr/0026-matchmaker-swiping.md) | Done |
+| Pass or save the animals I am shown | US-12 [#50](https://github.com/MESW-LES-2627/les-project-group-3/issues/50) | — | [0026](../../architecture/adr/0026-matchmaker-swiping.md) | Done |
+| Upload animal photos | US-13 [#59](https://github.com/MESW-LES-2627/les-project-group-3/issues/59) | AT-13 [#67](https://github.com/MESW-LES-2627/les-project-group-3/issues/67) | — | Done |
 
 ## User management
 
