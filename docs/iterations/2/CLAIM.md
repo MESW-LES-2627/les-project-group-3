@@ -29,3 +29,4 @@ Use links that work on tag `iter-2`. If something does not exist yet, write `non
 | Stories in this increment | [Stories in this increment](stories-in-this-increment.md) |
 | Retrospective | [Retrospective](retrospective.md) |
 | AI critique | [AI critique](AI-critique.md) |
+| Board snapshots | [Start](../../screenshots/Iteration-2-Board-Start.png) · [End](../../screenshots/Iteration-2-Board-End.png) |
