@@ -69,6 +69,17 @@ Key modeling choices:
 
 ![Component Diagram Iteration 2](design/OOD_deliverables/it2_ComponentDiagram.png)
 
+The system is divided into four main components that collaborate through well-defined boundaries:
+
+- **Next.js Frontend** runs in the user's browser and renders the web interface. It contains *Web Pages* (screens and components for the catalog, animal profiles, Matchmaker quiz, adoption tracker, and conversations) and a *Backend API Client* that sends HTTP requests to the FastAPI backend. The frontend also includes the *Better Auth Migrator*, which creates and updates the authentication tables in the `patas_auth` schema of the database. The frontend is stateless: all domain logic and data persist on the backend.
+
+- **FastAPI Backend** exposes a RESTful API and implements all domain logic. Requests flow through *Routers* (endpoint definitions and request/response serialization), then to *Services* (use-case orchestration and business rules), which operate on *Models* (domain entities, value objects, and the adoption state machine). *Repositories* provide abstracted database access, isolating the domain from SQL and SQLAlchemy details. From iteration 2, the backend also includes an *EventDispatcher* for domain events (e.g., status changes triggering notifications) and a *PhotoService* for uploading and serving animal photos through an external photo server. This layered structure within the backend ensures that domain models remain independent of framework concerns.
+
+- **Migration Tools** manage the database schema. *Alembic* handles the backend domain tables (animals, applications, users, etc.), while the *Better Auth Migrator* manages the authentication schema. Both run as one-off commands during setup or deployment, not as part of the running application. Separating migration tools from the application ensures schema changes are versioned, reversible, and auditable.
+
+- **PostgreSQL Database** is the single source of persistent data, storing both domain data and authentication records. From iteration 2, an *External Photo Server* provides dedicated object storage for uploaded photos, decoupling file storage from the relational database.
+
+The main architectural boundary is between the frontend and backend: the frontend handles presentation and user interaction, while the backend owns all domain logic, state transitions, and data consistency rules. Within the backend, the router -> service -> repository flow enforces a clear separation between HTTP concerns, business logic, and data access.
 
 ## 4. Future change scenarios: coupling, cohesion, and design decisions
 
