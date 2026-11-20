@@ -74,6 +74,8 @@ Key modeling choices:
 
 <!-- Repeat the subsection below for each pattenr instance -->
 
+**Date:** 2026-11-03
+
 ### 4.1. Scenario 1 — Shelter Support (Iteration 1)
 
 #### Change scenario and design context
@@ -100,6 +102,8 @@ but if the product was to continue development, it would be a useful feature,
 as it would also pave the way for the implementation of verified and trustworthy
 institutions, not just regular users.
 If implemented, shelters would be separate entities with a many to many association to users as employees. Animal ownership would identify the shelter, while recording which employee acted on its behalf. We would assume that a employee account cannot adopt pets for themselves, for that they would need to create a different, personal account.
+
+**Date:** 2026-11-15
 
 ### 4.2. Scenario 2 — Adoption Trial Week (Iteration 2)
 

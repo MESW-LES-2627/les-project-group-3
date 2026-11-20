@@ -39,6 +39,7 @@ Full feature list: [MVP](docs/product/MVP.md).
 
 | Document | What it covers |
 | :-- | :-- |
+| [Design report](docs/design.md) | Domain model, architecture, design patterns, and future change scenarios |
 | [Architecture Decision Records](docs/architecture/adr/) | One record per structural decision (authentication, deployment, aggregates, API, services) |
 | [OOD deliverables](docs/design/) | Class diagram, component diagram and event storming |
 | [Testing policy](docs/process/TESTING.md) | What each kind of test covers, what is measured, the levels, and what to do when the build is red |
