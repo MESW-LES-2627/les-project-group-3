@@ -28,6 +28,17 @@ The EventStorming workshop helped establish the most important processes and fea
 - The main distinctive feature of our application is the matchmaking feature, so it should be a polished feature and important for the MVP.
 - The EventStorming board included foster homes and food donations from the long-term vision. For the MVP, these were identified as out of scope, clarifying that the initial model focuses on the peer-to-peer adoption flow only. The `FosterAdoption` and `FoodDonation` concepts remain in the diagrams as markers for future iterations.
 
+Key business rules discovered during EventStorming:
+- Multiple open adoption applications can exist for the same animal simultaneously, but at most one can be accepted at a time.
+- When an application is accepted, the animal becomes `Reserved`; other open applications remain but cannot be accepted until the animal is `Available` again.
+- The adoption is finalized only when both the owner and the applicant confirm the handover.
+- The animal's `Adopted` status is final in the MVP — an adopted animal cannot return to the same listing.
+
+Key assumptions about the product:
+- The platform operates as a peer-to-peer marketplace without shelter or institutional accounts in the MVP.
+- The conversation between owner and applicant is the primary screening mechanism, replacing formal interview processes found in shelter adoptions.
+- Adoption is not a sale: the platform enforces this rule through guidelines and moderation, not through legal contracts.
+
 ### 2.2. Domain model
 
 **Iteration 0:** [Class Diagram](design/OOD_deliverables/it0_ClassDiagram.png)
