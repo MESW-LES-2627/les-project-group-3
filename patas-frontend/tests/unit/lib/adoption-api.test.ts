@@ -7,6 +7,8 @@ vi.mock("@/lib/matchmaker-api", () => ({
 }));
 
 import {
+  answerRequest,
+  confirmHandover,
   getMyApplication,
   getMyRequests,
   getReceivedRequests,
@@ -15,7 +17,14 @@ import {
 } from "@/lib/adoption-api";
 
 const ID = "3f2b8c1e-4d5a-4b6c-8d7e-9f0a1b2c3d4e";
-const application = { id: ID, animal_id: ID, status: "open", note: "Hi" };
+const application = {
+  id: ID,
+  animal_id: ID,
+  status: "open",
+  note: "Hi",
+  owner_confirmed_at: null,
+  applicant_confirmed_at: null,
+};
 const sentRequest = {
   ...application,
   animal_name: "Bolt",
@@ -27,8 +36,11 @@ const receivedRequest = {
   id: ID,
   animal_id: ID,
   animal_name: "Bolt",
+  applicant_name: "Bruno",
+  applicant_username: "bruno",
   status: "open",
   note: "Hi",
+  owner_note: null,
   applicant_profile: {
     housing: "apartment",
     time_away: "half_day",
@@ -39,6 +51,8 @@ const receivedRequest = {
     has_cats: false,
   },
   compatibility_concerns: ["Its energy is a bit different from yours"],
+  owner_confirmed_at: null,
+  applicant_confirmed_at: null,
   created_at: "2026-11-01T10:00:00Z",
 };
 
@@ -257,6 +271,112 @@ describe("withdrawRequest", () => {
     fetchMock.mockRejectedValueOnce(new Error("down"));
 
     expect(await withdrawRequest(ID)).toMatchObject({
+      problem: "unavailable",
+    });
+  });
+});
+
+describe("confirmHandover", () => {
+  it("posts the confirmation with the signed-in person's token", async () => {
+    answer(200, application);
+
+    expect(await confirmHandover(ID)).toEqual({ ok: true });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toMatch(
+      new RegExp(`/applications/${ID}/confirm-handover$`),
+    );
+    expect(init?.method).toBe("POST");
+    expect(new Headers(init?.headers).get("Authorization")).toBe(
+      "Bearer test-token",
+    );
+  });
+
+  it.each([
+    [403, "unavailable"],
+    [404, "not-found"],
+    [409, "not-confirmable"],
+    [500, "unavailable"],
+    [422, "unavailable"],
+  ])("maps the answer %i to %s", async (status, problem) => {
+    answer(status);
+
+    expect(await confirmHandover(ID)).toMatchObject({ ok: false, problem });
+  });
+
+  it("does not call the backend for an invalid id", async () => {
+    expect(await confirmHandover("nope")).toMatchObject({
+      problem: "not-found",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("reports the service as unavailable when the network fails", async () => {
+    fetchMock.mockRejectedValueOnce(new Error("down"));
+
+    expect(await confirmHandover(ID)).toMatchObject({
+      problem: "unavailable",
+    });
+  });
+});
+
+describe("answerRequest", () => {
+  it.each(["accept", "decline"] as const)(
+    "posts the %s with the owner's token and note",
+    async (verb) => {
+      answer(200, { id: ID });
+
+      expect(await answerRequest(ID, verb, "Come and meet him")).toEqual({
+        ok: true,
+      });
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(String(url)).toMatch(new RegExp(`/applications/${ID}/${verb}$`));
+      expect(init?.method).toBe("POST");
+      expect(init?.headers).toMatchObject({
+        Authorization: "Bearer test-token",
+      });
+      expect(JSON.parse(String(init?.body))).toEqual({
+        note: "Come and meet him",
+      });
+    },
+  );
+
+  it.each(["", "   "])("sends no note for %j", async (note) => {
+    answer(200, { id: ID });
+
+    await answerRequest(ID, "decline", note);
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(String(init?.body))).toEqual({ note: null });
+  });
+
+  it.each([
+    [404, undefined, "not-found"],
+    [422, undefined, "invalid-note"],
+    [500, undefined, "unavailable"],
+    [409, { detail: { code: "invalid_transition" } }, "not-active"],
+    [409, { detail: { code: "animal_not_available" } }, "animal-reserved"],
+    [409, { detail: { code: "constructor" } }, "unavailable"],
+    [409, undefined, "unavailable"],
+  ])("maps the answer %i %j to %s", async (status, body, problem) => {
+    answer(status, body);
+
+    expect(await answerRequest(ID, "accept", "")).toMatchObject({
+      ok: false,
+      problem,
+    });
+  });
+
+  it("does not call the backend for an invalid id", async () => {
+    expect(await answerRequest("nope", "accept", "")).toMatchObject({
+      problem: "not-found",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("reports the service as unavailable when the network fails", async () => {
+    fetchMock.mockRejectedValueOnce(new Error("down"));
+
+    expect(await answerRequest(ID, "accept", "")).toMatchObject({
       problem: "unavailable",
     });
   });

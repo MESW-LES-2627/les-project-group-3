@@ -9,7 +9,11 @@ import { SentRequestList } from "@/components/adoption/sent-request-list";
 import { getMyRequests, getReceivedRequests } from "@/lib/adoption-api";
 import { auth } from "@/lib/auth";
 
-import { withdrawRequestAction } from "./actions";
+import {
+  answerRequestAction,
+  confirmHandoverAction,
+  withdrawRequestAction,
+} from "./actions";
 
 export const metadata: Metadata = {
   title: "Requests | Patas",
@@ -48,7 +52,11 @@ async function RequestsContent({ searchParams }: Props) {
           <h2 id="received-heading" className="sr-only">
             Received
           </h2>
-          <ReceivedRequestList requests={mine.requests} />
+          <ReceivedRequestList
+            requests={mine.requests}
+            answer={answerRequestAction}
+            confirmHandover={confirmHandoverAction}
+          />
         </section>
       </>
     );
@@ -76,6 +84,7 @@ async function RequestsContent({ searchParams }: Props) {
         <SentRequestList
           requests={mine.requests}
           withdraw={withdrawRequestAction}
+          confirmHandover={confirmHandoverAction}
         />
       </section>
     </>

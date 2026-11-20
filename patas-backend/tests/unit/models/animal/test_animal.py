@@ -90,7 +90,6 @@ def test_optional_profile_fields_are_kept_and_free_text_is_trimmed() -> None:
     animal = _publish(
         sex=AnimalSex.FEMALE,
         is_neutered=NeuteredStatus.YES,
-        postal_code="1234-567",
         size=AnimalSize.SMALL,
         activity_level=EnergyLevel.MODERATE,
         behaves_well_with_children=AnimalCompatibility.WITH_SUPERVISION,
@@ -108,10 +107,36 @@ def test_optional_profile_fields_are_kept_and_free_text_is_trimmed() -> None:
     assert animal.special_care_notes == "Daily medication"
 
 
-@pytest.mark.parametrize("postal_code", ["1234567", "1234-56A", "123-4567"])
-def test_invalid_portuguese_postal_code_is_rejected(postal_code: str) -> None:
-    with pytest.raises(InvalidAnimal, match="Portuguese format"):
-        _publish(postal_code=postal_code)
+def test_photos_are_empty_by_default() -> None:
+    assert _publish().photo_urls == []
+
+
+def test_photos_are_kept_when_publishing() -> None:
+    photos = ["https://media.example/animals/rex-1.jpg"]
+
+    assert _publish(photo_urls=photos).photo_urls == photos
+
+
+def test_an_animal_has_at_most_ten_photos() -> None:
+    photos = [f"https://media.example/animals/rex-{n}.jpg" for n in range(11)]
+
+    with pytest.raises(InvalidAnimal, match="at most 10 photos"):
+        _publish(photo_urls=photos)
+
+
+def test_the_same_photo_cannot_be_added_twice() -> None:
+    photo = "https://media.example/animals/rex-1.jpg"
+
+    with pytest.raises(InvalidAnimal, match="twice"):
+        _publish(photo_urls=[photo, photo])
+
+
+@pytest.mark.parametrize(
+    "url", ["http://media.example/rex.jpg", "/animals/rex.jpg", "javascript:x"]
+)
+def test_a_photo_must_be_an_https_url(url: str) -> None:
+    with pytest.raises(InvalidAnimal, match="https"):
+        _publish(photo_urls=[url])
 
 
 def test_owner_can_unpublish_animal() -> None:
@@ -139,7 +164,6 @@ def _rex_before_edit() -> Animal:
     return _publish(
         size=AnimalSize.MEDIUM,
         sex=AnimalSex.MALE,
-        postal_code="4000-001",
         district=District.PORTO,
         special_care_notes="Hip check every year",
     )
@@ -156,14 +180,12 @@ def test_owner_can_edit_the_description() -> None:
         age_in_months=36,
         sex=AnimalSex.MALE,
         size=AnimalSize.LARGE,
-        postal_code="1000-001",
         district=District.LISBOA,
         activity_level=EnergyLevel.HIGH,
         other_details="  Loves the beach  ",
     )
 
     assert animal.size is AnimalSize.LARGE
-    assert animal.postal_code == "1000-001"
     assert animal.district is District.LISBOA
     assert animal.age_in_months == 36
     assert animal.activity_level is EnergyLevel.HIGH
@@ -174,6 +196,33 @@ def test_owner_can_edit_the_description() -> None:
     assert animal.special_care_notes is None
     assert animal.id == id_before
     assert animal.owner_id == OWNER_ID
+
+
+def test_an_edit_replaces_the_photos() -> None:
+    animal = _rex_before_edit()
+
+    animal.edit(
+        OWNER_ID,
+        name="Rex",
+        species=Species.DOG,
+        photo_urls=["https://media.example/animals/rex-2.jpg"],
+    )
+
+    assert animal.photo_urls == ["https://media.example/animals/rex-2.jpg"]
+
+
+def test_a_photo_left_out_of_an_edit_is_cleared() -> None:
+    animal = _rex_before_edit()
+    animal.edit(
+        OWNER_ID,
+        name="Rex",
+        species=Species.DOG,
+        photo_urls=["https://media.example/animals/rex-1.jpg"],
+    )
+
+    animal.edit(OWNER_ID, name="Rex", species=Species.DOG)
+
+    assert animal.photo_urls == []
 
 
 def test_an_edit_keeps_the_adoption_status() -> None:
@@ -200,7 +249,6 @@ def test_non_owner_cannot_edit_and_the_animal_is_unchanged() -> None:
     [
         pytest.param({"name": "   "}, id="blank-name"),
         pytest.param({"age_in_months": -1}, id="negative-age"),
-        pytest.param({"postal_code": "12345"}, id="invalid-postal-code"),
     ],
 )
 def test_an_invalid_edit_changes_nothing(invalid: dict[str, object]) -> None:
@@ -271,6 +319,37 @@ def test_a_transition_is_refused_from_any_other_status(
     assert animal.adoption_status is status
 
 
+@pytest.mark.parametrize(
+    "status", [s for s in AdoptionStatus if s is not AdoptionStatus.AVAILABLE]
+)
+def test_reserving_an_animal_that_is_not_available_says_so(
+    status: AdoptionStatus,
+) -> None:
+    animal = _animal_in(status)
+
+    with pytest.raises(AnimalNotAvailable) as raised:
+        animal.reserve()
+
+    # It is still an invalid transition, so whatever catches that keeps working.
+    assert isinstance(raised.value, InvalidAnimalTransition)
+    assert animal.adoption_status is status
+
+
+@pytest.mark.parametrize(
+    ("action", "status"), [pair for pair in REFUSED if pair[0] != "reserve"]
+)
+def test_the_other_refused_transitions_are_not_availability_errors(
+    action: str, status: AdoptionStatus
+) -> None:
+    # A router that maps AnimalNotAvailable must not catch a different failure.
+    animal = _animal_in(status)
+
+    with pytest.raises(InvalidAnimalTransition) as raised:
+        getattr(animal, action)()
+
+    assert not isinstance(raised.value, AnimalNotAvailable)
+
+
 def test_unpublishing_records_one_event_that_can_be_pulled_once() -> None:
     animal = _publish()
 
@@ -304,11 +383,64 @@ def test_unpublishing_twice_changes_nothing_the_second_time() -> None:
     assert animal.pull_events() == []
 
 
+def test_owner_can_republish_an_unpublished_animal() -> None:
+    animal = _animal_in(AdoptionStatus.UNAVAILABLE)
+
+    animal.republish(by_user_id=OWNER_ID)
+
+    assert animal.adoption_status is AdoptionStatus.AVAILABLE
+    assert animal.is_published is True
+
+
+def test_non_owner_cannot_republish_animal() -> None:
+    animal = _animal_in(AdoptionStatus.UNAVAILABLE)
+
+    with pytest.raises(AnimalUnauthorized):
+        animal.republish(by_user_id=uuid4())
+
+    assert animal.adoption_status is AdoptionStatus.UNAVAILABLE
+
+
+def test_republishing_an_available_animal_changes_nothing() -> None:
+    animal = _publish()
+
+    animal.republish(by_user_id=OWNER_ID)
+
+    assert animal.adoption_status is AdoptionStatus.AVAILABLE
+
+
+@pytest.mark.parametrize("status", [AdoptionStatus.RESERVED, AdoptionStatus.ADOPTED])
+def test_republish_is_refused_while_reserved_or_adopted(
+    status: AdoptionStatus,
+) -> None:
+    animal = _animal_in(status)
+
+    with pytest.raises(InvalidAnimalTransition):
+        animal.republish(by_user_id=OWNER_ID)
+
+    assert animal.adoption_status is status
+
+
 def test_a_non_owner_is_refused_before_the_status_is_checked() -> None:
     animal = _animal_in(AdoptionStatus.RESERVED)
 
     with pytest.raises(AnimalUnauthorized):
         animal.unpublish(by_user_id=uuid4())
+
+
+@pytest.mark.parametrize(
+    "status",
+    [AdoptionStatus.AVAILABLE, AdoptionStatus.RESERVED, AdoptionStatus.ADOPTED],
+)
+def test_a_non_owner_is_refused_republishing_before_the_status_is_checked(
+    status: AdoptionStatus,
+) -> None:
+    animal = _animal_in(status)
+
+    with pytest.raises(AnimalUnauthorized):
+        animal.republish(by_user_id=uuid4())
+
+    assert animal.adoption_status is status
 
 
 def test_an_edit_keeps_the_recorded_events() -> None:

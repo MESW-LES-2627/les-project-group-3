@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   NOTE_MAX,
+  answerNoteProblem,
+  answersAvailable,
   canWithdraw,
   filterByStatus,
   isMyApplication,
@@ -9,6 +11,7 @@ import {
   noteProblem,
   noteProblemMessage,
   statusFilterOf,
+  handoverConfirmation,
   withdrawConfirmation,
   type SentRequest,
 } from "@/lib/adoption";
@@ -22,6 +25,8 @@ function sent(status: string, id = "r1"): SentRequest {
     status,
     note: "I have a garden",
     owner_note: null,
+    owner_confirmed_at: null,
+    applicant_confirmed_at: null,
     created_at: "2026-11-01T10:00:00Z",
   };
 }
@@ -41,10 +46,15 @@ function received(concerns: unknown[] = []): Record<string, unknown> {
     id: "r1",
     animal_id: "a1",
     animal_name: "Bolt",
+    applicant_name: "Bruno",
+    applicant_username: "bruno",
     status: "open",
     note: "I have a garden",
+    owner_note: null,
     applicant_profile: profile,
     compatibility_concerns: concerns,
+    owner_confirmed_at: null,
+    applicant_confirmed_at: null,
     created_at: "2026-11-01T10:00:00Z",
   };
 }
@@ -90,17 +100,67 @@ describe("canWithdraw", () => {
   );
 });
 
+describe("answersAvailable", () => {
+  it("offers accept and decline for an open request", () => {
+    expect(answersAvailable("open")).toEqual(["accept", "decline"]);
+  });
+
+  it("offers only decline for an accepted request", () => {
+    expect(answersAvailable("accepted")).toEqual(["decline"]);
+  });
+
+  it.each(["declined", "withdrawn", "closed", "adopted", "unknown"])(
+    "offers nothing for a %s request",
+    (status) => {
+      expect(answersAvailable(status)).toEqual([]);
+    },
+  );
+});
+
+describe("answerNoteProblem", () => {
+  it("accepts no note and a note at the limit", () => {
+    expect(answerNoteProblem("")).toBeNull();
+    expect(answerNoteProblem("a".repeat(NOTE_MAX))).toBeNull();
+  });
+
+  it("refuses a note over the limit", () => {
+    expect(answerNoteProblem("a".repeat(NOTE_MAX + 1))).toBe("too-long");
+  });
+
+  it("counts the trimmed note, like the backend", () => {
+    expect(answerNoteProblem(`  ${"a".repeat(NOTE_MAX)}\n`)).toBeNull();
+  });
+});
+
 describe("withdrawConfirmation", () => {
   it("warns that an accepted request frees the animal for others", () => {
-    expect(withdrawConfirmation("Bolt", "accepted")).toContain(
-      "available to others again",
-    );
+    expect(withdrawConfirmation("Bolt", "accepted")).toEqual({
+      title: "Withdraw your accepted request for Bolt?",
+      message: "Bolt will be available to others again.",
+    });
   });
 
   it("asks a plain question for an open request", () => {
-    expect(withdrawConfirmation("Bolt", "open")).toBe(
-      "Withdraw your request for Bolt?",
-    );
+    expect(withdrawConfirmation("Bolt", "open")).toEqual({
+      title: "Withdraw your request for Bolt?",
+    });
+  });
+});
+
+describe("handoverConfirmation", () => {
+  it("warns that the second confirmation completes the adoption for good", () => {
+    expect(handoverConfirmation("Bolt", true)).toEqual({
+      title: "Complete the adoption of Bolt?",
+      message:
+        "The other side has already confirmed. Bolt will be marked adopted and any other open requests will be closed. This cannot be undone.",
+    });
+  });
+
+  it("explains that the first confirmation waits for the other side", () => {
+    expect(handoverConfirmation("Bolt", false)).toEqual({
+      title: "Confirm the handover of Bolt?",
+      message: "The adoption is completed when the other side confirms too.",
+    });
   });
 });
 
@@ -150,9 +210,50 @@ describe("response shape guards", () => {
     expect(isSentRequest("open")).toBe(false);
   });
 
+  it("tracks each side's handover confirmation", () => {
+    expect(
+      isSentRequest({ ...sent("accepted"), owner_confirmed_at: "2026-11-02T10:00:00Z" }),
+    ).toBe(true);
+    expect(
+      isSentRequest({ ...sent("accepted"), applicant_confirmed_at: 5 }),
+    ).toBe(false);
+    const withoutConfirmation: Record<string, unknown> = { ...sent("accepted") };
+    delete withoutConfirmation.owner_confirmed_at;
+    expect(isSentRequest(withoutConfirmation)).toBe(false);
+  });
+
   it("accepts a well-formed received request, with or without concerns", () => {
     expect(isReceivedRequest(received())).toBe(true);
     expect(isReceivedRequest(received(["Its energy is different"]))).toBe(true);
+  });
+
+  it("accepts a received request with the owner's own reply", () => {
+    expect(isReceivedRequest({ ...received(), owner_note: "Come on Saturday" })).toBe(
+      true,
+    );
+  });
+
+  it("rejects a received request whose owner note is missing or mistyped", () => {
+    const withoutOwnerNote = received();
+    delete withoutOwnerNote.owner_note;
+    expect(isReceivedRequest(withoutOwnerNote)).toBe(false);
+    expect(isReceivedRequest({ ...received(), owner_note: 5 })).toBe(false);
+  });
+
+  it("rejects a received request without an applicant name", () => {
+    const withoutApplicantName = received();
+    delete withoutApplicantName.applicant_name;
+    expect(isReceivedRequest(withoutApplicantName)).toBe(false);
+    expect(isReceivedRequest({ ...received(), applicant_name: 5 })).toBe(false);
+  });
+
+  it("rejects a received request without an applicant username", () => {
+    const withoutUsername = received();
+    delete withoutUsername.applicant_username;
+    expect(isReceivedRequest(withoutUsername)).toBe(false);
+    expect(isReceivedRequest({ ...received(), applicant_username: 5 })).toBe(
+      false,
+    );
   });
 
   it("rejects a received request with a missing or mistyped field", () => {
@@ -168,10 +269,35 @@ describe("response shape guards", () => {
     expect(isReceivedRequest("open")).toBe(false);
   });
 
+  it("tracks each side's handover confirmation on a received request", () => {
+    expect(
+      isReceivedRequest({
+        ...received(),
+        applicant_confirmed_at: "2026-11-02T10:00:00Z",
+      }),
+    ).toBe(true);
+    expect(
+      isReceivedRequest({ ...received(), owner_confirmed_at: 5 }),
+    ).toBe(false);
+    const withoutConfirmation = received();
+    delete withoutConfirmation.applicant_confirmed_at;
+    expect(isReceivedRequest(withoutConfirmation)).toBe(false);
+  });
+
   it("accepts a well-formed application and rejects a mistyped one", () => {
-    const application = { id: "x", animal_id: "a", status: "open", note: "n" };
+    const application = {
+      id: "x",
+      animal_id: "a",
+      status: "open",
+      note: "n",
+      owner_confirmed_at: null,
+      applicant_confirmed_at: null,
+    };
     expect(isMyApplication(application)).toBe(true);
     expect(isMyApplication({ ...application, note: undefined })).toBe(false);
+    expect(isMyApplication({ ...application, owner_confirmed_at: 5 })).toBe(
+      false,
+    );
     expect(isMyApplication(undefined)).toBe(false);
   });
 });

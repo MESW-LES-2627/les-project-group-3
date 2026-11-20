@@ -33,13 +33,25 @@ class RequestToAdoptBody(BaseModel):
     note: str
 
 
+class OwnerReplyBody(BaseModel):
+    # The owner's reply when accepting or declining. The note is optional, and its
+    # length rule lives in the domain. Unknown fields are a 422: the status is
+    # decided by the endpoint, never sent.
+    model_config = ConfigDict(extra="forbid")
+
+    note: str | None = None
+
+
 class ApplicationResponse(BaseModel):
-    # What the applicant sent. The copy of their profile is for the owner and is not
-    # part of this response.
+    # What the applicant sent, and the owner's reply once there is one. The copy of
+    # the applicant's profile is for the owner and is not part of this response.
     id: UUID
     animal_id: UUID
     status: ApplicationStatus
     note: str
+    owner_note: str | None
+    owner_confirmed_at: datetime | None
+    applicant_confirmed_at: datetime | None
     created_at: datetime | None
 
     @classmethod
@@ -49,6 +61,9 @@ class ApplicationResponse(BaseModel):
             animal_id=application.animal_id,
             status=application.status,
             note=application.applicant_note,
+            owner_note=application.owner_note,
+            owner_confirmed_at=application.owner_confirmed_at,
+            applicant_confirmed_at=application.applicant_confirmed_at,
             created_at=application.created_at,
         )
 
@@ -62,6 +77,8 @@ class SentRequestResponse(BaseModel):
     status: ApplicationStatus
     note: str
     owner_note: str | None
+    owner_confirmed_at: datetime | None
+    applicant_confirmed_at: datetime | None
     created_at: datetime
 
     @classmethod
@@ -73,6 +90,8 @@ class SentRequestResponse(BaseModel):
             status=request.status,
             note=request.applicant_note,
             owner_note=request.owner_note,
+            owner_confirmed_at=request.owner_confirmed_at,
+            applicant_confirmed_at=request.applicant_confirmed_at,
             created_at=request.created_at,
         )
 
@@ -95,10 +114,15 @@ class ReceivedRequestResponse(BaseModel):
     id: UUID
     animal_id: UUID
     animal_name: str
+    applicant_name: str
+    applicant_username: str
     status: ApplicationStatus
     note: str
+    owner_note: str | None
     applicant_profile: MatchmakerProfileResponse
     compatibility_concerns: list[str]
+    owner_confirmed_at: datetime | None
+    applicant_confirmed_at: datetime | None
     created_at: datetime
 
     @classmethod
@@ -107,12 +131,17 @@ class ReceivedRequestResponse(BaseModel):
             id=request.id,
             animal_id=request.animal_id,
             animal_name=request.animal_name,
+            applicant_name=request.applicant_name,
+            applicant_username=request.applicant_username,
             status=request.status,
             note=request.applicant_note,
+            owner_note=request.owner_note,
             applicant_profile=MatchmakerProfileResponse.from_snapshot(
                 request.applicant_profile
             ),
             compatibility_concerns=list(request.compatibility_concerns),
+            owner_confirmed_at=request.owner_confirmed_at,
+            applicant_confirmed_at=request.applicant_confirmed_at,
             created_at=request.created_at,
         )
 
@@ -196,6 +225,59 @@ async def list_received_applications(
 
 
 @router.post(
+    "/applications/{application_id}/accept", response_model=ApplicationResponse
+)
+async def accept_application(
+    application_id: UUID,
+    owner: Annotated[User, Depends(get_current_user)],
+    service: Annotated[AdoptionService, Depends(get_adoption_service)],
+    body: OwnerReplyBody | None = None,
+) -> ApplicationResponse:
+    try:
+        application = await service.accept(
+            owner, application_id, body.note if body else None
+        )
+    except InvalidApplication as error:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT, str(error)
+        ) from error
+    # AnimalNotAvailable is an invalid transition of the animal, not of the request.
+    except AnimalNotAvailable as error:
+        raise _conflict("animal_not_available", error) from error
+    except InvalidTransition as error:
+        raise _conflict("invalid_transition", error) from error
+    if application is None:
+        # Also for someone else's animal: to them the request does not exist.
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Request not found")
+    return ApplicationResponse.from_domain(application)
+
+
+@router.post(
+    "/applications/{application_id}/decline", response_model=ApplicationResponse
+)
+async def decline_application(
+    application_id: UUID,
+    owner: Annotated[User, Depends(get_current_user)],
+    service: Annotated[AdoptionService, Depends(get_adoption_service)],
+    body: OwnerReplyBody | None = None,
+) -> ApplicationResponse:
+    try:
+        application = await service.decline(
+            owner, application_id, body.note if body else None
+        )
+    except InvalidApplication as error:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT, str(error)
+        ) from error
+    except InvalidTransition as error:
+        raise _conflict("invalid_transition", error) from error
+    if application is None:
+        # Also for someone else's animal: to them the request does not exist.
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Request not found")
+    return ApplicationResponse.from_domain(application)
+
+
+@router.post(
     "/applications/{application_id}/withdraw", response_model=ApplicationResponse
 )
 async def withdraw_application(
@@ -209,5 +291,25 @@ async def withdraw_application(
         raise _conflict("invalid_transition", error) from error
     if application is None:
         # Also for someone else's request: to them it does not exist.
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Request not found")
+    return ApplicationResponse.from_domain(application)
+
+
+@router.post(
+    "/applications/{application_id}/confirm-handover",
+    response_model=ApplicationResponse,
+)
+async def confirm_handover(
+    application_id: UUID,
+    actor: Annotated[User, Depends(get_current_user)],
+    service: Annotated[AdoptionService, Depends(get_adoption_service)],
+) -> ApplicationResponse:
+    """Owner or applicant confirms the handover; the second confirmation adopts."""
+    try:
+        application = await service.confirm_handover(actor, application_id)
+    except InvalidTransition as error:
+        raise _conflict("invalid_transition", error) from error
+    if application is None:
+        # Also for someone who is neither side: to them it does not exist.
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Request not found")
     return ApplicationResponse.from_domain(application)

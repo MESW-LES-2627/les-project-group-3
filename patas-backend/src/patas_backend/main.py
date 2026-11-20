@@ -18,6 +18,7 @@ from patas_backend.routers import (
     compatibility,
     health,
     matchmaker_profile,
+    matchmaker_swipes,
 )
 from patas_backend.services.adoption_handlers import register_adoption_handlers
 from patas_backend.services.events import EventDispatcher
@@ -49,6 +50,7 @@ def create_app(
         await engine.dispose()
 
     app = FastAPI(title="Patas", lifespan=lifespan)
+    app.state.settings = settings
     app.state.engine = engine
     app.state.session_factory = async_sessionmaker(engine, expire_on_commit=False)
     # The one place that decides who reacts to which domain event. A new feature
@@ -66,6 +68,7 @@ def create_app(
     app.include_router(animals.router)
     app.include_router(adoption.router)
     app.include_router(matchmaker_profile.router)
+    app.include_router(matchmaker_swipes.router)
     app.include_router(compatibility.router)
     app.include_router(health.router)
 

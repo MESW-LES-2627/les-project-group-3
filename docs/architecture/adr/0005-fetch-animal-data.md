@@ -7,6 +7,10 @@
 | **Scope** | Animal listing vertical slice |
 | **Related** | [0001-authentication](0001-authentication.md), [0002-deployment-and-runtime-architecture](0002-deployment-and-runtime-architecture.md), [0004-animal-aggregate](0004-animal-aggregate.md), [0006-application-services](0006-application-services.md) |
 
+> **Amended by [0025-quality-and-clean-up](0025-quality-and-clean-up.md):** `GET /animals`
+> returns one page of up to 24 animals, still as an array, and the total in
+> `X-Total-Count`.
+
 ## Context
 
 The dashboard needs to display animal records stored in PostgreSQL. The frontend

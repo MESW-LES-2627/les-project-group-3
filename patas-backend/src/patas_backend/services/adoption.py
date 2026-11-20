@@ -1,4 +1,5 @@
 from dataclasses import replace
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -130,6 +131,51 @@ class AdoptionService:
             received.append(replace(request, compatibility_concerns=concerns))
         return received
 
+    async def accept(
+        self, owner: User, application_id: UUID, note: str | None
+    ) -> AdoptionApplication | None:
+        """US-16: the owner accepts an open request, with an optional note, and the
+        animal is reserved for the applicant.
+
+        None if there is no such request or it is not for one of the caller's
+        animals: to anyone else it does not exist. Raises InvalidTransition if it is
+        not open, AnimalNotAvailable if the animal is already reserved (the whole
+        change is rolled back), or InvalidApplication for a note that is too long.
+        """
+        async with self._session_factory.begin() as session:
+            # The animal first (ADR 0017, decision 8): whether it is still available
+            # is read under the lock, so two accepts for one animal take turns and
+            # the second one finds it reserved.
+            application = await lock_animal_and_application(session, application_id)
+            if application is None or application.owner_id != owner.id:
+                return None
+            application.accept(owner.id, note)
+            events = await self._dispatcher.dispatch(application.pull_events(), session)
+            await AdoptionApplicationRepository(session).update(application)
+        await self._dispatcher.publish(events)
+        return application
+
+    async def decline(
+        self, owner: User, application_id: UUID, note: str | None
+    ) -> AdoptionApplication | None:
+        """US-16: the owner declines an open or accepted request, with an optional note.
+
+        None if there is no such request or it is not for one of the caller's
+        animals: to anyone else it does not exist. Raises InvalidTransition if it
+        already ended, or InvalidApplication for a note that is too long.
+        """
+        async with self._session_factory.begin() as session:
+            # The animal first (ADR 0017, decision 8): whether this request had
+            # reserved the animal, and so whether it is freed, is read under the lock.
+            application = await lock_animal_and_application(session, application_id)
+            if application is None or application.owner_id != owner.id:
+                return None
+            application.decline(owner.id, note)
+            events = await self._dispatcher.dispatch(application.pull_events(), session)
+            await AdoptionApplicationRepository(session).update(application)
+        await self._dispatcher.publish(events)
+        return application
+
     async def withdraw(
         self, applicant: User, application_id: UUID
     ) -> AdoptionApplication | None:
@@ -148,5 +194,31 @@ class AdoptionService:
             application.withdraw(applicant.id)
             events = await self._dispatcher.dispatch(application.pull_events(), session)
             await AdoptionApplicationRepository(session).update(application)
+        await self._dispatcher.publish(events)
+        return application
+
+    async def confirm_handover(
+        self, actor: User, application_id: UUID
+    ) -> AdoptionApplication | None:
+        """US-18: the owner or applicant confirms the animal was handed over.
+
+        None if there is no such request or the caller is neither side: to anyone
+        else it does not exist. Raises InvalidTransition if the request is not
+        accepted or the caller already confirmed.
+        """
+        async with self._session_factory.begin() as session:
+            # The animal first (ADR 0017, decision 8). The second confirmation
+            # adopts, and the handler then marks the animal adopted under its lock.
+            application = await lock_animal_and_application(session, application_id)
+            if application is None or actor.id not in (
+                application.owner_id,
+                application.applicant_id,
+            ):
+                return None
+
+            application.confirm_handover(actor.id, datetime.now(UTC))
+            events = await self._dispatcher.dispatch(application.pull_events(), session)
+            await AdoptionApplicationRepository(session).update(application)
+
         await self._dispatcher.publish(events)
         return application

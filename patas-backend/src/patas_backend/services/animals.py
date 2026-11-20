@@ -9,6 +9,7 @@ from patas_backend.models.animal import (
     AnimalSex,
     AnimalSize,
     CatalogFilter,
+    CatalogPage,
     District,
     FirstTimeOwnerSuitability,
     NeuteredStatus,
@@ -39,7 +40,6 @@ class AnimalService:
         age_in_months: int | None,
         sex: AnimalSex | None = None,
         is_neutered: NeuteredStatus | None = None,
-        postal_code: str | None = None,
         district: District | None = None,
         size: AnimalSize | None = None,
         activity_level: EnergyLevel | None = None,
@@ -56,6 +56,7 @@ class AnimalService:
         suitable_for_first_time_owners: FirstTimeOwnerSuitability | None = None,
         special_care_notes: str | None = None,
         other_details: str | None = None,
+        photo_urls: list[str] | None = None,
     ) -> Animal:
         """A1 (create): the logged-in user publishes an animal they own."""
         # Built before the transaction opens: an invalid animal raises InvalidAnimal
@@ -65,10 +66,10 @@ class AnimalService:
             name=name,
             species=species,
             owner_name=owner.name,
+            owner_username=owner.username,
             age_in_months=age_in_months,
             sex=sex,
             is_neutered=is_neutered,
-            postal_code=postal_code,
             district=district,
             size=size,
             activity_level=activity_level,
@@ -85,18 +86,23 @@ class AnimalService:
             suitable_for_first_time_owners=suitable_for_first_time_owners,
             special_care_notes=special_care_notes,
             other_details=other_details,
+            photo_urls=photo_urls,
         )
 
         async with self._session_factory.begin() as session:
             await AnimalRepository(session).add(animal)
         return animal
 
-    async def list_catalog(self, catalog_filter: CatalogFilter) -> list[Animal]:
-        """A2 (list): the published animals that match, newest first. Public."""
+    async def list_catalog(
+        self, catalog_filter: CatalogFilter, page: CatalogPage
+    ) -> tuple[list[Animal], int]:
+        """A2 (list): one page of the published animals that match, newest first,
+        and how many match in all. Public."""
         # Read-only: a plain session, no transaction to commit.
         async with self._session_factory() as session:
             animals = await AnimalRepository(session).list_all()
-            return [a for a in animals if catalog_filter.matches(a)]
+        matching = [a for a in animals if catalog_filter.matches(a)]
+        return page.of(matching), len(matching)
 
     async def list_by_owner(self, owner: User) -> list[Animal]:
         """List all animals owned by the user, published and unpublished."""
@@ -118,7 +124,6 @@ class AnimalService:
         age_in_months: int | None,
         sex: AnimalSex | None = None,
         is_neutered: NeuteredStatus | None = None,
-        postal_code: str | None = None,
         district: District | None = None,
         size: AnimalSize | None = None,
         activity_level: EnergyLevel | None = None,
@@ -135,6 +140,7 @@ class AnimalService:
         suitable_for_first_time_owners: FirstTimeOwnerSuitability | None = None,
         special_care_notes: str | None = None,
         other_details: str | None = None,
+        photo_urls: list[str] | None = None,
     ) -> Animal | None:
         """US-03: the owner replaces the description. None if there is no animal."""
         async with self._session_factory.begin() as session:
@@ -149,7 +155,6 @@ class AnimalService:
                 age_in_months=age_in_months,
                 sex=sex,
                 is_neutered=is_neutered,
-                postal_code=postal_code,
                 district=district,
                 size=size,
                 activity_level=activity_level,
@@ -166,6 +171,7 @@ class AnimalService:
                 suitable_for_first_time_owners=suitable_for_first_time_owners,
                 special_care_notes=special_care_notes,
                 other_details=other_details,
+                photo_urls=photo_urls,
             )
             await repo.update(animal)
             return animal
@@ -194,3 +200,18 @@ class AnimalService:
             events = await self._dispatcher.dispatch(animal.pull_events(), session)
         await self._dispatcher.publish(events)
         return animal
+
+    async def republish(self, owner: User, animal_id: UUID) -> Animal | None:
+        """Put an unpublished animal back in the catalog.
+
+        Raises AnimalUnauthorized if the caller is not the owner, and
+        InvalidAnimalTransition while the animal is reserved or adopted.
+        """
+        async with self._session_factory.begin() as session:
+            repo = AnimalRepository(session)
+            animal = await repo.get_for_update(animal_id)
+            if animal is None:
+                return None
+            animal.republish(by_user_id=owner.id)
+            await repo.update(animal)
+            return animal

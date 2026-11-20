@@ -14,8 +14,13 @@ class ReceivedRequest:
     animal_id: UUID
     animal_name: str
     applicant_id: UUID
+    applicant_name: str
+    applicant_username: str
     status: ApplicationStatus
     applicant_note: str
     applicant_profile: ProfileSnapshot
+    owner_note: str | None
     created_at: datetime
+    owner_confirmed_at: datetime | None = None
+    applicant_confirmed_at: datetime | None = None
     compatibility_concerns: tuple[str, ...] = ()

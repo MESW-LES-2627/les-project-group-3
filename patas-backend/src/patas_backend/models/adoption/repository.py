@@ -74,7 +74,8 @@ _SELECT_OPEN_FOR_ANIMAL_FOR_UPDATE = text(
 _SELECT_SENT_BY_APPLICANT = text(
     """
     SELECT a.id, a.animal_id, an.name AS animal_name, a.status,
-           a.applicant_note, a.owner_note, a.created_at
+           a.applicant_note, a.owner_note, a.owner_confirmed_at,
+           a.applicant_confirmed_at, a.created_at
     FROM patas.adoption_applications a
     JOIN patas.animals an ON an.id = a.animal_id
     WHERE a.applicant_id = :applicant_id
@@ -84,9 +85,13 @@ _SELECT_SENT_BY_APPLICANT = text(
 _SELECT_RECEIVED_BY_OWNER = text(
     """
     SELECT a.id, a.animal_id, an.name AS animal_name, a.applicant_id,
-           a.status, a.applicant_note, a.applicant_profile, a.created_at
+           u.name AS applicant_name, u.username AS applicant_username,
+           a.status, a.applicant_note,
+           a.applicant_profile, a.owner_note,
+           a.owner_confirmed_at, a.applicant_confirmed_at, a.created_at
     FROM patas.adoption_applications a
     JOIN patas.animals an ON an.id = a.animal_id
+    JOIN patas.users u ON u.id = a.applicant_id
     WHERE a.owner_id = :owner_id
     ORDER BY a.created_at DESC, a.id
     """
@@ -203,6 +208,8 @@ class AdoptionApplicationRepository:
                 status=ApplicationStatus(row.status),
                 applicant_note=row.applicant_note,
                 owner_note=row.owner_note,
+                owner_confirmed_at=row.owner_confirmed_at,
+                applicant_confirmed_at=row.applicant_confirmed_at,
                 created_at=row.created_at,
             )
             for row in result
@@ -219,9 +226,14 @@ class AdoptionApplicationRepository:
                 animal_id=row.animal_id,
                 animal_name=row.animal_name,
                 applicant_id=row.applicant_id,
+                applicant_name=row.applicant_name,
+                applicant_username=row.applicant_username,
                 status=ApplicationStatus(row.status),
                 applicant_note=row.applicant_note,
                 applicant_profile=ProfileSnapshot.from_json(row.applicant_profile),
+                owner_note=row.owner_note,
+                owner_confirmed_at=row.owner_confirmed_at,
+                applicant_confirmed_at=row.applicant_confirmed_at,
                 created_at=row.created_at,
             )
             for row in result

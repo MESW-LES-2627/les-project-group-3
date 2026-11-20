@@ -5,12 +5,19 @@
 // This file only handles HTTP. Who may ask, and when, is the backend's.
 import { backendUrl } from "@/lib/backend";
 import {
+  ANSWER_MESSAGES,
+  CONFIRM_HANDOVER_MESSAGES,
   REQUEST_MESSAGES,
   WITHDRAW_MESSAGES,
   isMyApplication,
   isReceivedRequest,
   isSentRequest,
+  type AnswerOutcome,
+  type AnswerProblem,
+  type ConfirmHandoverOutcome,
+  type ConfirmHandoverProblem,
   type MyApplicationResult,
+  type OwnerAnswer,
   type MyRequestsResult,
   type ReceivedRequestsResult,
   type RequestOutcome,
@@ -209,4 +216,114 @@ export async function withdrawRequest(
     return withdrawProblem("not-active");
   }
   return withdrawProblem("unavailable");
+}
+
+function confirmHandoverProblem(
+  kind: ConfirmHandoverProblem,
+): ConfirmHandoverOutcome {
+  return { ok: false, problem: kind, message: CONFIRM_HANDOVER_MESSAGES[kind] };
+}
+
+export async function confirmHandover(
+  applicationId: string,
+): Promise<ConfirmHandoverOutcome> {
+  if (!UUID_PATTERN.test(applicationId)) {
+    return confirmHandoverProblem("not-found");
+  }
+  // redirect() throws, so this stays outside the try/catch below.
+  const token = await bearerToken();
+
+  let response: Response;
+  try {
+    response = await fetch(
+      `${backendUrl()}/applications/${encodeURIComponent(applicationId)}/confirm-handover`,
+      {
+        method: "POST",
+        cache: "no-store",
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+  } catch {
+    return confirmHandoverProblem("unavailable");
+  }
+
+  if (response.ok) {
+    return { ok: true };
+  }
+  if (response.status === 404) {
+    return confirmHandoverProblem("not-found");
+  }
+  if (response.status === 409) {
+    return confirmHandoverProblem("not-confirmable");
+  }
+  return confirmHandoverProblem("unavailable");
+}
+
+// The backend's 409 on an answer has two causes: the request is no longer open, or
+// the animal is already reserved for another request.
+const ANSWER_CONFLICT_CODES: Record<string, AnswerProblem> = {
+  invalid_transition: "not-active",
+  animal_not_available: "animal-reserved",
+};
+
+function answerProblem(kind: AnswerProblem): AnswerOutcome {
+  return { ok: false, problem: kind, message: ANSWER_MESSAGES[kind] };
+}
+
+async function answerConflict(response: Response): Promise<AnswerProblem> {
+  try {
+    const { detail } = (await response.json()) as {
+      detail?: { code?: unknown };
+    };
+    const code = detail?.code;
+    return typeof code === "string" && Object.hasOwn(ANSWER_CONFLICT_CODES, code)
+      ? ANSWER_CONFLICT_CODES[code]
+      : "unavailable";
+  } catch {
+    return "unavailable";
+  }
+}
+
+export async function answerRequest(
+  applicationId: string,
+  answer: OwnerAnswer,
+  note: string,
+): Promise<AnswerOutcome> {
+  if (!UUID_PATTERN.test(applicationId)) {
+    return answerProblem("not-found");
+  }
+  // redirect() throws, so this stays outside the try/catch below.
+  const token = await bearerToken();
+
+  let response: Response;
+  try {
+    response = await fetch(
+      `${backendUrl()}/applications/${encodeURIComponent(applicationId)}/${answer}`,
+      {
+        method: "POST",
+        cache: "no-store",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ note: note.trim() === "" ? null : note }),
+      },
+    );
+  } catch {
+    return answerProblem("unavailable");
+  }
+
+  if (response.ok) {
+    return { ok: true };
+  }
+  if (response.status === 404) {
+    return answerProblem("not-found");
+  }
+  if (response.status === 409) {
+    return answerProblem(await answerConflict(response));
+  }
+  if (response.status === 422) {
+    return answerProblem("invalid-note");
+  }
+  return answerProblem("unavailable");
 }

@@ -20,3 +20,5 @@ class SentRequest:
     applicant_note: str
     owner_note: str | None
     created_at: datetime
+    owner_confirmed_at: datetime | None = None
+    applicant_confirmed_at: datetime | None = None

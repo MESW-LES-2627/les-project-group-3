@@ -17,8 +17,8 @@ ANSWERS = (
 )  # fmt: skip
 
 INSERT_USER = text(
-    "INSERT INTO patas.users (id, name, email) "
-    "VALUES (:id, 'Carla', 'carla@example.com')"
+    "INSERT INTO patas.users (id, name, email, username) "
+    "VALUES (:id, 'Carla', 'carla@example.com', 'carla')"
 )
 INSERT_PROFILE = text(
     "INSERT INTO patas.matchmaker_profiles "

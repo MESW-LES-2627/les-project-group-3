@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
   startTransition,
   useActionState,
@@ -28,6 +29,8 @@ import {
 } from "@/lib/animal-profile";
 import {
   formValues,
+  MAX_PHOTOS,
+  photosToUpload,
   type AnimalDescription,
   type AnimalFormState,
 } from "@/lib/animal-form";
@@ -161,11 +164,70 @@ function DescriptionForm({
   const values = initial ? formValues(initial) : {};
   const [answers, setAnswers] = useState<Record<string, string>>(values);
   const [answered, setAnswered] = useState(() => countDetails(values));
+  const [photos, setPhotos] = useState<string[]>(initial?.photo_urls ?? []);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  async function handlePhotoUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const { accepted, skipped } = photosToUpload(
+      Array.from(files),
+      photos.length,
+    );
+    setUploading(true);
+    setUploadError(
+      skipped
+        ? `Each photo can be at most 5 MB, and an animal can have up to ${MAX_PHOTOS} photos.`
+        : null,
+    );
+
+    for (const file of accepted) {
+      try {
+        const res = await fetch("/api/uploads/presigned-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            content_type: file.type || "image/jpeg",
+            size: file.size,
+          }),
+        });
+        if (!res.ok) throw new Error("Failed to get upload URL");
+
+        const { upload_url, public_url } = (await res.json()) as {
+          upload_url: string;
+          public_url: string;
+        };
+
+        const putRes = await fetch(upload_url, {
+          method: "PUT",
+          body: file,
+          headers: { "Content-Type": file.type || "image/jpeg" },
+        });
+        if (!putRes.ok) throw new Error("Upload to storage failed");
+
+        // Added as soon as it is stored, so a later failure does not lose it.
+        setPhotos((prev) => [...prev, public_url]);
+      } catch {
+        setUploadError("Some photos could not be uploaded. Please try again.");
+      }
+    }
+
+    setUploading(false);
+    event.target.value = "";
+  }
+
+  function removePhoto(urlToRemove: string) {
+    setPhotos((prev) => prev.filter((url) => url !== urlToRemove));
+  }
 
   // React resets a form after running its `action`, which would lose what was
   // typed when a save is rejected; `action` is only the pre-hydration fallback.
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // Saving now would leave out the photos still uploading.
+    if (uploading) return;
     const form = new FormData(event.currentTarget);
     startTransition(() => formAction(form));
   }
@@ -250,6 +312,63 @@ function DescriptionForm({
 
       <div className="divide-y divide-line pt-8 lg:col-start-1 lg:row-start-1 lg:pt-0">
         <FormSection
+          title="Photos"
+          why="Add clear photos so adopters can see what the animal looks like."
+        >
+          <div className="space-y-3">
+            {photos.map((url, index) => (
+              <input
+                key={`${url}-${index}`}
+                type="hidden"
+                name="photo_urls"
+                value={url}
+              />
+            ))}
+
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {photos.map((url) => (
+                <div key={url} className="group relative aspect-square">
+                  <Image
+                    src={url}
+                    alt="Uploaded animal"
+                    width={200}
+                    height={200}
+                    unoptimized
+                    className="size-full rounded-xl border border-line object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removePhoto(url)}
+                    aria-label="Remove photo"
+                    className="absolute right-2 top-2 rounded-full bg-forest/80 px-2 py-0.5 text-xs font-semibold text-white transition hover:bg-red-700"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+
+              <label className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-line text-center text-sm font-medium text-muted transition hover:border-leaf hover:bg-leaf/5 hover:text-forest">
+                <span>{uploading ? "Uploading..." : "+ Add photos"}</span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  className="hidden"
+                  onChange={handlePhotoUpload}
+                  disabled={uploading}
+                />
+              </label>
+            </div>
+
+            {uploadError && (
+              <p role="alert" className="text-sm font-medium text-red-700">
+                {uploadError}
+              </p>
+            )}
+          </div>
+        </FormSection>
+
+        <FormSection
           title="About the animal"
           why="Start with the details needed to publish a listing."
         >
@@ -280,13 +399,6 @@ function DescriptionForm({
               type="number"
               min={0}
               defaultValue={values.age_in_months}
-            />
-            <TextField
-              label="Postal code"
-              name="postal_code"
-              placeholder="0000-000"
-              maxLength={8}
-              defaultValue={values.postal_code}
             />
             <label className="flex flex-col gap-2 text-sm font-medium text-forest">
               District
@@ -397,7 +509,7 @@ function DescriptionForm({
           )}
           <button
             type="submit"
-            disabled={pending}
+            disabled={pending || uploading}
             className="inline-flex min-h-11 items-center justify-center rounded-xl bg-forest px-5 text-sm font-semibold text-white transition-colors hover:bg-leaf focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest disabled:opacity-60"
           >
             {pending ? pendingLabel : submitLabel}

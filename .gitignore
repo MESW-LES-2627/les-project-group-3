@@ -15,3 +15,4 @@ coverage.json
 coverage.xml
 mutants/
 junit-*.xml
+patas-backend/.env

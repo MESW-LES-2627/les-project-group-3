@@ -18,6 +18,7 @@ type RequestFormProps = {
   animalId: string;
   animalName: string;
   action: (animalId: string, note: string) => Promise<RequestOutcome>;
+  onSuccess?: () => void;
 };
 
 const BUTTON =
@@ -27,7 +28,12 @@ const TEXTAREA =
 
 type Failure = { problem: RequestProblem; message: string };
 
-export function RequestForm({ animalId, animalName, action }: RequestFormProps) {
+export function RequestForm({
+  animalId,
+  animalName,
+  action,
+  onSuccess,
+}: RequestFormProps) {
   const router = useRouter();
   const id = useId();
   const [note, setNote] = useState("");
@@ -50,8 +56,7 @@ export function RequestForm({ animalId, animalName, action }: RequestFormProps) 
     startTransition(async () => {
       const outcome = await action(animalId, note);
       if (outcome.ok) {
-        // Nothing to do here: the action revalidated the page, which now shows the
-        // request in place of this form.
+        onSuccess?.();
         return;
       }
       if (outcome.problem === "invalid-note") {

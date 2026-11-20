@@ -51,13 +51,13 @@ async def test_catalog_is_public_and_lists_published_animals(
             "id": str(animal.id),
             "owner_id": str(owner.id),
             "owner_name": "Ana",
+            "owner_username": "ana",
             "name": "Milo",
             "species": "cat",
             "age_in_months": 14,
             "adoption_status": "available",
             "sex": None,
             "is_neutered": None,
-            "postal_code": None,
             "district": None,
             "size": None,
             "activity_level": None,
@@ -74,6 +74,7 @@ async def test_catalog_is_public_and_lists_published_animals(
             "suitable_for_first_time_owners": None,
             "special_care_notes": None,
             "other_details": None,
+            "photo_urls": [],
             "match_profile": {
                 "activity": None,
                 "max_time_alone": None,
@@ -123,7 +124,6 @@ async def test_animal_profile_fields_are_saved_and_listed(
             "species": "cat",
             "sex": "male",
             "is_neutered": "yes",
-            "postal_code": "1234-567",
             "district": "porto",
             "size": "small",
             "activity_level": "moderate",
@@ -189,9 +189,11 @@ async def test_animal_profile_fields_are_optional(
             "id",
             "owner_id",
             "owner_name",
+            "owner_username",
             "name",
             "species",
             "adoption_status",
+            "photo_urls",
         }
     )
 
@@ -224,10 +226,6 @@ async def test_publishing_without_a_token_is_rejected_and_nothing_is_stored(
             id="age-beyond-storage",
         ),
         pytest.param({"name": "Rex", "species": "rabbit"}, id="unknown-species"),
-        pytest.param(
-            {"name": "Rex", "species": "dog", "postal_code": "12345"},
-            id="invalid-postal-code",
-        ),
         pytest.param(
             {"name": "Rex", "species": "dog", "district": "atlantis"},
             id="unknown-district",
@@ -343,6 +341,42 @@ async def test_acceptance_test_bruno_cannot_unpublish_rex(
         loaded = await AnimalRepository(session).get_by_id(rex.id)
         assert loaded is not None
         assert loaded.adoption_status is AdoptionStatus.AVAILABLE
+
+
+async def test_republishing_an_available_animal_changes_nothing(
+    client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine
+) -> None:
+    rex, _, _ = await _seed_data(engine)
+
+    response = await client.post(
+        f"/animals/{rex.id}/republish", headers=_bearer(issuer.token(**ANA))
+    )
+
+    assert response.status_code == 200
+    assert response.json()["adoption_status"] == "available"
+
+
+async def test_republishing_an_unknown_animal_is_not_found(
+    client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine
+) -> None:
+    await _seed_data(engine)
+
+    response = await client.post(
+        f"/animals/{uuid4()}/republish", headers=_bearer(issuer.token(**ANA))
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Animal not found"
+
+
+async def test_a_visitor_cannot_republish(
+    client: httpx.AsyncClient, engine: AsyncEngine
+) -> None:
+    rex, _, _ = await _seed_data(engine)
+
+    response = await client.post(f"/animals/{rex.id}/republish")
+
+    assert response.status_code == 401
 
 
 async def test_acceptance_test_visitor_cannot_unpublish_rex_or_view_my_animals(
@@ -529,7 +563,6 @@ DESCRIBED = {
     "age_in_months": 14,
     "sex": "male",
     "is_neutered": "yes",
-    "postal_code": "1234-567",
     "district": "porto",
     "size": "small",
     "activity_level": "moderate",
@@ -573,7 +606,6 @@ REDESCRIBED = {
     "age_in_months": 15,
     "sex": "female",
     "is_neutered": "no",
-    "postal_code": "4000-001",
     "district": "lisboa",
     "size": "large",
     "activity_level": "high",
@@ -632,7 +664,6 @@ async def test_an_edit_clears_the_fields_it_leaves_out(
         pytest.param({"age_in_months": -1}, id="negative-age"),
         pytest.param({"age_in_months": 2**31}, id="age-beyond-storage"),
         pytest.param({"species": "rabbit"}, id="unknown-species"),
-        pytest.param({"postal_code": "12345"}, id="invalid-postal-code"),
         pytest.param({"district": "atlantis"}, id="unknown-district"),
         pytest.param({"activity_level": "extreme"}, id="invalid-activity-level"),
     ],
@@ -653,7 +684,9 @@ async def test_acceptance_test_an_invalid_edit_is_rejected_and_rex_is_unchanged(
     )
 
     assert response.status_code == 422
-    assert await _stored(engine, rex.id) == replace(rex, owner_name="Ana")
+    assert await _stored(engine, rex.id) == replace(
+        rex, owner_name="Ana", owner_username="ana"
+    )
 
 
 @pytest.mark.parametrize(
@@ -680,7 +713,9 @@ async def test_acceptance_test_bruno_cannot_edit_rex(
     )
 
     assert response.status_code == 403
-    assert await _stored(engine, rex.id) == replace(rex, owner_name="Ana")
+    assert await _stored(engine, rex.id) == replace(
+        rex, owner_name="Ana", owner_username="ana"
+    )
 
 
 async def test_acceptance_test_visitor_cannot_edit_rex(
@@ -692,7 +727,9 @@ async def test_acceptance_test_visitor_cannot_edit_rex(
     response = await client.put(f"/animals/{rex.id}", json=_rex_edit(size="large"))
 
     assert response.status_code == 401
-    assert await _stored(engine, rex.id) == replace(rex, owner_name="Ana")
+    assert await _stored(engine, rex.id) == replace(
+        rex, owner_name="Ana", owner_username="ana"
+    )
 
 
 async def test_editing_an_animal_that_does_not_exist_is_not_found(
@@ -730,6 +767,7 @@ async def test_owner_can_edit_an_unpublished_animal_and_it_stays_unpublished(
         pytest.param({"adoption_status": "available"}, id="status"),
         pytest.param({"owner_id": BRUNO["sub"]}, id="owner"),
         pytest.param({"behaves_well_with_kids": "yes"}, id="misspelt-field"),
+        pytest.param({"postal_code": "1234-567"}, id="removed-postal-code"),
     ],
 )
 async def test_an_edit_with_a_field_outside_the_description_is_rejected(
@@ -747,7 +785,9 @@ async def test_an_edit_with_a_field_outside_the_description_is_rejected(
     )
 
     assert response.status_code == 422
-    assert await _stored(engine, rex.id) == replace(rex, owner_name="Ana")
+    assert await _stored(engine, rex.id) == replace(
+        rex, owner_name="Ana", owner_username="ana"
+    )
 
 
 async def test_owner_loads_her_unpublished_animal_for_the_edit_form(
@@ -857,3 +897,32 @@ async def test_an_unpublish_that_meets_an_edit_keeps_the_edit(
     assert stored is not None
     assert stored.size is AnimalSize.LARGE
     assert stored.adoption_status is AdoptionStatus.UNAVAILABLE
+
+
+async def test_a_republish_that_meets_an_edit_keeps_the_edit(
+    client: httpx.AsyncClient, issuer: TokenIssuer, engine: AsyncEngine
+) -> None:
+    # The republish waits for the edit instead of writing the old fields back.
+    rex, _, _ = await _seed_data(engine)
+    ana = _bearer(issuer.token(**ANA))
+    assert (await client.post(f"/animals/{rex.id}/unpublish", headers=ana)).is_success
+
+    async with async_sessionmaker(engine).begin() as session:
+        repo = AnimalRepository(session)
+        being_edited = await repo.get_for_update(rex.id)
+        assert being_edited is not None
+        holder_pid = await session.scalar(text("SELECT pg_backend_pid()"))
+        republish = asyncio.create_task(
+            client.post(f"/animals/{rex.id}/republish", headers=ana)
+        )
+        await _until_a_request_waits_for(engine, holder_pid)
+        being_edited.edit(
+            rex.owner_id, name="Rex", species=Species.DOG, size=AnimalSize.LARGE
+        )
+        await repo.update(being_edited)
+
+    assert (await republish).status_code == 200
+    stored = await _stored(engine, rex.id)
+    assert stored is not None
+    assert stored.size is AnimalSize.LARGE
+    assert stored.adoption_status is AdoptionStatus.AVAILABLE
