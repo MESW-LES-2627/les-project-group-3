@@ -338,5 +338,22 @@
       "diff_pct": null
     },
     "mutation_pct": 76.4
+  },
+  {
+    "date": "2026-11-20T11:05:42Z",
+    "branch": "main",
+    "commit": "14adeab",
+    "title": "Merge pull request #107 from MESW-LES-2627/staging",
+    "backend": {
+      "tests": 820,
+      "branch_pct": 94.0,
+      "diff_pct": null
+    },
+    "frontend": {
+      "tests": 266,
+      "branch_pct": 98.9,
+      "diff_pct": null
+    },
+    "mutation_pct": 76.4
   }
 ]
