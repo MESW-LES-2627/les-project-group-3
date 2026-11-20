@@ -321,5 +321,22 @@
       "diff_pct": null
     },
     "mutation_pct": 76.4
+  },
+  {
+    "date": "2026-11-20T11:01:51Z",
+    "branch": "staging",
+    "commit": "eb276eb",
+    "title": "Merge pull request #106 from MESW-LES-2627/iter2-design-doc",
+    "backend": {
+      "tests": 820,
+      "branch_pct": 94.0,
+      "diff_pct": null
+    },
+    "frontend": {
+      "tests": 266,
+      "branch_pct": 98.9,
+      "diff_pct": null
+    },
+    "mutation_pct": 76.4
   }
 ]
