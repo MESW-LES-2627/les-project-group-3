@@ -26,6 +26,7 @@ Use links that work on tag `iter-2`. If something does not exist yet, write `non
 | Production | [les-project-group-3-deploy.vercel.app](https://les-project-group-3-deploy.vercel.app) |
 | Staging | [les-project-group-3.vercel.app](https://les-project-group-3.vercel.app/) |
 | CI/CD Pipeline | [CI workflow](https://github.com/MESW-LES-2627/les-project-group-3/actions/workflows/ci.yml) |
+| Testing Metrics | [Metrics](https://mesw-les-2627.github.io/les-project-group-3/)|
 | Stories in this increment | [Stories in this increment](stories-in-this-increment.md) |
 | Retrospective | [Retrospective](retrospective.md) |
 | AI critique | [AI critique](AI-critique.md) |
