@@ -26,15 +26,21 @@ not built yet, and the handover checklist with ticks is a separate story (US-25)
    `showsGuidelines` (only while the request is accepted), sits next to it and is
    tested with Vitest. It adds no access rule: a person only sees requests the
    backend already returned to them (ADR 0020, decision 5).
-3. **Shown on `/requests`** inside each accepted request, in both the Sent and the
-   Received list, collapsed by default. It moves next to the conversation when
-   US-21 adds the chat page.
+3. **Shown on the request's own page, `/requests/[id]`**, the page where the
+   conversation will live (US-21). Each accepted request in the Sent and the
+   Received list links to it with "Open conversation". Until US-21 adds a
+   single-request endpoint, the page loads the two lists the Requests page already
+   uses and finds the request in them (`findConversation`); a request the caller is
+   not part of is a 404, like the rest of the adoption endpoints. The page has no
+   message area yet, only the request's header and the guidelines, open.
 
 ## Consequences
 
 - Changing the wording needs a frontend deploy.
 - Varying the steps by role or species would turn the constant into a function of
   the request.
+- Opening the page fetches both request lists to show one request; acceptable
+  for now, and replaced when US-21 adds the single-request endpoint.
 - The automated part of AT-26 for the guidelines is a Vitest test of
   `showsGuidelines` and the step titles; a teammate checks the page in a browser.
 
