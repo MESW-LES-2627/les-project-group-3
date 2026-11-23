@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 
 import { AnswerPanel } from "@/components/adoption/answer-panel";
 import { ConfirmHandoverButton } from "@/components/adoption/confirm-handover-button";
+import { OpenConversationLink } from "@/components/adoption/open-conversation-link";
 import {
   filterByStatus,
   statusFilterOf,
@@ -228,7 +229,8 @@ export function ReceivedRequestList({
               />
 
               {request.status === "accepted" ? (
-                <div className="mt-4 border-t border-line pt-4">
+                <div className="mt-4 flex flex-col items-start gap-3 border-t border-line pt-4">
+                  <OpenConversationLink applicationId={request.id} />
                   {request.owner_confirmed_at ? (
                     <p className="text-sm font-medium text-forest">
                       You confirmed the handover. Waiting for the adopter to

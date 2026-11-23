@@ -18,6 +18,7 @@ import {
 } from "@/lib/adoption-status";
 
 import { ConfirmHandoverButton } from "./confirm-handover-button";
+import { OpenConversationLink } from "./open-conversation-link";
 import { WithdrawButton } from "./withdraw-button";
 
 const FILTERS: (ApplicationStatus | null)[] = [null, ...APPLICATION_STATUS];
@@ -171,7 +172,8 @@ export function SentRequestList({
               ) : null}
 
               {request.status === "accepted" ? (
-                <div className="mt-4 border-t border-line pt-4">
+                <div className="mt-4 flex flex-col items-start gap-3 border-t border-line pt-4">
+                  <OpenConversationLink applicationId={request.id} />
                   {request.applicant_confirmed_at ? (
                     <p className="text-sm font-medium text-forest">
                       You confirmed the handover. Waiting for the owner to
