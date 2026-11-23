@@ -1,9 +1,9 @@
 import { ADOPTION_GUIDELINES } from "@/lib/adoption-guidelines";
 
 // Read-only suggestions for both sides of an accepted request (US-24, ADR 0027).
-export function AdoptionGuidelines() {
+export function AdoptionGuidelines({ open = false }: { open?: boolean }) {
   return (
-    <details className="mt-4 rounded-xl bg-leaf/5 p-4">
+    <details open={open} className="rounded-xl bg-leaf/5 p-4">
       <summary className="cursor-pointer text-sm font-semibold text-forest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest">
         Before the handover: {ADOPTION_GUIDELINES.length} suggested steps
       </summary>

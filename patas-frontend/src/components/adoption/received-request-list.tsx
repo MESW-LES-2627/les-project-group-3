@@ -3,9 +3,9 @@
 import { TriangleAlert } from "lucide-react";
 import { usePathname, useSearchParams } from "next/navigation";
 
-import { AdoptionGuidelines } from "@/components/adoption/adoption-guidelines";
 import { AnswerPanel } from "@/components/adoption/answer-panel";
 import { ConfirmHandoverButton } from "@/components/adoption/confirm-handover-button";
+import { OpenConversationLink } from "@/components/adoption/open-conversation-link";
 import {
   filterByStatus,
   statusFilterOf,
@@ -13,7 +13,6 @@ import {
   type ConfirmHandoverAction,
   type ReceivedRequest,
 } from "@/lib/adoption";
-import { showsGuidelines } from "@/lib/adoption-guidelines";
 import {
   APPLICATION_STATUS,
   applicationStatusLabel,
@@ -229,10 +228,9 @@ export function ReceivedRequestList({
                 action={answer}
               />
 
-              {showsGuidelines(request.status) ? <AdoptionGuidelines /> : null}
-
               {request.status === "accepted" ? (
-                <div className="mt-4 border-t border-line pt-4">
+                <div className="mt-4 flex flex-col items-start gap-3 border-t border-line pt-4">
+                  <OpenConversationLink applicationId={request.id} />
                   {request.owner_confirmed_at ? (
                     <p className="text-sm font-medium text-forest">
                       You confirmed the handover. Waiting for the adopter to
