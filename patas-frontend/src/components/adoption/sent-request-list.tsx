@@ -11,12 +11,14 @@ import {
   type SentRequest,
   type WithdrawAction,
 } from "@/lib/adoption";
+import { showsGuidelines } from "@/lib/adoption-guidelines";
 import {
   APPLICATION_STATUS,
   applicationStatusLabel,
   type ApplicationStatus,
 } from "@/lib/adoption-status";
 
+import { AdoptionGuidelines } from "./adoption-guidelines";
 import { ConfirmHandoverButton } from "./confirm-handover-button";
 import { WithdrawButton } from "./withdraw-button";
 
@@ -169,6 +171,8 @@ export function SentRequestList({
                   />
                 </div>
               ) : null}
+
+              {showsGuidelines(request.status) ? <AdoptionGuidelines /> : null}
 
               {request.status === "accepted" ? (
                 <div className="mt-4 border-t border-line pt-4">
