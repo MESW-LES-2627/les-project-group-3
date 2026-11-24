@@ -372,5 +372,22 @@
       "diff_pct": 100.0
     },
     "mutation_pct": 76.4
+  },
+  {
+    "date": "2026-11-24T15:47:01Z",
+    "branch": "staging",
+    "commit": "f3c1b77",
+    "title": "Merge pull request #145 from MESW-LES-2627/feat/us-25-handover-checklist",
+    "backend": {
+      "tests": 856,
+      "branch_pct": 94.2,
+      "diff_pct": 100.0
+    },
+    "frontend": {
+      "tests": 289,
+      "branch_pct": 99.0,
+      "diff_pct": 100.0
+    },
+    "mutation_pct": 76.1
   }
 ]
