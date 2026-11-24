@@ -9,6 +9,7 @@ from patas_backend.models.adoption.events import (
     ApplicationDeclined,
     ApplicationWithdrawn,
 )
+from patas_backend.models.adoption.handover_item import HandoverItem
 from patas_backend.models.adoption.status import ApplicationStatus
 
 if TYPE_CHECKING:
@@ -40,6 +41,11 @@ class ApplicationState:
         self, app: "AdoptionApplication", by_owner: bool, at: datetime
     ) -> None:
         self._refuse("handed over")
+
+    def set_handover_item(
+        self, app: "AdoptionApplication", item: HandoverItem, checked: bool
+    ) -> None:
+        self._refuse("changed in its handover checklist")
 
     def close(self, app: "AdoptionApplication") -> None:
         self._refuse("closed")
@@ -94,6 +100,13 @@ class OpenState(_ActiveState):
 
 class AcceptedState(_ActiveState):
     status = S.ACCEPTED
+
+    def set_handover_item(
+        self, app: "AdoptionApplication", item: HandoverItem, checked: bool
+    ) -> None:
+        app.handover_checked = (
+            app.handover_checked | {item} if checked else app.handover_checked - {item}
+        )
 
     def confirm_handover(
         self, app: "AdoptionApplication", by_owner: bool, at: datetime
