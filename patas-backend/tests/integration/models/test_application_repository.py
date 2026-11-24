@@ -13,6 +13,7 @@ from patas_backend.models.adoption import (
     AdoptionApplication,
     AdoptionApplicationRepository,
     ApplicationStatus,
+    HandoverItem,
     ProfileSnapshot,
 )
 from patas_backend.models.animal import Animal, AnimalRepository, Species
@@ -244,3 +245,76 @@ async def test_a_plain_read_does_not_wait_for_a_lock(
         )
 
     assert loaded is not None
+
+
+async def test_the_ticks_survive_saving_and_loading(
+    session_factory: Factory, world: World
+) -> None:
+    application = _application(
+        world, applicant=world.bruno, animal=world.rex, status=S.ACCEPTED
+    )
+    await _save(session_factory, application)
+
+    async with session_factory.begin() as session:
+        repo = AdoptionApplicationRepository(session)
+        loaded = await repo.get_for_update(application.id)
+        assert loaded is not None
+        loaded.set_handover_item(world.ana, HandoverItem.CARE_NOTES, True)
+        loaded.set_handover_item(world.bruno, HandoverItem.VACCINATION_BOOKLET, True)
+        await repo.update(loaded)
+
+    reloaded = await _load(session_factory, application.id)
+    assert reloaded is not None
+    assert reloaded.handover_checked == {
+        HandoverItem.CARE_NOTES,
+        HandoverItem.VACCINATION_BOOKLET,
+    }
+
+
+async def test_unticking_is_saved_too(session_factory: Factory, world: World) -> None:
+    application = replace(
+        _application(world, applicant=world.bruno, animal=world.rex, status=S.ACCEPTED),
+        handover_checked=frozenset({HandoverItem.CARE_NOTES}),
+    )
+    await _save(session_factory, application)
+
+    async with session_factory.begin() as session:
+        repo = AdoptionApplicationRepository(session)
+        loaded = await repo.get_for_update(application.id)
+        assert loaded is not None
+        loaded.set_handover_item(world.ana, HandoverItem.CARE_NOTES, False)
+        await repo.update(loaded)
+
+    reloaded = await _load(session_factory, application.id)
+    assert reloaded is not None
+    assert reloaded.handover_checked == frozenset()
+
+
+async def test_both_lists_show_the_same_ticks(
+    session_factory: Factory, world: World
+) -> None:
+    application = replace(
+        _application(world, applicant=world.bruno, animal=world.rex, status=S.ACCEPTED),
+        handover_checked=frozenset({HandoverItem.MICROCHIP_TRANSFER}),
+    )
+    await _save(session_factory, application)
+
+    async with session_factory() as session:
+        repo = AdoptionApplicationRepository(session)
+        sent = await repo.list_sent_by(world.bruno)
+        received = await repo.list_received_by(world.ana)
+
+    assert [r.handover_checked for r in sent] == [{HandoverItem.MICROCHIP_TRANSFER}]
+    assert [r.handover_checked for r in received] == [{HandoverItem.MICROCHIP_TRANSFER}]
+
+
+async def test_the_database_refuses_ticks_on_an_open_request(
+    session_factory: Factory, world: World
+) -> None:
+    application = replace(
+        _application(world, applicant=world.bruno, animal=world.rex, status=S.OPEN),
+        handover_checked=frozenset({HandoverItem.CARE_NOTES}),
+    )
+
+    with pytest.raises(IntegrityError, match="handover_checked_status_check"):
+        await _save(session_factory, application)
