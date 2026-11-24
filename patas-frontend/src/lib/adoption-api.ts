@@ -8,7 +8,9 @@ import {
   ANSWER_MESSAGES,
   CONFIRM_HANDOVER_MESSAGES,
   REQUEST_MESSAGES,
+  TICK_MESSAGES,
   WITHDRAW_MESSAGES,
+  isChecklist,
   isMyApplication,
   isReceivedRequest,
   isSentRequest,
@@ -22,6 +24,8 @@ import {
   type ReceivedRequestsResult,
   type RequestOutcome,
   type RequestProblem,
+  type TickOutcome,
+  type TickProblem,
   type WithdrawOutcome,
   type WithdrawProblem,
 } from "@/lib/adoption";
@@ -257,6 +261,55 @@ export async function confirmHandover(
     return confirmHandoverProblem("not-confirmable");
   }
   return confirmHandoverProblem("unavailable");
+}
+
+function tickProblem(kind: TickProblem): TickOutcome {
+  return { ok: false, problem: kind, message: TICK_MESSAGES[kind] };
+}
+
+export async function setHandoverItem(
+  applicationId: string,
+  item: string,
+  checked: boolean,
+): Promise<TickOutcome> {
+  if (!UUID_PATTERN.test(applicationId)) {
+    return tickProblem("not-found");
+  }
+  // redirect() throws, so this stays outside the try/catch below.
+  const token = await bearerToken();
+
+  let response: Response;
+  try {
+    response = await fetch(
+      `${backendUrl()}/applications/${encodeURIComponent(applicationId)}/handover/${encodeURIComponent(item)}`,
+      {
+        method: "PUT",
+        cache: "no-store",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ checked }),
+      },
+    );
+  } catch {
+    return tickProblem("unavailable");
+  }
+
+  if (response.ok) {
+    const payload: unknown = await response.json();
+    return isChecklist(payload)
+      ? { ok: true, checked: payload.checked }
+      : tickProblem("unavailable");
+  }
+  if (response.status === 404) {
+    return tickProblem("not-found");
+  }
+  if (response.status === 409) {
+    return tickProblem("not-tickable");
+  }
+  // A 422 is an item or body this page never sends, so it is not the person's to fix.
+  return tickProblem("unavailable");
 }
 
 // The backend's 409 on an answer has two causes: the request is no longer open, or
