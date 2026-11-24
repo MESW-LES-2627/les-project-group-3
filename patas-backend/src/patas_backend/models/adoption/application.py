@@ -7,6 +7,7 @@ from patas_backend.models.adoption.errors import (
     InvalidApplication,
     OwnerCannotApply,
 )
+from patas_backend.models.adoption.handover_item import HandoverItem
 from patas_backend.models.adoption.profile_snapshot import ProfileSnapshot
 from patas_backend.models.adoption.state import STATES, ApplicationState
 from patas_backend.models.adoption.status import ApplicationStatus
@@ -60,6 +61,8 @@ class AdoptionApplication:
     owner_note: str | None = None
     owner_confirmed_at: datetime | None = None
     applicant_confirmed_at: datetime | None = None
+    # The checklist items either side has ticked. It never blocks the handover.
+    handover_checked: frozenset[HandoverItem] = frozenset()
     created_at: datetime | None = None  # set by the database
 
     def __post_init__(self) -> None:
@@ -113,6 +116,15 @@ class AdoptionApplication:
                 "Only the owner or the applicant can confirm the handover"
             )
         self._state.confirm_handover(self, by_owner, at)
+
+    def set_handover_item(
+        self, by_user_id: UUID, item: HandoverItem, checked: bool
+    ) -> None:
+        if by_user_id not in (self.owner_id, self.applicant_id):
+            raise ApplicationUnauthorized(
+                "Only the owner or the applicant can change the handover checklist"
+            )
+        self._state.set_handover_item(self, item, checked)
 
     def close(self) -> None:
         """The system closes an open request: no person does this."""

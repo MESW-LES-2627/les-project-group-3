@@ -10,6 +10,7 @@ from patas_backend.models.adoption import (
     AdoptionApplication,
     AlreadyRequested,
     ApplicationStatus,
+    HandoverItem,
     InvalidApplication,
     InvalidTransition,
     MatchmakerProfileRequired,
@@ -40,6 +41,19 @@ class OwnerReplyBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     note: str | None = None
+
+
+class HandoverItemBody(BaseModel):
+    # Only whether the item is ticked. The item is in the path, and who is ticking
+    # is the caller. Unknown fields are a 422.
+    model_config = ConfigDict(extra="forbid")
+
+    checked: bool
+
+
+class HandoverChecklistResponse(BaseModel):
+    # The ticked items after the change, in a stable order.
+    checked: list[HandoverItem]
 
 
 class ApplicationResponse(BaseModel):
@@ -79,6 +93,7 @@ class SentRequestResponse(BaseModel):
     owner_note: str | None
     owner_confirmed_at: datetime | None
     applicant_confirmed_at: datetime | None
+    handover_checked: list[HandoverItem]
     created_at: datetime
 
     @classmethod
@@ -92,6 +107,7 @@ class SentRequestResponse(BaseModel):
             owner_note=request.owner_note,
             owner_confirmed_at=request.owner_confirmed_at,
             applicant_confirmed_at=request.applicant_confirmed_at,
+            handover_checked=sorted(request.handover_checked),
             created_at=request.created_at,
         )
 
@@ -123,6 +139,7 @@ class ReceivedRequestResponse(BaseModel):
     compatibility_concerns: list[str]
     owner_confirmed_at: datetime | None
     applicant_confirmed_at: datetime | None
+    handover_checked: list[HandoverItem]
     created_at: datetime
 
     @classmethod
@@ -142,6 +159,7 @@ class ReceivedRequestResponse(BaseModel):
             compatibility_concerns=list(request.compatibility_concerns),
             owner_confirmed_at=request.owner_confirmed_at,
             applicant_confirmed_at=request.applicant_confirmed_at,
+            handover_checked=sorted(request.handover_checked),
             created_at=request.created_at,
         )
 
@@ -313,3 +331,27 @@ async def confirm_handover(
         # Also for someone who is neither side: to them it does not exist.
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Request not found")
     return ApplicationResponse.from_domain(application)
+
+
+@router.put(
+    "/applications/{application_id}/handover/{item}",
+    response_model=HandoverChecklistResponse,
+)
+async def set_handover_item(
+    application_id: UUID,
+    item: HandoverItem,
+    body: HandoverItemBody,
+    actor: Annotated[User, Depends(get_current_user)],
+    service: Annotated[AdoptionService, Depends(get_adoption_service)],
+) -> HandoverChecklistResponse:
+    """Owner or applicant ticks or unticks one handover checklist item."""
+    try:
+        application = await service.set_handover_item(
+            actor, application_id, item, body.checked
+        )
+    except InvalidTransition as error:
+        raise _conflict("invalid_transition", error) from error
+    if application is None:
+        # Also for someone who is neither side: to them it does not exist.
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Request not found")
+    return HandoverChecklistResponse(checked=sorted(application.handover_checked))

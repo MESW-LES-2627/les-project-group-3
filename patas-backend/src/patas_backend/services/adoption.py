@@ -8,6 +8,7 @@ from patas_backend.models.adoption import (
     AdoptionApplication,
     AdoptionApplicationRepository,
     AlreadyRequested,
+    HandoverItem,
     MatchmakerProfileRequired,
     OwnerCannotApply,
     ProfileSnapshot,
@@ -221,4 +222,26 @@ class AdoptionService:
             await AdoptionApplicationRepository(session).update(application)
 
         await self._dispatcher.publish(events)
+        return application
+
+    async def set_handover_item(
+        self, actor: User, application_id: UUID, item: HandoverItem, checked: bool
+    ) -> AdoptionApplication | None:
+        """US-25: the owner or applicant ticks or unticks a handover checklist item.
+
+        None if there is no such request or the caller is neither side: to anyone
+        else it does not exist. Raises InvalidTransition if it is not accepted.
+        """
+        async with self._session_factory.begin() as session:
+            # The same lock order as every use case (ADR 0017, decision 8). Holding
+            # the application also means a tick queued behind the confirmation that
+            # adopts sees "adopted" and is refused, and two ticks at once both stay.
+            application = await lock_animal_and_application(session, application_id)
+            if application is None or actor.id not in (
+                application.owner_id,
+                application.applicant_id,
+            ):
+                return None
+            application.set_handover_item(actor.id, item, checked)
+            await AdoptionApplicationRepository(session).update(application)
         return application

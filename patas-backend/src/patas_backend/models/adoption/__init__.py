@@ -15,6 +15,7 @@ from patas_backend.models.adoption.events import (
     ApplicationEvent,
     ApplicationWithdrawn,
 )
+from patas_backend.models.adoption.handover_item import HandoverItem
 from patas_backend.models.adoption.profile_snapshot import ProfileSnapshot
 from patas_backend.models.adoption.received_request import ReceivedRequest
 from patas_backend.models.adoption.repository import AdoptionApplicationRepository
@@ -33,6 +34,7 @@ __all__ = [
     "ApplicationStatus",
     "ApplicationUnauthorized",
     "ApplicationWithdrawn",
+    "HandoverItem",
     "InvalidApplication",
     "InvalidTransition",
     "MatchmakerProfileRequired",

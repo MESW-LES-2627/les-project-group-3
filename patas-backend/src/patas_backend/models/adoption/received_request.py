@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
+from patas_backend.models.adoption.handover_item import HandoverItem
 from patas_backend.models.adoption.profile_snapshot import ProfileSnapshot
 from patas_backend.models.adoption.status import ApplicationStatus
 
@@ -23,4 +24,5 @@ class ReceivedRequest:
     created_at: datetime
     owner_confirmed_at: datetime | None = None
     applicant_confirmed_at: datetime | None = None
+    handover_checked: frozenset[HandoverItem] = frozenset()
     compatibility_concerns: tuple[str, ...] = ()

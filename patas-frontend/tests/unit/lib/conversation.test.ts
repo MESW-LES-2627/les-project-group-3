@@ -13,6 +13,7 @@ function sent(id: string): SentRequest {
     owner_note: null,
     owner_confirmed_at: null,
     applicant_confirmed_at: null,
+    handover_checked: [],
     created_at: "2026-11-01T10:00:00Z",
   };
 }
@@ -39,6 +40,7 @@ function received(id: string): ReceivedRequest {
     compatibility_concerns: [],
     owner_confirmed_at: null,
     applicant_confirmed_at: null,
+    handover_checked: [],
     created_at: "2026-11-01T10:00:00Z",
   };
 }

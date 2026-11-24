@@ -96,8 +96,13 @@ export type SentRequest = {
   owner_note: string | null;
   owner_confirmed_at: string | null;
   applicant_confirmed_at: string | null;
+  handover_checked: string[];
   created_at: string;
 };
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
 
 export function isSentRequest(value: unknown): value is SentRequest {
   if (typeof value !== "object" || value === null) {
@@ -115,6 +120,7 @@ export function isSentRequest(value: unknown): value is SentRequest {
       typeof r.owner_confirmed_at === "string") &&
     (r.applicant_confirmed_at === null ||
       typeof r.applicant_confirmed_at === "string") &&
+    isStringArray(r.handover_checked) &&
     typeof r.created_at === "string"
   );
 }
@@ -136,6 +142,7 @@ export type ReceivedRequest = {
   compatibility_concerns: string[];
   owner_confirmed_at: string | null;
   applicant_confirmed_at: string | null;
+  handover_checked: string[];
   created_at: string;
 };
 
@@ -162,6 +169,7 @@ export function isReceivedRequest(value: unknown): value is ReceivedRequest {
       typeof request.owner_confirmed_at === "string") &&
     (request.applicant_confirmed_at === null ||
       typeof request.applicant_confirmed_at === "string") &&
+    isStringArray(request.handover_checked) &&
     typeof request.created_at === "string"
   );
 }
@@ -245,6 +253,34 @@ export type ConfirmHandoverAction = (
   applicationId: string,
   animalId: string,
 ) => Promise<ConfirmHandoverOutcome>;
+
+// US-25: either side ticks or unticks an item of the handover checklist.
+
+export type TickProblem = "not-found" | "not-tickable" | "unavailable";
+
+export const TICK_MESSAGES: Record<TickProblem, string> = {
+  "not-found": "This request could not be found.",
+  "not-tickable": "The checklist can no longer be changed.",
+  unavailable: "We could not save that right now. Please try again.",
+};
+
+export type TickOutcome =
+  | { ok: true; checked: string[] }
+  | { ok: false; problem: TickProblem; message: string };
+
+export type TickAction = (
+  applicationId: string,
+  item: string,
+  checked: boolean,
+) => Promise<TickOutcome>;
+
+export function isChecklist(value: unknown): value is { checked: string[] } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    isStringArray((value as Record<string, unknown>).checked)
+  );
+}
 
 // US-16: the owner accepts or declines a request, with an optional note.
 

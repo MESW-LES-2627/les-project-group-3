@@ -27,6 +27,7 @@ function sent(status: string, id = "r1"): SentRequest {
     owner_note: null,
     owner_confirmed_at: null,
     applicant_confirmed_at: null,
+    handover_checked: [],
     created_at: "2026-11-01T10:00:00Z",
   };
 }
@@ -55,6 +56,7 @@ function received(concerns: unknown[] = []): Record<string, unknown> {
     compatibility_concerns: concerns,
     owner_confirmed_at: null,
     applicant_confirmed_at: null,
+    handover_checked: [],
     created_at: "2026-11-01T10:00:00Z",
   };
 }
@@ -208,6 +210,28 @@ describe("response shape guards", () => {
     expect(isSentRequest({ ...sent("open"), created_at: 5 })).toBe(false);
     expect(isSentRequest(null)).toBe(false);
     expect(isSentRequest("open")).toBe(false);
+  });
+
+  it("needs the list of ticked checklist items, as strings", () => {
+    expect(
+      isSentRequest({ ...sent("accepted"), handover_checked: ["care_notes"] }),
+    ).toBe(true);
+    expect(isSentRequest({ ...sent("accepted"), handover_checked: "x" })).toBe(
+      false,
+    );
+    expect(isSentRequest({ ...sent("accepted"), handover_checked: [1] })).toBe(
+      false,
+    );
+    const without: Record<string, unknown> = { ...sent("accepted") };
+    delete without.handover_checked;
+    expect(isSentRequest(without)).toBe(false);
+
+    expect(
+      isReceivedRequest({ ...received(), handover_checked: ["care_notes"] }),
+    ).toBe(true);
+    const withoutReceived = received();
+    delete withoutReceived.handover_checked;
+    expect(isReceivedRequest(withoutReceived)).toBe(false);
   });
 
   it("tracks each side's handover confirmation", () => {

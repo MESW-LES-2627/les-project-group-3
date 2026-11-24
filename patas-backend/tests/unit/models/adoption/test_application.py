@@ -12,6 +12,7 @@ from patas_backend.models.adoption import (
     ApplicationStatus,
     ApplicationUnauthorized,
     ApplicationWithdrawn,
+    HandoverItem,
     InvalidApplication,
     InvalidTransition,
     OwnerCannotApply,
@@ -422,3 +423,88 @@ def test_a_confirmation_survives_a_later_decline_or_withdrawal(
 
     assert application.status is final
     assert application.owner_confirmed_at == NOW
+
+
+# --- the handover checklist -------------------------------------------------
+
+NOTES = HandoverItem.CARE_NOTES
+BOOKLET = HandoverItem.VACCINATION_BOOKLET
+
+
+@pytest.mark.parametrize("actor", [OWNER, APPLICANT])
+def test_either_side_ticks_and_unticks_while_accepted(actor: object) -> None:
+    application = _application(S.ACCEPTED)
+
+    application.set_handover_item(actor, NOTES, True)
+    assert application.handover_checked == {NOTES}
+
+    application.set_handover_item(actor, NOTES, False)
+    assert application.handover_checked == frozenset()
+
+
+def test_ticking_twice_is_the_same_as_ticking_once() -> None:
+    application = _application(S.ACCEPTED)
+
+    application.set_handover_item(OWNER, NOTES, True)
+    application.set_handover_item(APPLICANT, NOTES, True)
+
+    assert application.handover_checked == {NOTES}
+
+
+def test_a_tick_by_one_side_survives_the_other_sides_tick() -> None:
+    application = _application(S.ACCEPTED)
+
+    application.set_handover_item(OWNER, NOTES, True)
+    application.set_handover_item(APPLICANT, BOOKLET, True)
+
+    assert application.handover_checked == {NOTES, BOOKLET}
+
+
+def test_a_new_application_has_nothing_ticked() -> None:
+    assert _request().handover_checked == frozenset()
+
+
+@pytest.mark.parametrize("status", [s for s in S if s is not S.ACCEPTED])
+def test_the_checklist_only_changes_while_accepted(status: S) -> None:
+    application = _application(status)
+
+    with pytest.raises(InvalidTransition):
+        application.set_handover_item(OWNER, NOTES, True)
+
+    assert application.handover_checked == frozenset()
+    assert application.pull_events() == []
+
+
+def test_a_stranger_cannot_change_the_checklist() -> None:
+    application = _application(S.ACCEPTED)
+
+    with pytest.raises(ApplicationUnauthorized):
+        application.set_handover_item(STRANGER, NOTES, True)
+
+    assert application.handover_checked == frozenset()
+
+
+def test_who_is_asking_is_checked_before_the_status_for_the_checklist() -> None:
+    application = _application(S.OPEN)
+
+    with pytest.raises(ApplicationUnauthorized):
+        application.set_handover_item(STRANGER, NOTES, True)
+
+
+@pytest.mark.parametrize("ending", ["decline", "withdraw", "adopt"])
+def test_the_ticks_stay_as_they_were_when_the_request_ends(ending: str) -> None:
+    application = _application(S.ACCEPTED)
+    application.set_handover_item(OWNER, NOTES, True)
+
+    if ending == "decline":
+        application.decline(OWNER)
+    elif ending == "withdraw":
+        application.withdraw(APPLICANT)
+    else:
+        application.confirm_handover(OWNER, NOW)
+        application.confirm_handover(APPLICANT, LATER)
+
+    assert application.handover_checked == {NOTES}
+    with pytest.raises(InvalidTransition):
+        application.set_handover_item(OWNER, NOTES, False)
+    assert application.handover_checked == {NOTES}

@@ -4,9 +4,12 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 
+import { setHandoverItemAction } from "@/app/requests/actions";
 import { AdoptionGuidelines } from "@/components/adoption/adoption-guidelines";
+import { HandoverChecklist } from "@/components/adoption/handover-checklist";
 import { getMyRequests, getReceivedRequests } from "@/lib/adoption-api";
 import { showsGuidelines } from "@/lib/adoption-guidelines";
+import { canTick, showsChecklist } from "@/lib/handover-checklist";
 import { applicationStatusLabel } from "@/lib/adoption-status";
 import { auth } from "@/lib/auth";
 import { findConversation } from "@/lib/conversation";
@@ -71,6 +74,15 @@ async function ConversationContent({ params }: Props) {
       </div>
 
       {showsGuidelines(request.status) ? <AdoptionGuidelines open /> : null}
+
+      {showsChecklist(request.status) ? (
+        <HandoverChecklist
+          applicationId={request.id}
+          checked={request.handover_checked}
+          editable={canTick(request.status)}
+          action={setHandoverItemAction}
+        />
+      ) : null}
     </>
   );
 }
