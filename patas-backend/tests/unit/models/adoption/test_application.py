@@ -508,3 +508,40 @@ def test_the_ticks_stay_as_they_were_when_the_request_ends(ending: str) -> None:
     with pytest.raises(InvalidTransition):
         application.set_handover_item(OWNER, NOTES, False)
     assert application.handover_checked == {NOTES}
+
+
+# US-21: the conversation opens when the request is accepted.
+
+
+def test_accepting_records_when_and_opens_the_conversation() -> None:
+    application = _request()
+
+    application.accept(OWNER, at=NOW)
+
+    assert application.accepted_at == NOW
+    assert application.has_conversation
+
+
+def test_an_open_request_has_no_conversation() -> None:
+    application = _request()
+
+    assert application.accepted_at is None
+    assert not application.has_conversation
+
+
+def test_a_refused_accept_records_no_time() -> None:
+    application = _application(S.DECLINED)
+
+    with pytest.raises(InvalidTransition):
+        application.accept(OWNER, at=NOW)
+
+    assert application.accepted_at is None
+
+
+@pytest.mark.parametrize(
+    ("user", "expected"), [(OWNER, True), (APPLICANT, True), (STRANGER, False)]
+)
+def test_only_the_owner_and_the_applicant_are_participants(
+    user: object, expected: bool
+) -> None:
+    assert _request().is_participant(user) is expected  # type: ignore[arg-type]

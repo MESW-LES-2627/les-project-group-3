@@ -28,7 +28,9 @@ class ApplicationState:
 
     status: ClassVar[ApplicationStatus]
 
-    def accept(self, app: "AdoptionApplication", note: str | None) -> None:
+    def accept(
+        self, app: "AdoptionApplication", note: str | None, at: datetime
+    ) -> None:
         self._refuse("accepted")
 
     def decline(self, app: "AdoptionApplication", note: str | None) -> None:
@@ -84,8 +86,11 @@ class _ActiveState(ApplicationState):
 class OpenState(_ActiveState):
     status = S.OPEN
 
-    def accept(self, app: "AdoptionApplication", note: str | None) -> None:
+    def accept(
+        self, app: "AdoptionApplication", note: str | None, at: datetime
+    ) -> None:
         app.owner_note = note
+        app.accepted_at = at
         app._become(
             S.ACCEPTED,
             ApplicationAccepted(application_id=app.id, animal_id=app.animal_id),

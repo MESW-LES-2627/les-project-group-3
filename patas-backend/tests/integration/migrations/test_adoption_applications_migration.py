@@ -30,10 +30,10 @@ INSERT_APPLICATION = text(
     """
     INSERT INTO patas.adoption_applications
         (id, animal_id, owner_id, applicant_id, applicant_note, applicant_profile,
-         status, owner_confirmed_at, applicant_confirmed_at)
+         status, owner_confirmed_at, applicant_confirmed_at, accepted_at)
     VALUES (:id, :animal_id, :owner_id, :applicant_id, 'Hello', CAST('{}' AS jsonb),
             CAST(:status AS patas.application_status),
-            :owner_confirmed_at, :applicant_confirmed_at)
+            :owner_confirmed_at, :applicant_confirmed_at, :accepted_at)
     """
 )
 
@@ -80,6 +80,8 @@ async def _apply(
                 "status": status,
                 "owner_confirmed_at": NOW if owner_confirmed else None,
                 "applicant_confirmed_at": NOW if applicant_confirmed else None,
+                # Required for accepted and adopted (migration 0013).
+                "accepted_at": NOW if status in ("accepted", "adopted") else None,
             },
         )
 

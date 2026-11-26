@@ -195,6 +195,11 @@ def _build(
         owner_note=request.owner_note,
         owner_confirmed_at=confirmed,
         applicant_confirmed_at=confirmed,
+        # An accepted or adopted request has the time it was accepted: the
+        # database requires it, like the confirmations.
+        accepted_at=(
+            datetime.now(UTC) if request.status in (S.ACCEPTED, S.ADOPTED) else None
+        ),
     )
 
 

@@ -150,7 +150,7 @@ class AdoptionService:
             application = await lock_animal_and_application(session, application_id)
             if application is None or application.owner_id != owner.id:
                 return None
-            application.accept(owner.id, note)
+            application.accept(owner.id, note, at=datetime.now(UTC))
             events = await self._dispatcher.dispatch(application.pull_events(), session)
             await AdoptionApplicationRepository(session).update(application)
         await self._dispatcher.publish(events)

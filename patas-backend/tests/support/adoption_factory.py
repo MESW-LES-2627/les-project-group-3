@@ -91,6 +91,10 @@ def new_application(
     status: ApplicationStatus = ApplicationStatus.OPEN,
     **fields: object,
 ) -> AdoptionApplication:
+    # An accepted or adopted request has the time it was accepted: the database
+    # requires it.
+    if status in (ApplicationStatus.ACCEPTED, ApplicationStatus.ADOPTED):
+        fields.setdefault("accepted_at", NOW)
     return AdoptionApplication(
         id=uuid4(),
         animal_id=animal or world.rex,

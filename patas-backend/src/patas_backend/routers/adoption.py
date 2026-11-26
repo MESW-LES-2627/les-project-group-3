@@ -94,6 +94,8 @@ class SentRequestResponse(BaseModel):
     owner_confirmed_at: datetime | None
     applicant_confirmed_at: datetime | None
     handover_checked: list[HandoverItem]
+    # Set once the request was accepted: from then on it has a conversation.
+    accepted_at: datetime | None
     created_at: datetime
 
     @classmethod
@@ -108,6 +110,7 @@ class SentRequestResponse(BaseModel):
             owner_confirmed_at=request.owner_confirmed_at,
             applicant_confirmed_at=request.applicant_confirmed_at,
             handover_checked=sorted(request.handover_checked),
+            accepted_at=request.accepted_at,
             created_at=request.created_at,
         )
 
@@ -140,6 +143,8 @@ class ReceivedRequestResponse(BaseModel):
     owner_confirmed_at: datetime | None
     applicant_confirmed_at: datetime | None
     handover_checked: list[HandoverItem]
+    # Set once the request was accepted: from then on it has a conversation.
+    accepted_at: datetime | None
     created_at: datetime
 
     @classmethod
@@ -160,6 +165,7 @@ class ReceivedRequestResponse(BaseModel):
             owner_confirmed_at=request.owner_confirmed_at,
             applicant_confirmed_at=request.applicant_confirmed_at,
             handover_checked=sorted(request.handover_checked),
+            accepted_at=request.accepted_at,
             created_at=request.created_at,
         )
 

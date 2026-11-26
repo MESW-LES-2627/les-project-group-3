@@ -15,7 +15,7 @@ from patas_backend.models.adoption.status import ApplicationStatus
 _COLUMNS = """
     id, animal_id, owner_id, applicant_id, applicant_note, applicant_profile,
     status, owner_note, owner_confirmed_at, applicant_confirmed_at,
-    handover_checked, created_at
+    handover_checked, accepted_at, created_at
 """
 
 _INSERT = text(
@@ -23,13 +23,13 @@ _INSERT = text(
     INSERT INTO patas.adoption_applications
         (id, animal_id, owner_id, applicant_id, applicant_note, applicant_profile,
          status, owner_note, owner_confirmed_at, applicant_confirmed_at,
-         handover_checked)
+         handover_checked, accepted_at)
     VALUES (
         :id, :animal_id, :owner_id, :applicant_id, :applicant_note,
         CAST(:applicant_profile AS jsonb),
         CAST(:status AS patas.application_status),
         :owner_note, :owner_confirmed_at, :applicant_confirmed_at,
-        CAST(:handover_checked AS text[])
+        CAST(:handover_checked AS text[]), :accepted_at
     )
     """
 )
@@ -43,7 +43,8 @@ _UPDATE = text(
         owner_note = :owner_note,
         owner_confirmed_at = :owner_confirmed_at,
         applicant_confirmed_at = :applicant_confirmed_at,
-        handover_checked = CAST(:handover_checked AS text[])
+        handover_checked = CAST(:handover_checked AS text[]),
+        accepted_at = :accepted_at
     WHERE id = :id
     """
 )
@@ -80,7 +81,8 @@ _SELECT_SENT_BY_APPLICANT = text(
     """
     SELECT a.id, a.animal_id, an.name AS animal_name, a.status,
            a.applicant_note, a.owner_note, a.owner_confirmed_at,
-           a.applicant_confirmed_at, a.handover_checked, a.created_at
+           a.applicant_confirmed_at, a.handover_checked, a.accepted_at,
+           a.created_at
     FROM patas.adoption_applications a
     JOIN patas.animals an ON an.id = a.animal_id
     WHERE a.applicant_id = :applicant_id
@@ -94,7 +96,7 @@ _SELECT_RECEIVED_BY_OWNER = text(
            a.status, a.applicant_note,
            a.applicant_profile, a.owner_note,
            a.owner_confirmed_at, a.applicant_confirmed_at, a.handover_checked,
-           a.created_at
+           a.accepted_at, a.created_at
     FROM patas.adoption_applications a
     JOIN patas.animals an ON an.id = a.animal_id
     JOIN patas.users u ON u.id = a.applicant_id
@@ -118,6 +120,7 @@ def _to_params(application: AdoptionApplication) -> dict[str, Any]:
         "applicant_confirmed_at": application.applicant_confirmed_at,
         # Sorted, so that the stored value does not depend on the set's order.
         "handover_checked": sorted(item.value for item in application.handover_checked),
+        "accepted_at": application.accepted_at,
     }
 
 
@@ -139,6 +142,7 @@ def _from_row(row: Row[Any]) -> AdoptionApplication:
         owner_confirmed_at=row.owner_confirmed_at,
         applicant_confirmed_at=row.applicant_confirmed_at,
         handover_checked=_checked_items(row.handover_checked),
+        accepted_at=row.accepted_at,
         created_at=row.created_at,
     )
 
@@ -224,6 +228,7 @@ class AdoptionApplicationRepository:
                 owner_confirmed_at=row.owner_confirmed_at,
                 applicant_confirmed_at=row.applicant_confirmed_at,
                 handover_checked=_checked_items(row.handover_checked),
+                accepted_at=row.accepted_at,
                 created_at=row.created_at,
             )
             for row in result
@@ -249,6 +254,7 @@ class AdoptionApplicationRepository:
                 owner_confirmed_at=row.owner_confirmed_at,
                 applicant_confirmed_at=row.applicant_confirmed_at,
                 handover_checked=_checked_items(row.handover_checked),
+                accepted_at=row.accepted_at,
                 created_at=row.created_at,
             )
             for row in result
