@@ -28,6 +28,7 @@ We need a second API instance running the code from the `staging` branch.
   * `AWS_SECRET_ACCESS_KEY`: (Your R2 Secret Access Key from Step 2)
   * `AWS_S3_ENDPOINT_URL`: (Your R2 S3 Endpoint URL from Step 2)
   * `AWS_STORAGE_BUCKET_NAME`: (The name of your new R2 bucket, e.g., `patas-media-staging`)
+  * `ABLY_API_KEY`: (The API key of the Ably app `patas-staging`; one Ably app per environment, see ADR 0029)
 5. Copy the new Render service URL (e.g., `https://patas-backend-staging.onrender.com`).
 
 ## 4. Frontend (Vercel)
@@ -37,4 +38,5 @@ We need a second API instance running the code from the `staging` branch.
 4. Open the **Environment Variables** section and add:
   * `NEXT_PUBLIC_API_URL`: (Your new Render staging URL)
   * `BACKEND_URL`: (Your new Render staging URL)
+  * `ABLY_API_KEY`: (The same key as Render. Server only: never prefix it with `NEXT_PUBLIC_`)
 5. Click **Deploy**. Vercel will give you a permanent URL for this staging app.
