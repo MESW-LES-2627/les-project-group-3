@@ -16,6 +16,7 @@ from patas_backend.routers import (
     adoption,
     animals,
     compatibility,
+    conversation,
     health,
     matchmaker_profile,
     matchmaker_swipes,
@@ -67,6 +68,7 @@ def create_app(
     app.include_router(auth_router)
     app.include_router(animals.router)
     app.include_router(adoption.router)
+    app.include_router(conversation.router)
     app.include_router(matchmaker_profile.router)
     app.include_router(matchmaker_swipes.router)
     app.include_router(compatibility.router)
