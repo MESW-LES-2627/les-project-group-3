@@ -5,6 +5,7 @@ from sqlalchemy import Row, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from patas_backend.models.conversation.message import Message
+from patas_backend.models.conversation.message_notice import MessageNotice
 from patas_backend.models.conversation.message_view import MessageView
 
 _INSERT = text(
@@ -31,6 +32,19 @@ _SELECT_AFTER = text(
     WHERE m.application_id = :application_id
       AND (m.sent_at, m.id) > (:sent_at, :id)
     ORDER BY m.sent_at, m.id
+    """
+)
+# Everything the live notice needs, and nothing of the text.
+_SELECT_NOTICE = text(
+    """
+    SELECT m.application_id, m.id AS message_id, m.sender_id,
+           u.name AS sender_name, u.username AS sender_username,
+           an.name AS animal_name, a.owner_id, a.applicant_id
+    FROM patas.messages m
+    JOIN patas.users u ON u.id = m.sender_id
+    JOIN patas.adoption_applications a ON a.id = m.application_id
+    JOIN patas.animals an ON an.id = a.animal_id
+    WHERE m.id = :id
     """
 )
 _CURSOR = text(
@@ -75,6 +89,23 @@ class MessageRepository:
         result = await self._session.execute(_SELECT_ONE, {"id": message_id})
         row = result.first()
         return _view(row) if row is not None else None
+
+    async def get_notice(self, message_id: UUID) -> MessageNotice | None:
+        """What to tell both sides about this message, without its text."""
+        result = await self._session.execute(_SELECT_NOTICE, {"id": message_id})
+        row = result.first()
+        if row is None:
+            return None
+        return MessageNotice(
+            application_id=row.application_id,
+            message_id=row.message_id,
+            sender_id=row.sender_id,
+            sender_name=row.sender_name,
+            sender_username=row.sender_username,
+            animal_name=row.animal_name,
+            owner_id=row.owner_id,
+            applicant_id=row.applicant_id,
+        )
 
     async def list_for(
         self, application_id: UUID, after: UUID | None

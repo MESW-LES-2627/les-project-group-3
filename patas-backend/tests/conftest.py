@@ -6,6 +6,7 @@ import httpx
 import pytest
 import pytest_asyncio
 from alembic.config import Config
+from live import RecordingPublisher
 from sqlalchemy import text
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
@@ -69,9 +70,15 @@ async def engine(migrated_database_url: str) -> AsyncIterator[AsyncEngine]:
 ClientFactory = Callable[[JwksKeyProvider], httpx.AsyncClient]
 
 
+@pytest.fixture
+def live() -> RecordingPublisher:
+    """What the app would have published to Ably, per person."""
+    return RecordingPublisher()
+
+
 @pytest_asyncio.fixture
 async def make_client(
-    engine: AsyncEngine, migrated_database_url: str
+    engine: AsyncEngine, migrated_database_url: str, live: RecordingPublisher
 ) -> AsyncIterator[ClientFactory]:
     """Builds clients for the real FastAPI app, wired to the test database."""
     # Imported here, not at the top: building the app needs TLS, which crashes on some
@@ -85,7 +92,7 @@ async def make_client(
     apps = []
 
     def build(key_provider: JwksKeyProvider) -> httpx.AsyncClient:
-        app = create_app(settings, key_provider)
+        app = create_app(settings, key_provider, live)
         client = httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app), base_url="http://testserver"
         )

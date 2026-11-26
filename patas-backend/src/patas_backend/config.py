@@ -46,6 +46,13 @@ class Settings(BaseSettings):
         ),
     ] = ""
 
+    # Ably (US-21). Empty means no live updates: the app still works, and pages show
+    # everything on reload. Never sent to the browser.
+    ably_api_key: Annotated[
+        str,
+        Field(validation_alias=AliasChoices("ABLY_API_KEY", "PATAS_ABLY_API_KEY")),
+    ] = ""
+
     @property
     def uploads_configured(self) -> bool:
         """Photo uploads need all of these; a missing one would give broken URLs."""
