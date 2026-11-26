@@ -4,15 +4,26 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 
-import { setHandoverItemAction } from "@/app/requests/actions";
+import {
+  loadMessagesAction,
+  sendMessageAction,
+  setHandoverItemAction,
+} from "@/app/requests/actions";
 import { AdoptionGuidelines } from "@/components/adoption/adoption-guidelines";
+import { ChatThread } from "@/components/adoption/chat-thread";
 import { HandoverChecklist } from "@/components/adoption/handover-checklist";
+import { SidePanel } from "@/components/adoption/side-panel";
 import { getMyRequests, getReceivedRequests } from "@/lib/adoption-api";
 import { showsGuidelines } from "@/lib/adoption-guidelines";
 import { canTick, showsChecklist } from "@/lib/handover-checklist";
 import { applicationStatusLabel } from "@/lib/adoption-status";
 import { auth } from "@/lib/auth";
-import { findConversation } from "@/lib/conversation";
+import {
+  canSend,
+  findConversation,
+  hasConversation,
+} from "@/lib/conversation";
+import { getMessages } from "@/lib/conversation-api";
 import { personLabel } from "@/lib/username";
 
 export const metadata: Metadata = {
@@ -23,8 +34,8 @@ type Props = {
   params: Promise<{ id: string }>;
 };
 
-// The page of one request, where its conversation will live (US-21). For now it
-// holds the guidelines (US-24, ADR 0027).
+// The page of one request: a compact header with the guidelines (US-24, ADR 0027),
+// then the conversation (US-21, ADR 0029) beside the handover checklist (US-25).
 async function ConversationContent({ params }: Props) {
   const { id } = await params;
   const session = await auth.api.getSession({ headers: await headers() });
@@ -59,37 +70,61 @@ async function ConversationContent({ params }: Props) {
         )}`
       : "Your request";
 
+  // A request accepted at some point has a conversation, even after it ended.
+  const messages = hasConversation(request)
+    ? await getMessages(request.id)
+    : null;
+  const checklist = showsChecklist(request.status) ? (
+    <HandoverChecklist
+      applicationId={request.id}
+      checked={request.handover_checked}
+      editable={canTick(request.status)}
+      action={setHandoverItemAction}
+      collapsible={false}
+    />
+  ) : null;
+
   return (
     <>
-      <div className="border-b border-line pb-8">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h1 className="text-4xl font-semibold text-forest sm:text-5xl">
+      <div className="grid gap-3 border-b border-line pb-5">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <h1 className="text-2xl font-semibold text-forest sm:text-3xl">
             {request.animal_name}
           </h1>
           <span className="rounded-full bg-surface px-2.5 py-0.5 text-xs font-semibold text-forest ring-1 ring-line">
             {applicationStatusLabel(request.status)}
           </span>
+          <p className="text-sm text-muted sm:ml-auto">{who}</p>
         </div>
-        <p className="mt-3 text-base leading-7 text-muted">{who}</p>
+        {showsGuidelines(request.status) ? <AdoptionGuidelines /> : null}
       </div>
 
-      {showsGuidelines(request.status) ? <AdoptionGuidelines open /> : null}
-
-      {showsChecklist(request.status) ? (
-        <HandoverChecklist
-          applicationId={request.id}
-          checked={request.handover_checked}
-          editable={canTick(request.status)}
-          action={setHandoverItemAction}
-        />
-      ) : null}
+      {messages === null ? null : messages.kind === "ok" ? (
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-0">
+          <ChatThread
+            applicationId={request.id}
+            myId={session.user.id}
+            initialMessages={messages.messages}
+            canSend={canSend(request.status)}
+            send={sendMessageAction}
+            loadAfter={loadMessagesAction}
+          />
+          {checklist ? (
+            <SidePanel title="Handover checklist">{checklist}</SidePanel>
+          ) : null}
+        </div>
+      ) : (
+        <p className="text-sm text-muted">
+          The conversation is not available right now, please try again later.
+        </p>
+      )}
     </>
   );
 }
 
 export default function ConversationPage({ params }: Props) {
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6 sm:py-14">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-10 sm:px-6 sm:py-14">
       <Link
         href="/requests"
         className="self-start text-sm font-semibold text-leaf underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest"
