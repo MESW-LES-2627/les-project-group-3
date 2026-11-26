@@ -11,6 +11,7 @@ from patas_backend.models.adoption.handover_item import HandoverItem
 from patas_backend.models.adoption.profile_snapshot import ProfileSnapshot
 from patas_backend.models.adoption.state import STATES, ApplicationState
 from patas_backend.models.adoption.status import ApplicationStatus
+from patas_backend.models.conversation import Message
 from patas_backend.models.events import DomainEvent
 
 MAX_NOTE_LENGTH = 1000
@@ -131,6 +132,14 @@ class AdoptionApplication:
             )
         self._state.set_handover_item(self, item, checked)
 
+    def post_message(self, by_user_id: UUID, body: str, at: datetime) -> Message:
+        """US-21: one side writes in the conversation. Only while accepted."""
+        if not self.is_participant(by_user_id):
+            raise ApplicationUnauthorized(
+                "Only the owner or the applicant can write in the conversation"
+            )
+        return self._state.post_message(self, by_user_id, body, at)
+
     def is_participant(self, user_id: UUID) -> bool:
         """The owner and the applicant are the only two sides of a request."""
         return user_id in (self.owner_id, self.applicant_id)
@@ -152,6 +161,10 @@ class AdoptionApplication:
     def _become(self, status: ApplicationStatus, event: DomainEvent) -> None:
         """Used by the states: set the new status and record what happened."""
         self.status = status
+        self._record(event)
+
+    def _record(self, event: DomainEvent) -> None:
+        """Used by the states: remember what happened, to be pulled later."""
         self._events.append(event)
 
     @staticmethod

@@ -19,6 +19,7 @@ from patas_backend.models.adoption import (
     ProfileSnapshot,
 )
 from patas_backend.models.adoption.state import STATES
+from patas_backend.models.conversation import InvalidMessage, MessagePosted
 from patas_backend.models.matching import EnergyLevel, ExperienceLevel, TimeAway
 from patas_backend.models.matchmaker_profile import HousingType
 
@@ -545,3 +546,55 @@ def test_only_the_owner_and_the_applicant_are_participants(
     user: object, expected: bool
 ) -> None:
     assert _request().is_participant(user) is expected  # type: ignore[arg-type]
+
+
+# US-21: only an accepted request's two sides can write in its conversation.
+
+
+@pytest.mark.parametrize("sender", [OWNER, APPLICANT])
+def test_both_sides_can_write_while_accepted(sender: object) -> None:
+    application = _application(S.ACCEPTED)
+
+    message = application.post_message(sender, " Hi ", NOW)  # type: ignore[arg-type]
+
+    assert message.application_id == application.id
+    assert message.sender_id == sender
+    assert message.body == "Hi"
+    assert application.status is S.ACCEPTED
+    assert application.pull_events() == [
+        MessagePosted(
+            application_id=application.id,
+            message_id=message.id,
+            sender_id=sender,  # type: ignore[arg-type]
+        )
+    ]
+
+
+def test_someone_else_cannot_write() -> None:
+    application = _application(S.ACCEPTED)
+
+    with pytest.raises(ApplicationUnauthorized):
+        application.post_message(STRANGER, "Hi", NOW)
+
+    assert application.pull_events() == []
+
+
+@pytest.mark.parametrize(
+    "status", [S.OPEN, S.DECLINED, S.WITHDRAWN, S.CLOSED, S.ADOPTED]
+)
+def test_nobody_can_write_unless_accepted(status: S) -> None:
+    application = _application(status)
+
+    with pytest.raises(InvalidTransition):
+        application.post_message(APPLICANT, "Hi", NOW)
+
+    assert application.pull_events() == []
+
+
+def test_a_blank_message_records_nothing() -> None:
+    application = _application(S.ACCEPTED)
+
+    with pytest.raises(InvalidMessage):
+        application.post_message(APPLICANT, "   ", NOW)
+
+    assert application.pull_events() == []
