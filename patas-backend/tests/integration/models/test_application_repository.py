@@ -72,6 +72,8 @@ def _application(
         applicant_note="Hello",
         applicant_profile=SNAPSHOT,
         status=status,
+        # Required for accepted and adopted (migration 0013).
+        accepted_at=NOW if status in (S.ACCEPTED, S.ADOPTED) else None,
     )
 
 

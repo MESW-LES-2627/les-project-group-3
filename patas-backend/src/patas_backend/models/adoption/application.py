@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from patas_backend.models.adoption.errors import (
@@ -11,6 +11,7 @@ from patas_backend.models.adoption.handover_item import HandoverItem
 from patas_backend.models.adoption.profile_snapshot import ProfileSnapshot
 from patas_backend.models.adoption.state import STATES, ApplicationState
 from patas_backend.models.adoption.status import ApplicationStatus
+from patas_backend.models.conversation import Message
 from patas_backend.models.events import DomainEvent
 
 MAX_NOTE_LENGTH = 1000
@@ -63,6 +64,9 @@ class AdoptionApplication:
     applicant_confirmed_at: datetime | None = None
     # The checklist items either side has ticked. It never blocks the handover.
     handover_checked: frozenset[HandoverItem] = frozenset()
+    # When the owner accepted. A request accepted at some point has a conversation,
+    # even after it ends (US-21).
+    accepted_at: datetime | None = None
     created_at: datetime | None = None  # set by the database
 
     def __post_init__(self) -> None:
@@ -94,9 +98,11 @@ class AdoptionApplication:
     def _state(self) -> ApplicationState:
         return STATES[self.status]
 
-    def accept(self, by_user_id: UUID, note: str | None = None) -> None:
+    def accept(
+        self, by_user_id: UUID, note: str | None = None, *, at: datetime | None = None
+    ) -> None:
         self._require(by_user_id, self.owner_id, "Only the owner can accept")
-        self._state.accept(self, _clean_note(note))
+        self._state.accept(self, _clean_note(note), at or datetime.now(UTC))
 
     def decline(self, by_user_id: UUID, note: str | None = None) -> None:
         self._require(by_user_id, self.owner_id, "Only the owner can decline")
@@ -120,11 +126,28 @@ class AdoptionApplication:
     def set_handover_item(
         self, by_user_id: UUID, item: HandoverItem, checked: bool
     ) -> None:
-        if by_user_id not in (self.owner_id, self.applicant_id):
+        if not self.is_participant(by_user_id):
             raise ApplicationUnauthorized(
                 "Only the owner or the applicant can change the handover checklist"
             )
         self._state.set_handover_item(self, item, checked)
+
+    def post_message(self, by_user_id: UUID, body: str, at: datetime) -> Message:
+        """US-21: one side writes in the conversation. Only while accepted."""
+        if not self.is_participant(by_user_id):
+            raise ApplicationUnauthorized(
+                "Only the owner or the applicant can write in the conversation"
+            )
+        return self._state.post_message(self, by_user_id, body, at)
+
+    def is_participant(self, user_id: UUID) -> bool:
+        """The owner and the applicant are the only two sides of a request."""
+        return user_id in (self.owner_id, self.applicant_id)
+
+    @property
+    def has_conversation(self) -> bool:
+        """The conversation opens when the request is accepted and stays readable."""
+        return self.accepted_at is not None
 
     def close(self) -> None:
         """The system closes an open request: no person does this."""
@@ -138,6 +161,10 @@ class AdoptionApplication:
     def _become(self, status: ApplicationStatus, event: DomainEvent) -> None:
         """Used by the states: set the new status and record what happened."""
         self.status = status
+        self._record(event)
+
+    def _record(self, event: DomainEvent) -> None:
+        """Used by the states: remember what happened, to be pulled later."""
         self._events.append(event)
 
     @staticmethod

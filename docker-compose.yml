@@ -25,6 +25,8 @@ services:
     restart: always
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-patas_admin}:${POSTGRES_PASSWORD:-securepassword}@db:5432/${POSTGRES_DB:-patas_db}
+      # Live updates (US-21). Empty: the app works without them.
+      ABLY_API_KEY: ${ABLY_API_KEY:-}
       # Keys come from the frontend container; iss/aud are the public URL Better-Auth signs with.
       PATAS_JWKS_URL: http://frontend:3000/api/auth/jwks
       PATAS_JWT_ISSUER: ${BETTER_AUTH_URL:-http://localhost:3000}

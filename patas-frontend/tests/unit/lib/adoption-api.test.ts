@@ -30,6 +30,7 @@ const sentRequest = {
   animal_name: "Bolt",
   owner_note: null,
   handover_checked: [],
+  accepted_at: null,
   created_at: "2026-11-01T10:00:00Z",
 };
 
@@ -55,6 +56,7 @@ const receivedRequest = {
   owner_confirmed_at: null,
   applicant_confirmed_at: null,
   handover_checked: [],
+  accepted_at: null,
   created_at: "2026-11-01T10:00:00Z",
 };
 

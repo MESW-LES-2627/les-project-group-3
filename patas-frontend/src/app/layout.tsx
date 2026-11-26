@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
 import "./globals.css";
 
+import { LiveUpdates } from "@/components/live/live-updates";
 import { SiteHeader } from "@/components/site-header";
 
 const geistSans = Geist({
@@ -38,6 +39,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <SiteHeader />
         </Suspense>
         {children}
+        <Suspense fallback={null}>
+          <LiveUpdates />
+        </Suspense>
       </body>
     </html>
   );

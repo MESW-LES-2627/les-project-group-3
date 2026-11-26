@@ -18,6 +18,12 @@ import {
   type TickOutcome,
   type WithdrawOutcome,
 } from "@/lib/adoption";
+import {
+  SEND_MESSAGES,
+  type MessagesResult,
+  type SendOutcome,
+} from "@/lib/conversation";
+import { getMessages, postMessage } from "@/lib/conversation-api";
 import { HANDOVER_ITEM_KEYS } from "@/lib/handover-checklist";
 
 // A Server Action is a public endpoint: the arguments are checked again here, and the
@@ -124,4 +130,36 @@ export async function setHandoverItemAction(
     revalidatePath(`/requests/${applicationId}`);
   }
   return outcome;
+}
+
+// US-21: one side writes in the conversation. A public endpoint like the others: the
+// arguments are checked again here, and the backend is the judge. Nothing is
+// revalidated: the chat adds the returned message itself, and the other side learns
+// about it live.
+export async function sendMessageAction(
+  applicationId: unknown,
+  body: unknown,
+): Promise<SendOutcome> {
+  if (typeof applicationId !== "string" || typeof body !== "string") {
+    return {
+      ok: false,
+      problem: "unavailable",
+      message: SEND_MESSAGES.unavailable,
+    };
+  }
+  return postMessage(applicationId, body);
+}
+
+// US-21: the messages after the last one the page has, or all of them.
+export async function loadMessagesAction(
+  applicationId: unknown,
+  after: unknown,
+): Promise<MessagesResult> {
+  if (
+    typeof applicationId !== "string" ||
+    (after !== null && typeof after !== "string")
+  ) {
+    return { kind: "unavailable" };
+  }
+  return getMessages(applicationId, after ?? undefined);
 }

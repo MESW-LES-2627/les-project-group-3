@@ -16,12 +16,20 @@ from patas_backend.routers import (
     adoption,
     animals,
     compatibility,
+    conversation,
     health,
     matchmaker_profile,
     matchmaker_swipes,
 )
 from patas_backend.services.adoption_handlers import register_adoption_handlers
 from patas_backend.services.events import EventDispatcher
+from patas_backend.services.live import (
+    AblyPublisher,
+    LiveAnnouncer,
+    LivePublisher,
+    NullPublisher,
+    register_live_handlers,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -29,10 +37,17 @@ logger = logging.getLogger(__name__)
 def create_app(
     settings: Settings | None = None,
     key_provider: JwksKeyProvider | None = None,
+    publisher: LivePublisher | None = None,
 ) -> FastAPI:
-    """Build the app. `key_provider` is the seam tests use to inject a key set."""
+    """Build the app. `key_provider` and `publisher` are the seams tests use to inject
+    a key set and a recorder in place of Ably."""
     settings = settings or Settings()
     engine = create_async_engine(settings.database_url)
+    live: LivePublisher = publisher or (
+        AblyPublisher(settings.ably_api_key)
+        if settings.ably_api_key
+        else NullPublisher()
+    )
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
@@ -47,6 +62,7 @@ def create_app(
             raise e
 
         yield
+        await live.close()
         await engine.dispose()
 
     app = FastAPI(title="Patas", lifespan=lifespan)
@@ -57,6 +73,7 @@ def create_app(
     # (chat, notifications) registers its handlers here, not in the adoption code.
     dispatcher = EventDispatcher()
     register_adoption_handlers(dispatcher)
+    register_live_handlers(dispatcher, LiveAnnouncer(live, app.state.session_factory))
     app.state.dispatcher = dispatcher
     app.state.verifier = JwtVerifier(
         key_provider or RemoteJwksKeyProvider(settings.jwks_url),
@@ -67,6 +84,7 @@ def create_app(
     app.include_router(auth_router)
     app.include_router(animals.router)
     app.include_router(adoption.router)
+    app.include_router(conversation.router)
     app.include_router(matchmaker_profile.router)
     app.include_router(matchmaker_swipes.router)
     app.include_router(compatibility.router)

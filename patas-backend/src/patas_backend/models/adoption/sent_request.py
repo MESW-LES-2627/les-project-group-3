@@ -24,3 +24,4 @@ class SentRequest:
     owner_confirmed_at: datetime | None = None
     applicant_confirmed_at: datetime | None = None
     handover_checked: frozenset[HandoverItem] = frozenset()
+    accepted_at: datetime | None = None

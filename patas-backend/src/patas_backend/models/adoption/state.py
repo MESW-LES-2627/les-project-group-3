@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import TYPE_CHECKING, ClassVar, NoReturn
+from uuid import UUID
 
 from patas_backend.models.adoption.errors import InvalidTransition
 from patas_backend.models.adoption.events import (
@@ -11,6 +12,7 @@ from patas_backend.models.adoption.events import (
 )
 from patas_backend.models.adoption.handover_item import HandoverItem
 from patas_backend.models.adoption.status import ApplicationStatus
+from patas_backend.models.conversation import Message, MessagePosted
 
 if TYPE_CHECKING:
     from patas_backend.models.adoption.application import AdoptionApplication
@@ -28,7 +30,9 @@ class ApplicationState:
 
     status: ClassVar[ApplicationStatus]
 
-    def accept(self, app: "AdoptionApplication", note: str | None) -> None:
+    def accept(
+        self, app: "AdoptionApplication", note: str | None, at: datetime
+    ) -> None:
         self._refuse("accepted")
 
     def decline(self, app: "AdoptionApplication", note: str | None) -> None:
@@ -49,6 +53,11 @@ class ApplicationState:
 
     def close(self, app: "AdoptionApplication") -> None:
         self._refuse("closed")
+
+    def post_message(
+        self, app: "AdoptionApplication", sender_id: UUID, body: str, at: datetime
+    ) -> Message:
+        self._refuse("written to")
 
     def _refuse(self, action: str) -> NoReturn:
         raise InvalidTransition(
@@ -84,8 +93,11 @@ class _ActiveState(ApplicationState):
 class OpenState(_ActiveState):
     status = S.OPEN
 
-    def accept(self, app: "AdoptionApplication", note: str | None) -> None:
+    def accept(
+        self, app: "AdoptionApplication", note: str | None, at: datetime
+    ) -> None:
         app.owner_note = note
+        app.accepted_at = at
         app._become(
             S.ACCEPTED,
             ApplicationAccepted(application_id=app.id, animal_id=app.animal_id),
@@ -107,6 +119,19 @@ class AcceptedState(_ActiveState):
         app.handover_checked = (
             app.handover_checked | {item} if checked else app.handover_checked - {item}
         )
+
+    def post_message(
+        self, app: "AdoptionApplication", sender_id: UUID, body: str, at: datetime
+    ) -> Message:
+        message = Message.write(
+            application_id=app.id, sender_id=sender_id, body=body, at=at
+        )
+        app._record(
+            MessagePosted(
+                application_id=app.id, message_id=message.id, sender_id=sender_id
+            )
+        )
+        return message
 
     def confirm_handover(
         self, app: "AdoptionApplication", by_owner: bool, at: datetime

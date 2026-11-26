@@ -18,6 +18,8 @@ type HandoverChecklistProps = {
   checked: readonly string[];
   editable: boolean;
   action: TickAction;
+  // False where something around it already collapses (the conversation's side panel).
+  collapsible?: boolean;
 };
 
 // Ticks are shared by both sides and saved by the backend (US-25, ADR 0028). The
@@ -27,6 +29,7 @@ export function HandoverChecklist({
   checked,
   editable,
   action,
+  collapsible = true,
 }: HandoverChecklistProps) {
   const [pendingKey, setPendingKey] = useState<HandoverItemKey | null>(null);
   const [pending, startTransition] = useTransition();
@@ -45,12 +48,9 @@ export function HandoverChecklist({
     });
   }
 
-  return (
-    <details open className="rounded-xl bg-leaf/5 p-4">
-      <summary className="cursor-pointer text-sm font-semibold text-forest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest">
-        Handover checklist: {checkedCount(checked)} of {HANDOVER_ITEM_KEYS.length}{" "}
-        done
-      </summary>
+  const summary = `Handover checklist: ${checkedCount(checked)} of ${HANDOVER_ITEM_KEYS.length} done`;
+  const body = (
+    <>
       <p className="mt-3 text-sm text-muted">
         {editable
           ? "You can confirm the handover without ticking everything."
@@ -89,6 +89,23 @@ export function HandoverChecklist({
         </p>
       ) : null}
       <p className="mt-4 text-xs text-muted">{HANDOVER_DISCLAIMER}</p>
+    </>
+  );
+
+  if (!collapsible) {
+    return (
+      <div>
+        <p className="text-sm font-semibold text-forest">{summary}</p>
+        {body}
+      </div>
+    );
+  }
+  return (
+    <details open className="rounded-xl bg-leaf/5 p-4">
+      <summary className="cursor-pointer text-sm font-semibold text-forest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest">
+        {summary}
+      </summary>
+      {body}
     </details>
   );
 }

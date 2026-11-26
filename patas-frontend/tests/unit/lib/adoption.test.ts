@@ -28,6 +28,7 @@ function sent(status: string, id = "r1"): SentRequest {
     owner_confirmed_at: null,
     applicant_confirmed_at: null,
     handover_checked: [],
+    accepted_at: null,
     created_at: "2026-11-01T10:00:00Z",
   };
 }
@@ -57,6 +58,7 @@ function received(concerns: unknown[] = []): Record<string, unknown> {
     owner_confirmed_at: null,
     applicant_confirmed_at: null,
     handover_checked: [],
+    accepted_at: null,
     created_at: "2026-11-01T10:00:00Z",
   };
 }
@@ -231,6 +233,23 @@ describe("response shape guards", () => {
     ).toBe(true);
     const withoutReceived = received();
     delete withoutReceived.handover_checked;
+    expect(isReceivedRequest(withoutReceived)).toBe(false);
+  });
+
+  it("needs when the request was accepted, or null if it never was", () => {
+    expect(
+      isSentRequest({ ...sent("accepted"), accepted_at: "2026-11-02T10:00:00Z" }),
+    ).toBe(true);
+    expect(isSentRequest({ ...sent("accepted"), accepted_at: 5 })).toBe(false);
+    const without: Record<string, unknown> = { ...sent("accepted") };
+    delete without.accepted_at;
+    expect(isSentRequest(without)).toBe(false);
+
+    expect(
+      isReceivedRequest({ ...received(), accepted_at: "2026-11-02T10:00:00Z" }),
+    ).toBe(true);
+    const withoutReceived = received();
+    delete withoutReceived.accepted_at;
     expect(isReceivedRequest(withoutReceived)).toBe(false);
   });
 

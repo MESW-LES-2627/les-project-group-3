@@ -104,6 +104,7 @@ Each application has exactly **one conversation**. There are no free direct mess
 * **Guidelines panel** next to the chat, advisory only, never blocking: suggested questions for the owner (who lives in the home, outdoor space, hours alone, experience), safety tips (meet in a public place first) and the platform rule that **adoption is not a sale**.
 * **Report** on any message, handled by moderation (A7).
 * **Contact details are never shown by the platform.** Everything needed happens in the conversation.
+* **Built so far (US-21, ADR 0029):** text messages only. Photos (US-22), request cards (US-23) and system messages do not exist yet; the status shows in the page's header.
 
 ## 7. Photos
 
@@ -129,7 +130,7 @@ The adoption base is implemented and explained in [ADR 0017](../architecture/adr
 
 * **State pattern:** one class per application status (`OpenState`, `AcceptedState`, `DeclinedState`, `WithdrawnState`, `ClosedState`, `AdoptedState`) exposing `accept()`, `decline()`, `withdraw()`, `confirm_handover()` and `close()`. An invalid operation raises `InvalidTransition`. The animal has guarded methods instead (`reserve()`, `release()`, `mark_adopted()`).
 * **Domain events:** aggregates record events (`ApplicationAccepted`, `ApplicationDeclined`, `ApplicationWithdrawn`, `ApplicationAdopted`, `ApplicationClosed`, `AnimalUnpublished`). A dispatcher runs the in-transaction handlers and, after the commit, the announcements (notifications, system messages, chat pushes).
-* **Chat transport:** REST + polling first; Server-Sent Events with Postgres `LISTEN/NOTIFY` later (the same channel can carry notifications). Needs an ADR. A hosted service such as Pusher would also plug in as an after-commit handler.
+* **Chat transport:** Ably, one channel per person (`user:<id>`), published by an after-commit handler. The notices carry ids and names, never the text, which the page fetches from Patas. See [ADR 0029](../architecture/adr/0029-chat.md).
 
 ## 10. Open Decisions
 
@@ -141,7 +142,7 @@ The adoption base is implemented and explained in [ADR 0017](../architecture/adr
 | D4 | Can the owner make a request card mandatory before accepting (e.g. home photos)? | No, advisory only |
 | D5 | Is `Adopted` final, or can an adopted animal be returned to the same listing? | Final in the MVP |
 | D6 | How long are conversation photos kept after the application closes? | To decide (e.g. 30 days) |
-| D7 | Chat transport | Polling first, SSE later (ADR) |
+| D7 | Chat transport | Ably, one channel per person ([ADR 0029](../architecture/adr/0029-chat.md)), pending team agreement |
 | D8 | When does the conversation open? | When the request is accepted: the owner talks to that one applicant, then confirms the handover or declines. (Earlier text: at the request.) |
 | D9 | Can the owner unpublish an animal that is `Reserved` or `Adopted`? | No. A reserved animal must first have its accepted request declined or withdrawn. |
 | D10 | How is the handover confirmed? | Each side confirms once; the second confirmation adopts. Until then the owner can still decline (US-16) and the applicant can still withdraw: one confirmation blocks neither, and it stays on the request if one of them happens. Only the completed adoption is final. Proposal for the team. |

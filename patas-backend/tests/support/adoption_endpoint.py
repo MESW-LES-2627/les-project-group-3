@@ -75,6 +75,10 @@ async def _seed_rex(engine: AsyncEngine, *moves: str) -> Animal:
 def _request(
     rex: Animal, who: dict[str, str], status: S = S.OPEN, **fields: object
 ) -> AdoptionApplication:
+    # An accepted or adopted request has the time it was accepted: the database
+    # requires it.
+    if status in (S.ACCEPTED, S.ADOPTED):
+        fields.setdefault("accepted_at", NOW)
     return AdoptionApplication(
         id=uuid4(),
         animal_id=rex.id,
