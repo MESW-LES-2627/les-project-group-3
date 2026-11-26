@@ -3,8 +3,8 @@ revision = 3
 requires-python = ">=3.12"
 
 [[package]]
-name = "ably"
-version = "3.1.4"
+name = "ably-pubsub-server"
+version = "4.0.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "h2" },
@@ -13,9 +13,9 @@ dependencies = [
     { name = "pyee" },
     { name = "websockets" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ad/d0/9b0c9767de706b7d7f2ed166d552219593907cece1a5ffe9248a074c2ab6/ably-3.1.4.tar.gz", hash = "sha256:72d180ef6c602bb23008377e33165dd3c41dadf7ed93b3af37cb3e79ae8a660d", size = 1101249, upload-time = "2026-09-23T16:05:41.895Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7e/84/8e92ffeda61186d5a81fb3a5933471e9f6aa138bcd25c75bceb6cb058746/ably_pubsub_server-4.0.1.tar.gz", hash = "sha256:deb49830eb6035639dcc3bf31ade756e9331966d21d32d926568f8a17ae2e41a", size = 1217263, upload-time = "2026-11-12T10:04:14.635Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/eb/f6/f8dc8e05b3d447090fd46852d83047439f649caf28b4ca1e0f2d0f69c450/ably-3.1.4-py3-none-any.whl", hash = "sha256:77ebbf70845a04b469aa0650113335072b662bd73f3d2e6fa52ec0b28926649e", size = 193680, upload-time = "2026-09-23T16:05:40.051Z" },
+    { url = "https://files.pythonhosted.org/packages/de/e6/f0d90426103b6f163e81497ea469508ed48828465785f841cb2c6a001656/ably_pubsub_server-4.0.1-py3-none-any.whl", hash = "sha256:cc0479e1407444422669dbded0fc949b9bc6ce45435d28854b2858ef2217de1d", size = 340191, upload-time = "2026-11-12T10:04:13.03Z" },
 ]
 
 [[package]]
@@ -914,7 +914,7 @@ name = "patas-backend"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "ably" },
+    { name = "ably-pubsub-server" },
     { name = "alembic" },
     { name = "asyncpg" },
     { name = "boto3" },
@@ -938,7 +938,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "ably", specifier = ">=3.1.4" },
+    { name = "ably-pubsub-server", specifier = ">=4.0.1" },
     { name = "alembic", specifier = ">=1.20.0" },
     { name = "asyncpg", specifier = ">=0.32.0" },
     { name = "boto3", specifier = ">=1.44.6" },

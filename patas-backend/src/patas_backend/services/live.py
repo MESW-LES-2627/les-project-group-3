@@ -8,7 +8,7 @@ import asyncio
 from typing import Protocol
 from uuid import UUID
 
-from ably import AblyRest
+from ably.pubsub.server import create_http_client
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from patas_backend.models.adoption import (
@@ -46,10 +46,12 @@ class NullPublisher:
 
 
 class AblyPublisher:
-    """Publishes through Ably's REST API."""
+    """Publishes through Ably's HTTP API, declared as a server: accounts billed by
+    monthly active users refuse the plain `ably` package, and a server is not counted
+    as a user."""
 
     def __init__(self, api_key: str) -> None:
-        self._client = AblyRest(key=api_key)
+        self._client = create_http_client(key=api_key)
 
     async def publish(self, user_id: UUID, name: str, data: dict[str, str]) -> None:
         channel = self._client.channels.get(channel_for(user_id))

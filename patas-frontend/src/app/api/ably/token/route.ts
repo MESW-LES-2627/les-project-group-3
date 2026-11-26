@@ -1,4 +1,4 @@
-import * as Ably from "ably";
+import { createHttpClient } from "@ably/pubsub-server";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 
@@ -21,8 +21,10 @@ export async function GET() {
     );
   }
 
-  const rest = new Ably.Rest({ key });
-  const tokenRequest = await rest.auth.createTokenRequest({
+  // Signed with the key, as a server: the tokens it issues carry no server claim, so
+  // the browser that uses one counts as a device (a user), which it is.
+  const ably = createHttpClient({ key });
+  const tokenRequest = await ably.auth.createTokenRequest({
     clientId: session.user.id,
     capability: { [liveChannel(session.user.id)]: ["subscribe"] },
   });

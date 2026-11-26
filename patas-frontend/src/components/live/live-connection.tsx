@@ -1,6 +1,6 @@
 "use client";
 
-import * as Ably from "ably";
+import { createClient } from "@ably/pubsub-device";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -29,7 +29,8 @@ export function LiveConnection({ userId }: Props) {
   }, []);
 
   useEffect(() => {
-    const client = new Ably.Realtime({
+    // The device package: this runs on the person's own device.
+    const client = createClient({
       authUrl: "/api/ably/token",
       clientId: userId,
     });

@@ -166,9 +166,12 @@ importers:
 
   .:
     dependencies:
-      ably:
-        specifier: 2.30.0
-        version: 2.30.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@ably/pubsub-device':
+        specifier: 3.2.0
+        version: 3.2.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@ably/pubsub-server':
+        specifier: 3.2.0
+        version: 3.2.0
       better-auth:
         specifier: ^1.7.10
         version: 1.7.10(next@16.4.6(@babel/core@7.29.7(supports-color@7.2.0))(@types/node@20.19.43)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(pg@8.23.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(vitest@4.1.12)
@@ -224,8 +227,39 @@ importers:
 
 packages:
 
-  '@ably/msgpack-js@0.4.1':
-    resolution: {integrity: sha512-Sjxj6SOr17hExAVrsycN7u6oV4PhZcK7Z2S8dM71CH/butgO47cSo/TL6FJPCXUyDAzKkOWjMUpJGyZkEpyu4Q==}
+  '@ably/pubsub-core@3.2.0':
+    resolution: {integrity: sha512-KH59X8MKgciOlDdf6LpiSYOqrugGVSe0CTxcEkOLOWhO4l59NGOych/OXUQDqdnElsdmKsOy7WscclEGQWb0Vw==}
+    engines: {node: '>=22'}
+
+  '@ably/pubsub-device@3.2.0':
+    resolution: {integrity: sha512-BYHLNAjcDOh0qZUt5KfUijGTjupmmh8zKXmCfobmi0aWyaA6sxP/j4D5rTIhi6tHYUfLpM9H7QhFhiXrwu71mw==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+    peerDependenciesMeta:
+      react:
+        optional: true
+      react-dom:
+        optional: true
+
+  '@ably/pubsub-server@3.2.0':
+    resolution: {integrity: sha512-pQp0mC8Piq8kKUEZzmICt/d0NEusTx3KEG4BhHtCVPbeR0UyPLsSSjrQpiZd6ZVDy2x2N03vn4voUjE6e/mxeA==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      '@temporalio/activity': 1.x
+      '@temporalio/common': 1.x
+      '@temporalio/plugin': 1.x
+      '@temporalio/workflow': '>=1.18.0 <2.0.0'
+    peerDependenciesMeta:
+      '@temporalio/activity':
+        optional: true
+      '@temporalio/common':
+        optional: true
+      '@temporalio/plugin':
+        optional: true
+      '@temporalio/workflow':
+        optional: true
 
   '@alloc/quick-lru@5.3.0':
     resolution: {integrity: sha512-U4+70Pc5ZS9osnCBCE5Jha/ciHM+Yp+CNMNC/7HvYbNRk1Ldd+f7qO65W5qfhu/TCv+/ozljlXXe9Nj8419DMA==}
@@ -1218,18 +1252,6 @@ packages:
   '@vitest/utils@4.1.12':
     resolution: {integrity: sha512-Q3awXrwOfEV+qc3WmO5ONyE0yO7Q1gQ9/oyHxGLZ/pl7N3NO/ZztqQwKLuwMkV+CA1JYSIeO3gkHnRDIo4AVaA==}
 
-  ably@2.30.0:
-    resolution: {integrity: sha512-67zEe/PF1yNoAxTuydAvi/nMtUWDeRca8FYsAiWi0Gyko3pp7vw/hGNOAQ38HVRohGsR2iimdNJ8NtSF8Tl2Dg==}
-    engines: {node: '>=16'}
-    peerDependencies:
-      react: '>=16.8.0'
-      react-dom: '>=16.8.0'
-    peerDependenciesMeta:
-      react:
-        optional: true
-      react-dom:
-        optional: true
-
   acorn-jsx@5.3.2:
     resolution: {integrity: sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ==}
     peerDependencies:
@@ -1319,10 +1341,6 @@ packages:
     resolution: {integrity: sha512-BLrgEcRTwX2o6gGxGOCNyMvGSp35YofuYzw9h1IMTRmKqttAZZVU67bdb9Pr2vUHA8+j3i2tJfjO6C6+4myGTA==}
     engines: {node: 18 || 20 || >=22}
 
-  base64-js@1.0.2:
-    resolution: {integrity: sha512-ZXBDPMt/v/8fsIqn+Z5VwrhdR6jVka0bYobHdGia0Nxi7BJ9i/Uvml3AocHIBtIIBhZjBw5MR0aR4ROs/8+SNg==}
-    engines: {node: '>= 0.4'}
-
   baseline-browser-mapping@2.11.29:
     resolution: {integrity: sha512-YeesxhUmR4h5y5V8KF8iBCqJb8YFrBJ++XBTeGcWIaQOYXGN19JM0FoiOjAhwuDoln8owMgXcWBmgHtYSkky2w==}
     engines: {node: '>=6.0.0'}
@@ -1394,9 +1412,6 @@ packages:
     peerDependenciesMeta:
       zod:
         optional: true
-
-  bops@1.0.1:
-    resolution: {integrity: sha512-qCMBuZKP36tELrrgXpAfM+gHzqa0nLsWZ+L37ncsb8txYlnAoxOPpVp+g7fK0sGkMXfA0wl8uQkESqw3v4HNag==}
 
   brace-expansion@1.1.21:
     resolution: {integrity: sha512-9zeA+KLZNNzglF2TPKRQEDyx6Yby7daAkuy8MiPzpXPsYDWi/DRM8jmwUDxokQjYqBpv5DgPiwD4h4ZZSy1Ujw==}
@@ -2777,9 +2792,6 @@ packages:
     resolution: {integrity: sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ==}
     engines: {node: '>=8.0'}
 
-  to-utf8@0.0.1:
-    resolution: {integrity: sha512-zks18/TWT1iHO3v0vFp5qLKOG27m67ycq/Y7a7cTiRuUNlc4gf3HGnkRgMv0NyhnfTamtkYBJl+YeD1/j07gBQ==}
-
   ts-api-utils@2.5.0:
     resolution: {integrity: sha512-OJ/ibxhPlqrMM0UiNHJ/0CKQkoKF243/AEmplt3qpRgkW8VG7IfOS41h7V8TjITqdByHzrjcS/2si+y4lIh8NA==}
     engines: {node: '>=18.12'}
@@ -2998,9 +3010,32 @@ packages:
 
 snapshots:
 
-  '@ably/msgpack-js@0.4.1':
+  '@ably/pubsub-core@3.2.0': {}
+
+  '@ably/pubsub-device@3.2.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
-      bops: 1.0.1
+      '@ably/pubsub-core': 3.2.0
+      dequal: 2.0.3
+      fastestsmallesttextencoderdecoder: 1.0.22
+      got: 11.8.6
+      ulid: 2.4.0
+      ws: 8.23.0
+    optionalDependencies:
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
+  '@ably/pubsub-server@3.2.0':
+    dependencies:
+      '@ably/pubsub-core': 3.2.0
+      dequal: 2.0.3
+      got: 11.8.6
+      ws: 8.23.0
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
 
   '@alloc/quick-lru@5.3.0': {}
 
@@ -3861,21 +3896,6 @@ snapshots:
       convert-source-map: 2.0.0
       tinyrainbow: 3.2.0
 
-  ably@2.30.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
-    dependencies:
-      '@ably/msgpack-js': 0.4.1
-      dequal: 2.0.3
-      fastestsmallesttextencoderdecoder: 1.0.22
-      got: 11.8.6
-      ulid: 2.4.0
-      ws: 8.23.0
-    optionalDependencies:
-      react: 19.3.0
-      react-dom: 19.3.0(react@19.3.0)
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
-
   acorn-jsx@5.3.2(acorn@8.19.0):
     dependencies:
       acorn: 8.19.0
@@ -3988,8 +4008,6 @@ snapshots:
 
   balanced-match@4.0.4: {}
 
-  base64-js@1.0.2: {}
-
   baseline-browser-mapping@2.11.29: {}
 
   better-auth@1.7.10(next@16.4.6(@babel/core@7.29.7(supports-color@7.2.0))(@types/node@20.19.43)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(pg@8.23.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(vitest@4.1.12):
@@ -4028,11 +4046,6 @@ snapshots:
       set-cookie-parser: 3.1.3
     optionalDependencies:
       zod: 4.6.7
-
-  bops@1.0.1:
-    dependencies:
-      base64-js: 1.0.2
-      to-utf8: 0.0.1
 
   brace-expansion@1.1.21:
     dependencies:
@@ -5583,8 +5596,6 @@ snapshots:
   to-regex-range@5.0.1:
     dependencies:
       is-number: 7.0.0
-
-  to-utf8@0.0.1: {}
 
   ts-api-utils@2.5.0(typescript@5.9.3):
     dependencies:
