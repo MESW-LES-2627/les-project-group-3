@@ -82,6 +82,26 @@ export function mergeMessages(
   });
 }
 
+// The chat's messages and how far it has fetched from Patas. The cursor moves only
+// with what a fetch returned (complete up to its last message), never with the
+// answer to my own send: the other side's message saved just before mine would
+// otherwise be skipped by the next "after".
+export type ChatState = { messages: ChatMessage[]; cursor: string | null };
+
+export function withFetched(
+  state: ChatState,
+  fetched: readonly ChatMessage[],
+): ChatState {
+  return {
+    messages: mergeMessages(state.messages, fetched),
+    cursor: fetched.at(-1)?.id ?? state.cursor,
+  };
+}
+
+export function withSent(state: ChatState, sent: ChatMessage): ChatState {
+  return { messages: mergeMessages(state.messages, [sent]), cursor: state.cursor };
+}
+
 // A request accepted at some point has a conversation, even after it ends.
 export function hasConversation(request: {
   accepted_at: string | null;

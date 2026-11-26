@@ -13,19 +13,22 @@ import {
 import {
   MESSAGE_MAX,
   SEND_MESSAGES,
-  mergeMessages,
   messageProblem,
+  withFetched,
+  withSent,
   type ChatMessage,
+  type ChatState,
   type LoadMessagesAction,
   type SendAction,
 } from "@/lib/conversation";
 import { liveBus } from "@/lib/live-bus";
 
-// Fixed locale and time zone: the server and the browser print the same text.
+// Fixed locale and time zone, so the server and the browser print the same text, and
+// Portuguese time, so the hour is right in summer too.
 const WHEN = new Intl.DateTimeFormat("en-GB", {
   dateStyle: "medium",
   timeStyle: "short",
-  timeZone: "UTC",
+  timeZone: "Europe/Lisbon",
 });
 
 type Props = {
@@ -49,41 +52,49 @@ export function ChatThread({
   loadAfter,
 }: Props) {
   const router = useRouter();
-  const [messages, setMessages] = useState(initialMessages);
+  const [chat, setChat] = useState<ChatState>({
+    messages: initialMessages,
+    cursor: initialMessages.at(-1)?.id ?? null,
+  });
+  const { messages } = chat;
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  // The newest message the page has, read by the live listener without re-subscribing.
-  const lastIdRef = useRef<string | null>(initialMessages.at(-1)?.id ?? null);
+  // How far the chat has fetched, read by the live listener without re-subscribing.
+  const cursorRef = useRef(chat.cursor);
   useEffect(() => {
-    lastIdRef.current = messages.at(-1)?.id ?? null;
-  }, [messages]);
+    cursorRef.current = chat.cursor;
+  }, [chat.cursor]);
 
-  useEffect(
-    () =>
-      liveBus.subscribe((event) => {
-        if (
-          event.name === "request.changed" &&
-          event.data.application_id === applicationId
-        ) {
-          router.refresh();
-          return;
+  useEffect(() => {
+    function catchUp() {
+      void loadAfter(applicationId, cursorRef.current).then((result) => {
+        if (result.kind === "ok") {
+          setChat((current) => withFetched(current, result.messages));
         }
-        if (
-          event.name === "reconnected" ||
-          (event.name === "message.posted" &&
-            event.data.application_id === applicationId)
-        ) {
-          void loadAfter(applicationId, lastIdRef.current).then((result) => {
-            if (result.kind === "ok") {
-              setMessages((current) => mergeMessages(current, result.messages));
-            }
-          });
-        }
-      }),
-    [applicationId, loadAfter, router],
-  );
+      });
+    }
+    const leave = liveBus.subscribe((event) => {
+      if (
+        event.name === "request.changed" &&
+        event.data.application_id === applicationId
+      ) {
+        router.refresh();
+        return;
+      }
+      if (
+        event.name === "reconnected" ||
+        (event.name === "message.posted" &&
+          event.data.application_id === applicationId)
+      ) {
+        catchUp();
+      }
+    });
+    // A message may have arrived between rendering the page and listening.
+    catchUp();
+    return leave;
+  }, [applicationId, loadAfter, router]);
 
   // Keep the newest message in view, inside the list's own scroll.
   const listRef = useRef<HTMLOListElement>(null);
@@ -108,7 +119,7 @@ export function ChatThread({
     startTransition(async () => {
       const outcome = await send(applicationId, draft);
       if (outcome.ok) {
-        setMessages((current) => mergeMessages(current, [outcome.message]));
+        setChat((current) => withSent(current, outcome.message));
         setDraft("");
         return;
       }

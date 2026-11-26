@@ -9,6 +9,8 @@ import {
   isChatMessage,
   mergeMessages,
   messageProblem,
+  withFetched,
+  withSent,
   type ChatMessage,
 } from "@/lib/conversation";
 
@@ -167,5 +169,33 @@ describe("hasConversation and canSend", () => {
     for (const status of ["open", "declined", "withdrawn", "closed", "adopted"]) {
       expect(canSend(status)).toBe(false);
     }
+  });
+});
+
+describe("withSent and withFetched (how far the chat has fetched)", () => {
+  const m0 = message("m0", "2026-11-26T10:00:00Z");
+  const m1 = message("m1", "2026-11-26T10:01:00Z", "from Ana");
+  const m2 = message("m2", "2026-11-26T10:02:00Z", "from Bruno");
+
+  it("adds my own message without moving how far the chat has fetched", () => {
+    const state = withSent({ messages: [m0], cursor: "m0" }, m2);
+
+    expect(state.messages.map((m) => m.id)).toEqual(["m0", "m2"]);
+    expect(state.cursor).toBe("m0");
+  });
+
+  it("still gets the other side's message sent just before mine", () => {
+    // Ana's m1 was saved just before Bruno's m2, but Bruno's answer to his own send
+    // arrived first: the next fetch must still ask from m0, and so bring m1.
+    const afterSend = withSent({ messages: [m0], cursor: "m0" }, m2);
+
+    const afterFetch = withFetched(afterSend, [m1, m2]);
+
+    expect(afterFetch.messages.map((m) => m.id)).toEqual(["m0", "m1", "m2"]);
+    expect(afterFetch.cursor).toBe("m2");
+  });
+
+  it("keeps the cursor when a fetch brings nothing new", () => {
+    expect(withFetched({ messages: [m0], cursor: "m0" }, []).cursor).toBe("m0");
   });
 });

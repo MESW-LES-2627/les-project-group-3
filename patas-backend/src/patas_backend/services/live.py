@@ -20,6 +20,11 @@ from patas_backend.models.adoption import (
 from patas_backend.models.conversation import MessagePosted, MessageRepository
 from patas_backend.services.events import EventDispatcher
 
+# The announcement is awaited before the request answers: Ably being slow must not
+# hold every write. Past this, the notice is dropped (the dispatcher logs it) and the
+# page still shows the change on its next fetch or reload.
+PUBLISH_TIMEOUT_SECONDS = 3.0
+
 
 def channel_for(user_id: UUID) -> str:
     """The one channel a person listens to. Their token lets them listen to nothing
@@ -73,9 +78,11 @@ class LiveAnnouncer:
         self,
         publisher: LivePublisher,
         session_factory: async_sessionmaker[AsyncSession],
+        timeout_seconds: float = PUBLISH_TIMEOUT_SECONDS,
     ) -> None:
         self._publisher = publisher
         self._session_factory = session_factory
+        self._timeout_seconds = timeout_seconds
 
     async def message_posted(self, event: MessagePosted) -> None:
         async with self._session_factory() as session:
@@ -121,10 +128,14 @@ class LiveAnnouncer:
     async def _tell_both(
         self, owner_id: UUID, applicant_id: UUID, name: str, data: dict[str, str]
     ) -> None:
-        # Together, so a failure on one channel does not stop the other.
-        await asyncio.gather(
-            self._publisher.publish(owner_id, name, data),
-            self._publisher.publish(applicant_id, name, data),
+        # Together, so a failure on one channel does not stop the other, and bounded,
+        # so a slow Ably does not hold the request (PUBLISH_TIMEOUT_SECONDS).
+        await asyncio.wait_for(
+            asyncio.gather(
+                self._publisher.publish(owner_id, name, data),
+                self._publisher.publish(applicant_id, name, data),
+            ),
+            timeout=self._timeout_seconds,
         )
 
 
