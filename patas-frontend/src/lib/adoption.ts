@@ -97,6 +97,8 @@ export type SentRequest = {
   owner_confirmed_at: string | null;
   applicant_confirmed_at: string | null;
   handover_checked: string[];
+  // When the owner accepted; null if never. From then on there is a conversation.
+  accepted_at: string | null;
   created_at: string;
 };
 
@@ -121,6 +123,7 @@ export function isSentRequest(value: unknown): value is SentRequest {
     (r.applicant_confirmed_at === null ||
       typeof r.applicant_confirmed_at === "string") &&
     isStringArray(r.handover_checked) &&
+    (r.accepted_at === null || typeof r.accepted_at === "string") &&
     typeof r.created_at === "string"
   );
 }
@@ -143,6 +146,8 @@ export type ReceivedRequest = {
   owner_confirmed_at: string | null;
   applicant_confirmed_at: string | null;
   handover_checked: string[];
+  // When the owner accepted; null if never. From then on there is a conversation.
+  accepted_at: string | null;
   created_at: string;
 };
 
@@ -170,6 +175,7 @@ export function isReceivedRequest(value: unknown): value is ReceivedRequest {
     (request.applicant_confirmed_at === null ||
       typeof request.applicant_confirmed_at === "string") &&
     isStringArray(request.handover_checked) &&
+    (request.accepted_at === null || typeof request.accepted_at === "string") &&
     typeof request.created_at === "string"
   );
 }

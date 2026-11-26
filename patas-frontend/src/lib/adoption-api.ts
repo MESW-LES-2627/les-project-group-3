@@ -31,7 +31,7 @@ import {
 } from "@/lib/adoption";
 import { bearerToken } from "@/lib/matchmaker-api";
 
-const UUID_PATTERN =
+export const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // The backend's 409 carries a code, because it has more than one cause.
